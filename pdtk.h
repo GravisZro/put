@@ -1,5 +1,5 @@
-#ifndef OBJECT_H
-#define OBJECT_H
+#ifndef PDTK_H
+#define PDTK_H
 
 #include <queue>
 #include <functional>
@@ -90,4 +90,4 @@ void Object::queue(signal<Args...>& sig, Args... args)
   Application::m_exec_mutex.unlock();
 }
 
-#endif // OBJECT_H
+#endif // PDTK_H
