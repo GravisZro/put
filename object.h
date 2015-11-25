@@ -7,13 +7,13 @@
 
 template<typename T>
 struct lockable : T, std::mutex
-  { template<typename... Args> inline lockable(Args... args) : T(args...) { } };
+  { template<typename... ArgTypes> inline lockable(ArgTypes... args) : T(args...) { } };
 
-template<typename... Args>
-static void invoke(std::function<void(Args...)> f, Args... args) { f(args...); }
+template<typename... ArgTypes>
+static void invoke(std::function<void(ArgTypes...)> f, ArgTypes... args) { f(args...); }
 
-template<typename... Args>
-using signal = std::function<void(Args...)>;
+template<typename... ArgTypes>
+using signal = std::function<void(ArgTypes...)>;
 using vfunc  = std::function<void(       )>;
 
 
@@ -24,8 +24,8 @@ public:
  ~Object(void);
 
 protected:
-  template<typename... Args>
-    static void queue(signal<Args...>& sig, Args... args);
+  template<typename... ArgTypes>
+    static void queue(signal<ArgTypes...>& sig, ArgTypes... args);
 
   template<class ObjType, typename SlotType>
     static void connect(signal<>& sig, ObjType* obj, SlotType&& slot)
@@ -86,11 +86,11 @@ private:
   friend class Object;
 };
 
-template<typename... Args>
-void Object::queue(signal<Args...>& sig, Args... args)
+template<typename... ArgTypes>
+void Object::queue(signal<ArgTypes...>& sig, ArgTypes... args)
 {
   std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::m_signal_queue); // multithread protection
-  Application::m_signal_queue.emplace(std::bind(invoke<Args...>, sig, args...));
+  Application::m_signal_queue.emplace(std::bind(invoke<ArgTypes...>, sig, args...));
   Application::m_exec_step.unlock();
 }
 

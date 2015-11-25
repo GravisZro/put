@@ -38,3 +38,18 @@ int main(int argc, char* argv[])
   std::cout << "process signals" << std::endl;
   return app.exec();
 }
+
+/*
+
+==== BUILD COMMAND ==== 
+g++ example.cpp object.cpp -std=c++14 -o example
+
+==== OUTPUT ====
+before trigger
+executing trigger
+after trigger
+process signals
+num: 7
+num2: 99
+
+*/
