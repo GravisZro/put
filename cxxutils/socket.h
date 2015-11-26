@@ -1,8 +1,8 @@
 #ifndef SOCKET_H
 #define SOCKET_H
 
-#include "object.h"
-//#include "socketstream.h"
+#include <object.h>
+#include "posix_helpers.h"
 
 #include <vector>
 #include <string>
@@ -15,7 +15,6 @@
 #include <cassert>
 #include <thread>
 
-#include <pdtk.h>
 
 #include <map>
 #include <stropts.h>
