@@ -15,7 +15,6 @@
 #include <cassert>
 #include <thread>
 
-
 #include <map>
 #include <stropts.h>
 
