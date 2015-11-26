@@ -103,7 +103,7 @@ namespace posix
   {
     inline sockaddr_t(void)
     {
-      sun_family = static_cast<sa_family_t>(EDomain::unspec);
+      operator =(EDomain::unspec);
       std::memset(sun_path, 0, sizeof(sun_path));
     }
 
