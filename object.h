@@ -6,8 +6,6 @@
 #include <mutex>
 #include <condition_variable>
 
-#include <iostream>
-
 template<typename T>
 struct lockable : T, std::mutex
   { template<typename... ArgTypes> inline lockable(ArgTypes... args) : T(args...) { } };
@@ -85,6 +83,8 @@ private:
   friend class Object;
 };
 
+#include <iostream>
+
 template<typename... ArgTypes>
 void Object::queue(signal<ArgTypes...>& sig, ArgTypes... args)
 {
@@ -93,6 +93,6 @@ void Object::queue(signal<ArgTypes...>& sig, ArgTypes... args)
     Application::m_signal_queue.emplace(std::bind(invoke<ArgTypes...>, sig, args...));
   else
     std::cout << "not queuing!" << std::endl;
-  Application::m_step_exec.notify_one();
+  Application::m_step_exec.notify_one(); // inform execution stepper
 }
 #endif // OBJECT_H
