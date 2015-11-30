@@ -1,5 +1,7 @@
 #include "socket.h"
 
+using namespace posix;
+
 std::map<fd_t, SocketBase*> SocketBase::s_socket_map;
 lockable<fdset_t> SocketBase::s_socket_indexes;
 

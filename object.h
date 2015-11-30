@@ -4,6 +4,9 @@
 #include <queue>
 #include <functional>
 #include <mutex>
+#include <condition_variable>
+
+#include <iostream>
 
 template<typename T>
 struct lockable : T, std::mutex
@@ -12,18 +15,17 @@ struct lockable : T, std::mutex
 template<typename... ArgTypes>
 static void invoke(std::function<void(ArgTypes...)> f, ArgTypes... args) { f(args...); }
 
-template<typename... ArgTypes>
-using signal = std::function<void(ArgTypes...)>;
-using vfunc  = std::function<void(       )>;
-
+using vfunc = std::function<void()>;
 
 class Object
 {
 public:
+  template<typename... ArgTypes>
+  using signal = std::function<void(ArgTypes...)>;
+
   Object(void);
  ~Object(void);
 
-protected:
   template<typename... ArgTypes>
     static void queue(signal<ArgTypes...>& sig, ArgTypes... args);
 
@@ -78,10 +80,7 @@ public:
   int exec(void);
 
 private:
-  static void process_signal_queue(void);
-
-private:
-  static std::mutex m_exec_step;
+  static std::condition_variable     m_step_exec;
   static lockable<std::queue<vfunc>> m_signal_queue;
   friend class Object;
 };
@@ -90,8 +89,10 @@ template<typename... ArgTypes>
 void Object::queue(signal<ArgTypes...>& sig, ArgTypes... args)
 {
   std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::m_signal_queue); // multithread protection
-  Application::m_signal_queue.emplace(std::bind(invoke<ArgTypes...>, sig, args...));
-  Application::m_exec_step.unlock();
+  if(sig != nullptr) // if signal is connected...
+    Application::m_signal_queue.emplace(std::bind(invoke<ArgTypes...>, sig, args...));
+  else
+    std::cout << "not queuing!" << std::endl;
+  Application::m_step_exec.notify_one();
 }
-
 #endif // OBJECT_H

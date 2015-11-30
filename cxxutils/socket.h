@@ -18,8 +18,8 @@
 #include <map>
 #include <stropts.h>
 
-using namespace posix;
 
+using namespace posix;
 
 class SocketBase : public Object,
                    protected socket_t
@@ -41,6 +41,5 @@ private:
   static lockable<fdset_t> s_socket_indexes; // use as index into s_socket_map
   static std::map<fd_t, SocketBase*> s_socket_map;
 };
-
 
 #endif // SOCKET_H
