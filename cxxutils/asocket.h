@@ -9,6 +9,7 @@
 
 // project
 #include <pdtk.h>
+#include "posix_helpers.h"
 
 class AsyncSocket : public Object
 {

@@ -1,4 +1,4 @@
-#include "async_socket.h"
+#include "asocket.h"
 
 // STL
 #include <cassert>
@@ -57,7 +57,6 @@ void AsyncSocket::async_read(void)
     std::unique_lock<std::mutex> lk(m);
     m_read.condition.wait(lk, [this] { return is_connected(); } );
 
-    std::cout << "async_read" << std::endl;
     int rval = ::read(m_read.socket, m_read.buffer.data(), m_read.buffer.capacity());
     if(rval != posix::error_response)
       m_read.buffer.resize(rval);
@@ -73,7 +72,6 @@ void AsyncSocket::async_write(void)
     std::unique_lock<std::mutex> lk(m);
     m_write.condition.wait(lk, [this] { return is_connected() && !m_write.buffer.empty(); } );
 
-    std::cout << "async_write" << std::endl;
     ::write(m_write.socket, m_write.buffer.data(), m_write.buffer.size());
     m_write.buffer.resize(0);
     queue(writeFinished);
