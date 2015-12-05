@@ -4,7 +4,6 @@
 // STL
 #include <system_error>
 #include <cerrno>
-#include <cstdint>
 #include <cstring>
 
 // POSIX
@@ -47,43 +46,6 @@ enum class ESignal : int
   virtual_timer       = SIGVTALRM,  // Virtual timer expired.
   cpu_time_exceeded   = SIGXCPU,    // CPU time limit exceeded.
   file_size_exceeded  = SIGXFSZ,    // File size limit exceeded.
-
-  //real_time_min       = SIGRTMIN,   // First Real Time signal
-  //real_time_max       = SIGRTMAX,   // Last Real Time signal
-#if 0
-  hangup        = SIGHUP,    // Hangup (POSIX)
-  interrupt     = SIGINT,    // Interrupt (ANSI)
-  quit          = SIGQUIT,   // Quit (POSIX)
-  illegal       = SIGILL,    // Illegal instruction (ANSI)
-  trace_trap    = SIGTRAP,   // Trace trap (POSIX)
-  abort         = SIGABRT,   // Abort (ANSI)
-  IOT_trap      = SIGIOT,    // IOT trap (4.2 BSD)
-  bus_error     = SIGBUS,    // BUS error (4.2 BSD)
-  fp_except     = SIGFPE,    // Floating-point exception (ANSI)
-  kill          = SIGKILL,   // Kill, unblockable (POSIX)
-  user1         = SIGUSR1,  // User-defined signal 1 (POSIX)
-  segmentation  = SIGSEGV,  // Segmentation violation (ANSI)
-  user2         = SIGUSR2,  // User-defined signal 2 (POSIX)
-  broken_pipe   = SIGPIPE,  // Broken pipe (POSIX)
-  alarm_clock   = SIGALRM,  // Alarm clock (POSIX)
-  termination   = SIGTERM,  // Termination (ANSI)
-  stack_fault   = SIGSTKFLT,// Stack fault
-  child_changed = SIGCHLD,  // Child status has changed (POSIX)
-  continued     = SIGCONT,  // Continue (POSIX)
-  stop          = SIGSTOP,  // Stop, unblockable (POSIX)
-  keyboard_stop = SIGTSTP,  // Keyboard stop (POSIX)
-  tty_read      = SIGTTIN,  // Background read from tty (POSIX)
-  tty_write     = SIGTTOU,  // Background write to tty (POSIX)
-  urgent        = SIGURG,   // Urgent condition on socket (4.2 BSD)
-  cpu_limit     = SIGXCPU,  // CPU limit exceeded (4.2 BSD)
-  file_limit    = SIGXFSZ,  // File size limit exceeded (4.2 BSD)
-  virt_alarm    = SIGVTALRM,// Virtual alarm clock (4.2 BSD)
-  profile_alarm = SIGPROF,  // Profiling alarm clock (4.2 BSD)
-  window_size   = SIGWINCH, // Window size change (4.3 BSD, Sun)
-  polling       = SIGPOLL,  // Pollable event occurred (System V)./ I/O now possible (4.2 BSD)
-  power         = SIGPWR,   // Power failure restart (System V)
-  bad           = SIGSYS,   // Bad system call
-#endif
 };
 
 enum class EDomain : sa_family_t
@@ -158,7 +120,7 @@ namespace posix
 
     fd_t m_socket;
   };
-#if 1
+
   template<typename RType, typename... ArgTypes>
   static inline RType ignore_interruption(function<RType, ArgTypes...> func, ArgTypes... args)
   {
@@ -168,17 +130,6 @@ namespace posix
     } while(rval == error_response && errno == std::errc::interrupted);
     return rval;
   }
-#else
-  template<typename RType, typename... ArgTypes>
-  static inline RType ignore_interruption(RType(*func)(ArgTypes...), ArgTypes... args)
-  {
-    RType rval;
-    do {
-      rval = func(args...);
-    } while(rval == error_response && errno == std::errc::interrupted);
-    return rval;
-  }
-#endif
 
   struct sockaddr_t : sockaddr_un
   {
@@ -200,14 +151,12 @@ namespace posix
     fd_t fd = ::socket(static_cast<int>(domain),
                        static_cast<int>(type),
                        static_cast<int>(protocol));
-    /*
     if(fd != error_response)
     {
       ::fcntl(fd, F_SETFD, FD_CLOEXEC);
       if(flags & O_NONBLOCK)
         ::fcntl(fd, F_SETFL, ::fcntl(fd, F_GETFL) | O_NONBLOCK);
     }
-    */
     return fd;
   }
 
