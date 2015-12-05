@@ -3,7 +3,7 @@
 
 #include "application.h"
 #include "object.h"
-#include "cxxutils/asocket.h"
+#include "asocket.h"
 
 #endif // PDTK_H
 
