@@ -58,12 +58,14 @@ public:
 };
 
 template<typename... ArgTypes>
-void Object::queue(signal<ArgTypes...>& sig, ArgTypes... args)
+inline void Object::queue(signal<ArgTypes...>& sig, ArgTypes... args)
 {
-  std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::m_signal_queue); // multithread protection
   if(sig != nullptr) // if signal is connected...
+  {
+    std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::m_signal_queue); // multithread protection
     Application::m_signal_queue.emplace(std::bind(invoke<ArgTypes...>, sig, args...));
-  Application::m_step_exec.notify_one(); // inform execution stepper
+    Application::m_step_exec.notify_one(); // inform execution stepper
+  }
 }
 
 #endif // OBJECT_H

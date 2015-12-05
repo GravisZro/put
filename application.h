@@ -14,7 +14,6 @@ template<typename... ArgTypes>
 static void invoke(std::function<void(ArgTypes...)> f, ArgTypes... args) { f(args...); }
 
 using vfunc = std::function<void()>;
-class Object;
 
 class Application
 {
