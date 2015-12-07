@@ -23,8 +23,11 @@ public:
 
   int exec(void);
 
+  static void quit(int return_value = 0);
+
 private:
-  static std::condition_variable     m_step_exec;
+  static void wait_for_queue(void);
+  static std::condition_variable m_step_exec;
   static lockable<std::queue<vfunc>> m_signal_queue;
   friend class Object;
 };

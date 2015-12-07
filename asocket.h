@@ -7,6 +7,9 @@
 #include <mutex>
 #include <condition_variable>
 
+// POSIX
+#include <unistd.h>
+
 // project
 #include "object.h"
 #include "cxxutils/socket_helpers.h"
@@ -34,6 +37,7 @@ private:
   struct async_pkg_t
   {
     inline async_pkg_t(void) { buffer.reserve(0x2000); }
+    inline ~async_pkg_t(void) { ::close(socket); thread.detach(); }
     posix::fd_t             socket;
     std::vector<char>       buffer;
     std::thread             thread;
