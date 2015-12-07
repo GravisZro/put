@@ -61,7 +61,6 @@ void AsyncSocket::async_read(void)
     if(rval != posix::error_response)
       m_read.buffer.resize(rval);
     queue(readFinished, m_read.buffer);
-    Application::quit(-1);
   }
 }
 
