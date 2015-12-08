@@ -1,8 +1,10 @@
 #include "application.h"
 #include "object.h"
 
-static int s_return_value = 0;
-static bool s_run = true;
+#include <atomic>
+
+static std::atomic_int  s_return_value (0);
+static std::atomic_bool s_run (true);
 
 std::condition_variable          Application::m_step_exec;
 lockable<std::queue<vfunc_pair>> Application::m_signal_queue;
