@@ -14,8 +14,7 @@ template<typename... ArgTypes>
 static void invoke(std::function<void(ArgTypes...)> f, ArgTypes... args) { f(args...); }
 
 struct ProtoObject;
-using vfunc = std::function<void()>;
-using vfunc_pair = std::pair<vfunc, ProtoObject*>;
+using vfunc_pair = std::pair<std::function<void()>, ProtoObject*>;
 
 class Application
 {
