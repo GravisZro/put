@@ -13,7 +13,9 @@ struct lockable : T, std::mutex
 template<typename... ArgTypes>
 static void invoke(std::function<void(ArgTypes...)> f, ArgTypes... args) { f(args...); }
 
+struct ProtoObject;
 using vfunc = std::function<void()>;
+using vfunc_pair = std::pair<vfunc, ProtoObject*>;
 
 class Application
 {
@@ -26,9 +28,8 @@ public:
   static void quit(int return_value = 0);
 
 private:
-  static void wait_for_queue(void);
   static std::condition_variable m_step_exec;
-  static lockable<std::queue<vfunc>> m_signal_queue;
+  static lockable<std::queue<vfunc_pair>> m_signal_queue;
   friend class Object;
 };
 
