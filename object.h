@@ -34,6 +34,10 @@ public:
   inline Object(void)  { }
   inline ~Object(void) { }
 
+  template<class ObjType, typename SlotType, typename... ArgTypes>
+  static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, SlotType&& slot)
+    { sig.bind(obj, slot); }
+
   template<typename... ArgTypes>
   static void queue(signal<ArgTypes...>& sig, ArgTypes... args)
   {
@@ -42,12 +46,8 @@ public:
       std::lock_guard<lockable<std::queue<vfunc_pair>>> lock(Application::m_signal_queue); // multithread protection
       Application::m_signal_queue.emplace(std::bind(sig.func, sig.obj, args...), sig.obj);
       Application::m_step_exec.notify_one(); // inform execution stepper
-    }
+    };
   }
-
-  template<class ObjType, typename SlotType, typename... ArgTypes>
-    static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, SlotType&& slot)
-      { sig.bind(obj, slot); }
 };
 
 #endif // OBJECT_H

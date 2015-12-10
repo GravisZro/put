@@ -18,6 +18,9 @@ class AsyncSocket : public Object
 {
 public:
   AsyncSocket(void);
+  AsyncSocket(AsyncSocket& other);
+  AsyncSocket(posix::fd_t socket);
+ ~AsyncSocket(void);
 
   bool bind(const char *socket_path);
   bool connect(const char *socket_path);

@@ -7,14 +7,37 @@
 #include <unistd.h>
 
 AsyncSocket::AsyncSocket(void)
+  : AsyncSocket(posix::socket(EDomain::unix, EType::stream, EProtocol::unspec))
 {
   m_connected = false;
+}
 
-  m_read.socket = posix::socket(EDomain::unix, EType::stream, EProtocol::unspec);
-  m_write.socket = dup(m_read.socket);
+AsyncSocket::AsyncSocket(AsyncSocket& other)
+  : AsyncSocket(other.m_read.socket)
+{
+  m_connected = other.m_connected;
+}
+
+AsyncSocket::AsyncSocket(posix::fd_t socket)
+{
+  m_read .socket = dup(socket);
+  m_write.socket = dup(socket);
+
+  // socket shutdowns behave incorrectly!
+  //shutdown(m_read .socket, SHUT_WR); // make read only
+  //shutdown(m_write.socket, SHUT_RD); // make write only
 
   m_read .thread = std::thread(&AsyncSocket::async_read , this);
   m_write.thread = std::thread(&AsyncSocket::async_write, this);
+}
+
+AsyncSocket::~AsyncSocket(void)
+{
+  if(m_connected)
+  {
+    ::close(m_read .socket);
+    ::close(m_write.socket);
+  }
 }
 
 bool AsyncSocket::is_connected(void)
