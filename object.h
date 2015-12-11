@@ -18,13 +18,7 @@ public:
   template<typename... ArgTypes>
   struct signal
   {
-    using func_t = void(*)(ProtoObject*, ArgTypes...);
-
-    template<typename ObjType, typename SlotType>
-    inline void bind(ObjType* object, SlotType&& slot)
-      { obj = object; func = reinterpret_cast<func_t>(slot); }
-
-    func_t func;
+    void(*func)(ProtoObject*, ArgTypes...);
     ProtoObject* obj;
   };
 
@@ -33,10 +27,14 @@ public:
 
   template<class ObjType, typename SlotType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, SlotType&& slot)
-    { sig.bind(obj, slot); }
+  {
+    sig.obj = obj;
+    sig.func = reinterpret_cast<void(*)(ProtoObject*, ArgTypes...)>(slot);
+    // note: add -Wno-pmf-conversions if you are getting warnings
+  }
 
   template<typename... ArgTypes>
-  static void queue(signal<ArgTypes...>& sig, ArgTypes... args)
+  static inline void queue(signal<ArgTypes...>& sig, ArgTypes... args)
   {
     std::lock_guard<lockable<std::queue<vfunc_pair>>> lock(Application::m_signal_queue); // multithread protection
     Application::m_signal_queue.emplace(std::bind(sig.func, sig.obj, args...), sig.obj);

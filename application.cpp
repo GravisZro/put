@@ -17,13 +17,13 @@ int Application::exec(void)
   while(s_run)
   {
     std::unique_lock<std::mutex> lk(m_signal_queue); // multithread protection
-    m_step_exec.wait(lk, [] { return !m_signal_queue.empty(); } );
+    m_step_exec.wait(lk, [] { return !m_signal_queue.empty(); } ); // wait for notify_one() call and non-empty queue
 
     while(m_signal_queue.size())
     {
       const vfunc_pair& pair = m_signal_queue.back();
-      if(pair.second != nullptr && pair.second == pair.second->self)
-        invoke(pair.first);
+      if(pair.second != nullptr && pair.second == pair.second->self) // test that object hasn't been deleted
+        invoke(pair.first); // invoke function
       m_signal_queue.pop();
     }
   }
