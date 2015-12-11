@@ -18,11 +18,7 @@ public:
   template<typename... ArgTypes>
   struct signal
   {
-#if defined(__GNUC__) && !defined(__clang__)
-    void(*func)(ProtoObject*, ArgTypes...);
-#else
     std::function<void(ProtoObject*, ArgTypes...)> func;
-#endif
     ProtoObject* obj;
   };
 
@@ -33,19 +29,15 @@ public:
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, SlotType&& slot)
   {
     sig.obj = obj;
-#if defined(__GNUC__) && !defined(__clang__)
-    sig.func = reinterpret_cast<void(*)(ProtoObject*, ArgTypes...)>(slot);
-    // note: add -Wno-pmf-conversions to silence warnings
-#else
-    sig.func = [slot](ProtoObject* p, ArgTypes... args) { (reinterpret_cast<ObjType*>(p)->*slot)(args...); };
-#endif
+    sig.func = [slot](ProtoObject* p, ArgTypes... args)
+      { if(p == p->self) (reinterpret_cast<ObjType*>(p)->*slot)(args...); };
   }
 
   template<typename... ArgTypes>
   static inline void queue(signal<ArgTypes...>& sig, ArgTypes... args)
   {
-    std::lock_guard<lockable<std::queue<vfunc_pair>>> lock(Application::m_signal_queue); // multithread protection
-    Application::m_signal_queue.emplace(std::bind(sig.func, sig.obj, args...), sig.obj);
+    std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::m_signal_queue); // multithread protection
+    Application::m_signal_queue.emplace(std::bind(sig.func, sig.obj, args...));
     Application::m_step_exec.notify_one(); // inform execution stepper
   }
 };

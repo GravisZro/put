@@ -9,12 +9,7 @@
 template<typename T>
 struct lockable : T, std::mutex
   { template<typename... ArgTypes> inline lockable(ArgTypes... args) : T(args...) { } };
-
-template<typename... ArgTypes>
-static void invoke(std::function<void(ArgTypes...)> f, ArgTypes... args) { f(args...); }
-
-struct ProtoObject;
-using vfunc_pair = std::pair<std::function<void()>, ProtoObject*>;
+using vfunc = std::function<void()>;
 
 class Application
 {
@@ -28,7 +23,7 @@ public:
 
 private:
   static std::condition_variable m_step_exec;
-  static lockable<std::queue<vfunc_pair>> m_signal_queue;
+  static lockable<std::queue<vfunc>> m_signal_queue;
   friend class Object;
 };
 

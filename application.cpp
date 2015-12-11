@@ -6,8 +6,8 @@
 static std::atomic_int  s_return_value (0);
 static std::atomic_bool s_run (true);
 
-std::condition_variable          Application::m_step_exec;
-lockable<std::queue<vfunc_pair>> Application::m_signal_queue;
+std::condition_variable     Application::m_step_exec;
+lockable<std::queue<vfunc>> Application::m_signal_queue;
 
 Application::Application (void) { }
 Application::~Application(void) { }
@@ -21,9 +21,7 @@ int Application::exec(void)
 
     while(m_signal_queue.size())
     {
-      const vfunc_pair& pair = m_signal_queue.back();
-      if(pair.second != nullptr && pair.second == pair.second->self) // test that object hasn't been deleted
-        invoke(pair.first); // invoke function
+      m_signal_queue.back()();
       m_signal_queue.pop();
     }
   }
