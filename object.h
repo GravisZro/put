@@ -30,7 +30,7 @@ public:
   {
     sig.obj = obj;
     sig.func = reinterpret_cast<void(*)(ProtoObject*, ArgTypes...)>(slot);
-    // note: add -Wno-pmf-conversions if you are getting warnings
+    // note: add -Wno-pmf-conversions to silence GCC's warnings
   }
 
   template<typename... ArgTypes>
