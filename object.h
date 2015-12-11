@@ -18,7 +18,11 @@ public:
   template<typename... ArgTypes>
   struct signal
   {
+#ifdef SAFE_OBJECT
+    std::function<void(ProtoObject*, ArgTypes...)> func;
+#else
     void(*func)(ProtoObject*, ArgTypes...);
+#endif
     ProtoObject* obj;
   };
 
@@ -29,8 +33,12 @@ public:
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, SlotType&& slot)
   {
     sig.obj = obj;
+#ifdef SAFE_OBJECT
+    sig.func = [slot](ProtoObject* p, ArgTypes... args) { (reinterpret_cast<ObjType*>(p)->*slot)(args...); };
+#else
     sig.func = reinterpret_cast<void(*)(ProtoObject*, ArgTypes...)>(slot);
     // note: add -Wno-pmf-conversions to silence GCC's warnings
+#endif
   }
 
   template<typename... ArgTypes>
