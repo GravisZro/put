@@ -18,7 +18,7 @@ public:
   template<typename... ArgTypes>
   struct signal
   {
-#if __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
     void(*func)(ProtoObject*, ArgTypes...);
 #else
     std::function<void(ProtoObject*, ArgTypes...)> func;
@@ -33,7 +33,7 @@ public:
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, SlotType&& slot)
   {
     sig.obj = obj;
-#if __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
     sig.func = reinterpret_cast<void(*)(ProtoObject*, ArgTypes...)>(slot);
     // note: add -Wno-pmf-conversions to silence warnings
 #else
