@@ -20,9 +20,6 @@ public:
   {
     using func_t = void(*)(ProtoObject*, ArgTypes...);
 
-    inline bool valid(void)
-      { return func != nullptr && obj != nullptr && obj == obj->self; }
-
     template<typename ObjType, typename SlotType>
     inline void bind(ObjType* object, SlotType&& slot)
       { obj = object; func = reinterpret_cast<func_t>(slot); }
@@ -41,12 +38,9 @@ public:
   template<typename... ArgTypes>
   static void queue(signal<ArgTypes...>& sig, ArgTypes... args)
   {
-    if(sig.valid()) // if signal is connected...
-    {
-      std::lock_guard<lockable<std::queue<vfunc_pair>>> lock(Application::m_signal_queue); // multithread protection
-      Application::m_signal_queue.emplace(std::bind(sig.func, sig.obj, args...), sig.obj);
-      Application::m_step_exec.notify_one(); // inform execution stepper
-    };
+    std::lock_guard<lockable<std::queue<vfunc_pair>>> lock(Application::m_signal_queue); // multithread protection
+    Application::m_signal_queue.emplace(std::bind(sig.func, sig.obj, args...), sig.obj);
+    Application::m_step_exec.notify_one(); // inform execution stepper
   }
 };
 
