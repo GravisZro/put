@@ -94,9 +94,10 @@ constexpr bool operator ==(T err_num, std::errc err)
 namespace posix
 {
   static const int error_response = -1;
-
+#ifndef __clang__
   template<typename RType, typename... ArgTypes>
   using function = RType(*)(ArgTypes...);
+#endif
 
   typedef int fd_t;
 
@@ -122,7 +123,11 @@ namespace posix
   };
 
   template<typename RType, typename... ArgTypes>
+#ifdef __clang__
+  static inline RType ignore_interruption(RType(*func)(ArgTypes...), ArgTypes... args)
+#else
   static inline RType ignore_interruption(function<RType, ArgTypes...> func, ArgTypes... args)
+#endif
   {
     RType rval;
     do {
