@@ -21,7 +21,7 @@ int Application::exec(void)
 
     while(m_signal_queue.size())
     {
-      m_signal_queue.back()();
+      m_signal_queue.front()();
       m_signal_queue.pop();
     }
   }
