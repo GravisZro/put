@@ -30,7 +30,7 @@ public:
   {
     sig.obj = obj;
     sig.func = [slot](ProtoObject* p, ArgTypes... args)
-      { if(p == p->self) (reinterpret_cast<ObjType*>(p)->*slot)(args...); };
+      { if(p == p->self) (static_cast<ObjType*>(p)->*slot)(args...); };
   }
 
   template<typename... ArgTypes>
