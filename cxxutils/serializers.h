@@ -9,7 +9,6 @@ namespace rpc
 {
 // ===== interface declarations =====
   template<typename... ArgTypes>
-//  static void serialize(std::vector<char>& data, ArgTypes&... args);
   static std::vector<char> serialize(ArgTypes&... args);
 
   template<typename... ArgTypes>
@@ -37,8 +36,6 @@ namespace rpc
     }
 
     inline const char& front(void) const { return *m_front; }
-    inline const char& back (void) const { return std::vector<char>::back(); }
-
   private:
     std::vector<char>::iterator m_front;
   };
@@ -167,7 +164,7 @@ namespace rpc
            deserialize<ArgTypes...>(data, others...);
   }
 
-  // multi-arg interface
+  // multi-arg presentation
   template<typename... ArgTypes>
   static inline std::vector<char> serialize(ArgTypes&... args)
   {
