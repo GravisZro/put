@@ -6,6 +6,8 @@
 // POSIX
 #include <unistd.h>
 
+static_assert(sizeof(uint8_t) == sizeof(char), "size mismatch!");
+
 AsyncSocket::AsyncSocket(void)
   : AsyncSocket(posix::socket(EDomain::unix, EType::stream, EProtocol::unspec))
 {
