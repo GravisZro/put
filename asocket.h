@@ -2,6 +2,7 @@
 #define ASYNCSOCKET_H
 
 // STL
+#include <cstdint>
 #include <vector>
 #include <thread>
 #include <mutex>
@@ -26,9 +27,9 @@ public:
   bool connect(const char *socket_path);
 
   bool read(void);
-  bool write(const std::vector<char>& buffer);
+  bool write(const std::vector<uint8_t>& buffer);
 
-  signal<std::vector<char>> readFinished;
+  signal<std::vector<uint8_t>> readFinished;
   signal<> writeFinished;
 
 private:
@@ -42,7 +43,7 @@ private:
     inline async_pkg_t(void) { buffer.reserve(0x2000); }
     inline ~async_pkg_t(void) { ::close(socket); thread.detach(); }
     posix::fd_t             socket;
-    std::vector<char>       buffer;
+    std::vector<uint8_t>       buffer;
     std::thread             thread;
     std::condition_variable condition;
   };

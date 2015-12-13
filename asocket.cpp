@@ -109,7 +109,7 @@ bool AsyncSocket::read(void)
   return true;
 }
 
-bool AsyncSocket::write(const std::vector<char>& buffer)
+bool AsyncSocket::write(const std::vector<uint8_t>& buffer)
 {
   if(!is_connected())
     return false;
