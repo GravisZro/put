@@ -21,6 +21,7 @@ public:
   {
     std::cout << "num: " << num << std::endl;
     std::cout << "num2: " << num2 << std::endl;
+    Application::quit(0);
   }
 
   signal<int, int> test_signal;
@@ -42,7 +43,7 @@ int main(int argc, char* argv[])
 /*
 
 ==== BUILD COMMAND ==== 
-g++ example.cpp object.cpp -std=c++14 -o example
+g++ example.cpp application.cpp -std=c++14 -o example
 
 ==== OUTPUT ====
 before trigger
