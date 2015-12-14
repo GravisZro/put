@@ -21,7 +21,7 @@ namespace rpc
   class vqueue : public std::vector<uint8_t>
   {
   public:
-    inline vqueue(void) : m_front(begin()) { reserve(0x2000); }
+    inline vqueue(void) : m_front(begin()) { reserve(0xFFFF); }
 
     inline vqueue(std::vector<uint8_t>& data)
       : std::vector<uint8_t>(data), m_front(begin()) { }

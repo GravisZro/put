@@ -25,7 +25,7 @@ AsyncSocket::AsyncSocket(posix::fd_t socket)
   m_read .socket = dup(socket);
   m_write.socket = dup(socket);
 
-  // socket shutdowns behave incorrectly!
+  // socket shutdowns do not behave as expected :(
   //shutdown(m_read .socket, SHUT_WR); // make read only
   //shutdown(m_write.socket, SHUT_RD); // make write only
 
@@ -115,6 +115,11 @@ bool AsyncSocket::write(const std::vector<uint8_t>& buffer)
 {
   if(!is_connected())
     return false;
+  if(buffer.size() > m_write.buffer.capacity())
+  {
+    errno = SIGXFSZ;
+    return false;
+  }
   m_write.buffer.resize(buffer.size());
   memcpy(m_write.buffer.data(), buffer.data(), buffer.size());
   m_write.condition.notify_one();

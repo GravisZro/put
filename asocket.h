@@ -40,10 +40,10 @@ private:
 private:
   struct async_pkg_t
   {
-    inline async_pkg_t(void) { buffer.reserve(0x2000); }
+    inline  async_pkg_t(void) { buffer.reserve(0xFFFF); } // 64KB buffer
     inline ~async_pkg_t(void) { ::close(socket); thread.detach(); }
     posix::fd_t             socket;
-    std::vector<uint8_t>       buffer;
+    std::vector<uint8_t>    buffer;
     std::thread             thread;
     std::condition_variable condition;
   };
