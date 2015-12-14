@@ -36,13 +36,16 @@ namespace rpc
   template<typename T>
   static inline bool deserialize(vqueue& data, T* arg, uint16_t length)
   {
+    if(data.size() < 3)                   // buffer too short (smaller than header)
+      return false;
+
     if(data.pop<uint16_t>() != length)    // length mismatch
       return false;
 
     if(data.pop<uint8_t>() != sizeof(T))  // size mismatch
       return false;
 
-    if(data.size() < length * sizeof(T))  // message is corrupt/buffer too short
+    if(data.size() < length * sizeof(T))  // buffer too short (smaller than length * type size)
       return false;
 
     for(size_t i = 0; i < length; ++i)
