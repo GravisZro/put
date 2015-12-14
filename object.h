@@ -34,7 +34,7 @@ public:
   }
 
   template<typename... ArgTypes>
-  static inline void queue(signal<ArgTypes...>& sig, ArgTypes... args)
+  static inline void enqueue(signal<ArgTypes...>& sig, ArgTypes... args)
   {
     std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::m_signal_queue); // multithread protection
     Application::m_signal_queue.emplace(std::bind(sig.func, sig.obj, args...));
