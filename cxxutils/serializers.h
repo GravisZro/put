@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <cstring>
 
 namespace rpc
 {
@@ -100,6 +101,11 @@ namespace rpc
     arg.resize(data.front());
     return deserialize(data, arg.data(), arg.size());
   }
+
+// const char* string
+  template<>
+  inline void serialize<const char*>(vqueue& data, const char*& arg)
+    { serialize(data, arg, std::strlen(arg)); }
 
 // string
   template<>
