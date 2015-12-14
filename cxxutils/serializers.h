@@ -27,7 +27,7 @@ namespace rpc
   template<typename T>
   static inline void serialize(vqueue& data, const T* arg, uint16_t length)
   {
-    data.push<uint16_t>(length);
+    data.push(length);
     data.push<uint8_t>(sizeof(T));
     for(size_t i = 0; i < length; ++i)
       data.push(arg[i]);
