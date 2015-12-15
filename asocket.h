@@ -14,6 +14,7 @@
 // project
 #include "object.h"
 #include "cxxutils/socket_helpers.h"
+#include "cxxutils/vqueue.h"
 
 class AsyncSocket : public Object
 {
@@ -27,9 +28,9 @@ public:
   bool connect(const char *socket_path);
 
   bool read(void);
-  bool write(const std::vector<uint8_t>& buffer);
+  bool write(vqueue& buffer);
 
-  signal<std::vector<uint8_t>> readFinished;
+  signal<vqueue> readFinished;
   signal<> writeFinished;
 
 private:
@@ -40,10 +41,10 @@ private:
 private:
   struct async_pkg_t
   {
-    inline  async_pkg_t(void) { buffer.reserve(0xFFFF); } // 64KB buffer
+    inline  async_pkg_t(void) : buffer(0) { } // empty buffer
     inline ~async_pkg_t(void) { ::close(socket); thread.detach(); }
     posix::fd_t             socket;
-    std::vector<uint8_t>    buffer;
+    vqueue                  buffer;
     std::thread             thread;
     std::condition_variable condition;
   };

@@ -5,18 +5,51 @@
 #include <cstdint>
 #include <cassert>
 #include <cstring>
-#include <vector>
 
 // virtual queue class
 class vqueue
 {
 public:
-  inline vqueue(void) { resize(0); }
-  inline vqueue(std::vector<uint8_t>& data)
+  inline vqueue(uint16_t length = 0xFFFF) { allocate(length); }
+  inline ~vqueue(void) { deallocate(); }
+
+  vqueue(const vqueue& that) : m_data(nullptr) { operator=(that); }
+  vqueue& operator=(const vqueue& other)
   {
-    assert(data.size() < capacity());
-    resize(data.size());
-    std::memcpy(m_data, data.data(), size());
+    vqueue& that = const_cast<vqueue&>(other);
+    deallocate();
+    if (this != &that)
+    {
+      m_data            = that.m_data;
+      m_virt_begin      = that.m_virt_begin;
+      m_virt_end        = that.m_virt_end;
+      m_capacity        = that.m_capacity;
+      that.m_data       = nullptr;
+      that.m_virt_begin = nullptr;
+      that.m_virt_end   = nullptr;
+      that.m_capacity   = 0;
+    }
+    return *this;
+  }
+
+  inline void allocate(uint16_t length = 0xFFFF)
+  {
+    if(length)
+      m_data = new char[length];
+    else
+      m_data = nullptr;
+    m_capacity = length;
+    resize(0);
+  }
+
+  inline void deallocate(void)
+  {
+    if(m_data != nullptr)
+    {
+      m_capacity = 0;
+      delete m_data;
+      m_data = nullptr;
+    }
   }
 
   template<typename T>
@@ -32,11 +65,12 @@ public:
   {
     const T& d = front<T>();
     m_virt_begin += sizeof(T);
-    assert(dataBegin() <= dataEnd());
+    assert(data() <= dataEnd());
     return d;
   }
 
-  inline uint16_t size(void) const { return dataEnd() - dataBegin(); }
+  inline bool     empty(void) const { return dataEnd() == data(); }
+  inline uint16_t size (void) const { return dataEnd() -  data(); }
 
   inline void resize(uint16_t sz)
   {
@@ -45,25 +79,27 @@ public:
   }
 
 
-  template<typename T = char> inline const T& front     (void) const { return *dataBegin<T>(); }
-  template<typename T = char> inline       T& front     (void)       { return *dataBegin<T>(); }
+  template<typename T = char> inline const T& front   (void) const { return *data<T>(); }
+  template<typename T = char> inline       T& front   (void)       { return *data<T>(); }
 
-  template<typename T = char> inline const T& back      (void) const { return *dataEnd<T>(); }
-  template<typename T = char> inline       T& back      (void)       { return *dataEnd<T>(); }
+  template<typename T = char> inline const T& back    (void) const { return *dataEnd<T>(); }
+  template<typename T = char> inline       T& back    (void)       { return *dataEnd<T>(); }
 
-  template<typename T = char> inline const T* dataBegin (void) const { return reinterpret_cast<const T*>(m_virt_begin); }
-  template<typename T = char> inline       T* dataBegin (void)       { return reinterpret_cast<      T*>(m_virt_begin); }
-  template<typename T = char> inline const T* dataEnd   (void) const { return reinterpret_cast<const T*>(m_virt_end  ); }
-  template<typename T = char> inline       T* dataEnd   (void)       { return reinterpret_cast<      T*>(m_virt_end  ); }
+  template<typename T = char> inline const T* data    (void) const { return reinterpret_cast<const T*>(m_virt_begin); }
+  template<typename T = char> inline       T* data    (void)       { return reinterpret_cast<      T*>(m_virt_begin); }
+  template<typename T = char> inline const T* dataEnd (void) const { return reinterpret_cast<const T*>(m_virt_end  ); }
+  template<typename T = char> inline       T* dataEnd (void)       { return reinterpret_cast<      T*>(m_virt_end  ); }
 
-  template<typename T = char> inline const T* begin     (void) const { return reinterpret_cast<const T*>(m_data); }
-  template<typename T = char> inline const T* end       (void) const { return begin<T>() + sizeof(m_data); }
+  template<typename T = char> inline const T* begin   (void) const { return reinterpret_cast<const T*>(m_data); }
+  template<typename T = char> inline const T* end     (void) const { return begin<T>() + m_capacity; }
 
-  inline uint16_t capacity(void) const { return sizeof(m_data); }
+  inline const uint16_t& capacity(void) const { return m_capacity; }
 private:
-  char m_data[0xFFFF]; // assumed to be contiguous
+  char* m_data;
   char* m_virt_begin;
   char* m_virt_end;
+  uint16_t m_capacity;
 };
+
 #endif // VQUEUE_H
 

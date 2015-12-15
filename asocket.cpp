@@ -79,6 +79,7 @@ void AsyncSocket::async_read(void)
   std::mutex m;
   for(;;)
   {
+    m_read.buffer.allocate(); // allocate 64KB buffer
     std::unique_lock<std::mutex> lk(m);
     m_read.condition.wait(lk, [this] { return is_connected(); } );
 
@@ -98,7 +99,7 @@ void AsyncSocket::async_write(void)
     m_write.condition.wait(lk, [this] { return is_connected() && !m_write.buffer.empty(); } );
 
     ::write(m_write.socket, m_write.buffer.data(), m_write.buffer.size());
-    m_write.buffer.resize(0);
+    m_write.buffer.deallocate();
     enqueue(writeFinished);
   }
 }
@@ -111,17 +112,12 @@ bool AsyncSocket::read(void)
   return true;
 }
 
-bool AsyncSocket::write(const std::vector<uint8_t>& buffer)
+bool AsyncSocket::write(vqueue& buffer)
 {
   if(!is_connected())
     return false;
-  if(buffer.size() > m_write.buffer.capacity())
-  {
-    errno = SIGXFSZ;
-    return false;
-  }
-  m_write.buffer.resize(buffer.size());
-  memcpy(m_write.buffer.data(), buffer.data(), buffer.size());
+
+  m_write.buffer = buffer; // move buffer memory
   m_write.condition.notify_one();
   return true;
 }
