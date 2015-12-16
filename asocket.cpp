@@ -99,7 +99,6 @@ void AsyncSocket::async_write(void)
     m_write.condition.wait(lk, [this] { return is_connected() && !m_write.buffer.empty(); } );
 
     ::write(m_write.socket, m_write.buffer.data(), m_write.buffer.size());
-    m_write.buffer.deallocate();
     enqueue(writeFinished);
   }
 }
@@ -117,7 +116,7 @@ bool AsyncSocket::write(vqueue& buffer)
   if(!is_connected())
     return false;
 
-  m_write.buffer = buffer; // move buffer memory
+  m_write.buffer = buffer; // share buffer memory
   m_write.condition.notify_one();
   return true;
 }

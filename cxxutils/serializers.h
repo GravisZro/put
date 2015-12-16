@@ -15,7 +15,7 @@ namespace rpc
 {
 // ===== interface declarations =====
   template<typename T, typename... ArgTypes>
-  static void serialize(vqueue& data, T& arg, ArgTypes&... others);
+  static bool serialize(vqueue& data, T& arg, ArgTypes&... others);
 
   template<typename T, typename... ArgTypes>
   static bool deserialize(vqueue& data, T& arg, ArgTypes&... others);
@@ -26,31 +26,42 @@ namespace rpc
 
 // sized array
   template<typename T>
-  static inline void serialize(vqueue& data, const T* arg, uint16_t length)
+  static inline bool serialize(vqueue& data, const T* arg, uint16_t length)
   {
-    data.push(length);
-    data.push<uint8_t>(sizeof(T));
+    if(!data.push<uint16_t>(length))
+      return false;
+
+    if(!data.push<uint8_t>(sizeof(T)))
+      return false;
+
     for(size_t i = 0; i < length; ++i)
-      data.push(arg[i]);
+      if(!data.push(arg[i]))
+        return false;
+
+    return true;
   }
 
   template<typename T>
   static inline bool deserialize(vqueue& data, T* arg, uint16_t length)
   {
-    if(data.size() < 3)                   // buffer too short (smaller than header)
+    if(data.front<uint16_t>() != length)    // length mismatch
       return false;
 
-    if(data.pop<uint16_t>() != length)    // length mismatch
+    if(!data.pop<uint16_t>())               // buffer underflow
       return false;
 
-    if(data.pop<uint8_t>() != sizeof(T))  // size mismatch
+    if(data.front<uint8_t>() != sizeof(T))  // size mismatch
       return false;
 
-    if(data.size() < length * sizeof(T))  // buffer too short (smaller than length * type size)
+    if(!data.pop<uint8_t>())                // buffer underflow
       return false;
 
     for(size_t i = 0; i < length; ++i)
-      arg[i] = data.pop<T>();
+    {
+      arg[i] = data.front<T>();
+      if(!data.pop<T>())                    // buffer underflow
+        return false;
+    }
     return true;
   }
 
@@ -60,10 +71,10 @@ namespace rpc
 
 // simple types
   template<typename T>
-  static inline void serialize(vqueue& data, T& arg)
+  static inline bool serialize(vqueue& data, T& arg)
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "bad type");
-    serialize<T>(data, &arg, 1);
+    return serialize<T>(data, &arg, 1);
   }
 
   template<typename T>
@@ -75,10 +86,10 @@ namespace rpc
 
 // vector of simple types
   template<typename T>
-  static inline void serialize(vqueue& data, const std::vector<T>& arg)
+  static inline bool serialize(vqueue& data, const std::vector<T>& arg)
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "bad type");
-    serialize(data, arg.data(), arg.size());
+    return serialize(data, arg.data(), arg.size());
   }
 
   template<typename T>
@@ -91,13 +102,13 @@ namespace rpc
 
 // const char* string
   template<>
-  inline void serialize<const char*>(vqueue& data, const char*& arg)
-    { serialize(data, arg, std::strlen(arg)); }
+  inline bool serialize<const char*>(vqueue& data, const char*& arg)
+    { return serialize(data, arg, std::strlen(arg)); }
 
 // string
   template<>
-  inline void serialize<std::string>(vqueue& data, std::string& arg)
-    { serialize(data, arg.data(), arg.size()); }
+  inline bool serialize<std::string>(vqueue& data, std::string& arg)
+    { return serialize(data, arg.data(), arg.size()); }
 
   template<>
   inline bool deserialize<std::string>(vqueue& data, std::string& arg)
@@ -108,8 +119,8 @@ namespace rpc
 
 // wide string
   template<>
-  inline void serialize<std::wstring>(vqueue& data, std::wstring& arg)
-    { serialize(data, arg.data(), arg.size()); }
+  inline bool serialize<std::wstring>(vqueue& data, std::wstring& arg)
+    { return serialize(data, arg.data(), arg.size()); }
 
   template<>
   inline bool deserialize<std::wstring>(vqueue& data, std::wstring& arg)
@@ -120,10 +131,10 @@ namespace rpc
 
 // multi-arg interface
   template<typename T, typename... ArgTypes>
-  static inline void serialize(vqueue& data, T& arg, ArgTypes&... others)
+  static inline bool serialize(vqueue& data, T& arg, ArgTypes&... others)
   {
-    serialize<T>(data, arg);
-    serialize<ArgTypes...>(data, others...);
+    return serialize<T>(data, arg) &&
+           serialize<ArgTypes...>(data, others...);
   }
 
   template<typename T, typename... ArgTypes>
