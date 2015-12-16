@@ -19,7 +19,7 @@ int Application::exec(void)
     std::unique_lock<std::mutex> lk(m_signal_queue); // multithread protection
     m_step_exec.wait(lk, [] { return !m_signal_queue.empty(); } ); // wait for notify_one() call and non-empty queue
 
-    while(s_run && m_signal_queue.size())
+    while(s_run && !m_signal_queue.empty())
     {
       m_signal_queue.front()();
       m_signal_queue.pop();
