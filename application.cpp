@@ -30,6 +30,9 @@ int Application::exec(void)
 
 void Application::quit(int return_value)
 {
-  s_return_value = return_value;
-  s_run = false;
+  if(s_run)
+  {
+    s_return_value = return_value;
+    s_run = false;
+  }
 }
