@@ -86,7 +86,7 @@ void AsyncSocket::async_read(void)
     int rval = ::read(m_read.socket, m_read.buffer.data(), m_read.buffer.capacity());
     if(rval != posix::error_response)
       m_read.buffer.resize(rval);
-    enqueue(readFinished, m_read.buffer);
+    enqueue<vqueue&>(readFinished, m_read.buffer);
   }
 }
 

@@ -30,7 +30,7 @@ public:
   bool read(void);
   bool write(vqueue& buffer);
 
-  signal<vqueue> readFinished;
+  signal<vqueue&> readFinished;
   signal<> writeFinished;
 
 private:
