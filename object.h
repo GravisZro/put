@@ -24,19 +24,7 @@ public:
 
   inline Object(void)  { }
   inline ~Object(void) { }
-#if 0
-  template<class ObjType, typename SlotType, typename... ArgTypes>
-  static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, SlotType&& slot)
-  {
-    sig.obj = obj;
-    sig.func = [slot](ProtoObject* p, ArgTypes... args)
-      { if(p == p->self) (static_cast<ObjType*>(p)->*slot)(args...); };
-  }
 
-  template<typename... ArgTypes, typename SlotType>
-  static inline void connect(signal<ArgTypes...>& sig, SlotType&& slot)
-    { sig.func = [slot](ProtoObject* p, ArgTypes... args) { slot(args...); }; }
-#else
   template<class ObjType, typename RType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, RType(ObjType::*slot)(ArgTypes...))
   {
@@ -48,7 +36,6 @@ public:
   template<typename RType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, RType(*slot)(ArgTypes...))
     { sig.func = [slot](ProtoObject*, ArgTypes... args) { slot(args...); }; }
-#endif
 
   template<typename... ArgTypes>
   static inline void enqueue(signal<ArgTypes...>& sig, ArgTypes... args)
