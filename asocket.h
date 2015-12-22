@@ -2,14 +2,10 @@
 #define ASYNCSOCKET_H
 
 // STL
-#include <cstdint>
 #include <vector>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-
-// POSIX
-#include <unistd.h>
 
 // project
 #include "object.h"
@@ -25,6 +21,8 @@ public:
  ~AsyncSocket(void);
 
   bool bind(const char *socket_path);
+  bool listen(int max_connections = SOMAXCONN, std::vector<const char*> allowed_endpoints = { });
+
   bool connect(const char *socket_path);
 
   bool read(void);
@@ -34,7 +32,8 @@ public:
   signal<> writeFinished;
 
 private:
-  bool is_connected(void);
+  inline bool is_connected(void) const { return m_connected; }
+  inline bool is_bound    (void) const { return m_bound    ; }
   void async_read(void);
   void async_write(void);
 
@@ -54,6 +53,7 @@ private:
   async_pkg_t m_write;
   posix::sockaddr_t m_addr;
   bool m_connected;
+  bool m_bound;
 };
 
 #endif // ASYNCSOCKET_H

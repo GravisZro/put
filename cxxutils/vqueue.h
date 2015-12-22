@@ -3,7 +3,6 @@
 
 // STL
 #include <cstdint>
-#include <cstring>
 #include <memory>
 
 // virtual queue class

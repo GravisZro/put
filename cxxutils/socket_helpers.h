@@ -14,6 +14,7 @@
 #include <sys/time.h>   // for struct timeval
 #include <fcntl.h>      // for fcntl()
 #include <signal.h>
+#include <unistd.h>     // for close()
 
 
 enum class ESignal : int
@@ -176,6 +177,9 @@ namespace posix
     }
     return fd;
   }
+
+  static inline bool close(fd_t sockfd)
+    { return ignore_interruption(::close, sockfd) != error_response; }
 
 /*
   static inline ssize_t send(socket_t sockfd, const void* buffer, size_t length, int flags = 0)

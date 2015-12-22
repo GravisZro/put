@@ -2,9 +2,9 @@
 
 // STL
 #include <cassert>
+#include <cstring>
+#include <cstdint>
 
-// POSIX
-#include <unistd.h>
 
 static_assert(sizeof(uint8_t) == sizeof(char), "size mismatch!");
 
@@ -35,32 +35,39 @@ AsyncSocket::AsyncSocket(posix::fd_t socket)
 
 AsyncSocket::~AsyncSocket(void)
 {
-  if(m_connected)
+  if(is_bound() || is_connected())
   {
-    ::close(m_read .socket);
-    ::close(m_write.socket);
+    posix::close(m_read .socket);
+    posix::close(m_write.socket);
   }
-}
-
-bool AsyncSocket::is_connected(void)
-{
-  /*
-  int error = 0;
-  socklen_t len = sizeof (error);
-  int rval = getsockopt (m_read.socket, SOL_SOCKET, SO_ERROR, &error, &len);
-  return !rval && !error;
-  */
-  return m_connected;
 }
 
 bool AsyncSocket::bind(const char *socket_path)
 {
-  if(is_connected())
+  if(is_bound() || is_connected())
     return false;
 
-  assert(strlen(socket_path) < sizeof(sockaddr_un::sun_path));
+  assert(std::strlen(socket_path) < sizeof(sockaddr_un::sun_path));
   m_addr = socket_path;
-  return m_connected = posix::bind(m_read.socket, m_addr, m_addr.size());
+  return m_bound = posix::bind(m_read.socket, m_addr, m_addr.size());
+}
+
+bool AsyncSocket::listen(int max_connections, std::vector<const char*> allowed_endpoints)
+{
+  if(!is_bound())
+    return false;
+
+  bool ok = posix::listen(m_read.socket, max_connections);
+  if(ok)
+  {
+/*
+if ((s2 = accept(s, (struct sockaddr *)&remote, &t)) == -1) {
+                        perror("accept");
+                        exit(1);
+                }
+*/
+
+  }
 }
 
 bool AsyncSocket::connect(const char *socket_path)
@@ -68,7 +75,7 @@ bool AsyncSocket::connect(const char *socket_path)
   if(is_connected())
     return false;
 
-  assert(strlen(socket_path) < sizeof(sockaddr_un::sun_path));
+  assert(std::strlen(socket_path) < sizeof(sockaddr_un::sun_path));
   m_addr = socket_path;
   m_addr = EDomain::unix;
   return m_connected = posix::connect(m_read.socket, m_addr, m_addr.size());
