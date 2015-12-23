@@ -60,6 +60,30 @@ public:
     m_virt_end   = m_data.get() + sz;
   }
 
+  inline bool shrink (ssize_t count)
+  {
+    if(count)
+    {
+      if(m_virt_begin + count < m_virt_end)
+        m_virt_begin += count;
+      else
+        m_virt_begin = m_virt_end;
+    }
+    return count && m_virt_begin != m_virt_end;
+  }
+
+  inline bool expand (ssize_t count)
+  {
+    if(count)
+    {
+      if(m_virt_end + count < end())
+        m_virt_end += count;
+      else
+        m_virt_end = end();
+    }
+    return count && m_virt_end != end();
+  }
+
   template<typename T = char> inline const T& front   (void) const { return *data<T>(); }
   template<typename T = char> inline       T& front   (void)       { return *data<T>(); }
 
