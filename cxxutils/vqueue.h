@@ -79,7 +79,7 @@ public:
       if(m_virt_end + count < end())
         m_virt_end += count;
       else
-        m_virt_end = end();
+        m_virt_end = const_cast<char*>(end());
     }
     return count > 0 && m_virt_end != end();
   }
