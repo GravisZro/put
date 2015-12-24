@@ -153,7 +153,7 @@ namespace posix
     inline sockaddr_t& operator = (const char* path) { std::strcpy(sun_path, path); return *this; }
   };
 
-  static inline fd_t socket(EDomain domain, EType type, EProtocol protocol, int flags = 0)
+  static inline fd_t socket(EDomain domain, EType type, EProtocol protocol = EProtocol::unspec, int flags = 0)
   {
     fd_t fd = ::socket(static_cast<int>(domain),
                        static_cast<int>(type),
