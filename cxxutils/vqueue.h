@@ -62,26 +62,24 @@ public:
 
   inline bool shrink(ssize_t count)
   {
-    if(count > 0)
-    {
-      if(m_virt_begin + count < m_virt_end)
-        m_virt_begin += count;
-      else
-        m_virt_begin = m_virt_end;
-    }
-    return count > 0 && m_virt_begin != m_virt_end;
+    if(count <= 0)
+      return false;
+    if(m_virt_begin + count < m_virt_end)
+      m_virt_begin += count;
+    else
+      m_virt_begin = m_virt_end;
+    return true;
   }
 
   inline bool expand(ssize_t count)
   {
-    if(count > 0)
-    {
-      if(m_virt_end + count < end())
-        m_virt_end += count;
-      else
-        m_virt_end = const_cast<char*>(end());
-    }
-    return count > 0 && m_virt_end != end();
+    if(count <= 0)
+      return false;
+    if(m_virt_end + count < end())
+      m_virt_end += count;
+    else
+      m_virt_end = const_cast<char*>(end());
+    return true;
   }
 
   template<typename T = char> inline const T& front   (void) const { return *data<T>(); }
