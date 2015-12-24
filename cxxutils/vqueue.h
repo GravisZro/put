@@ -62,7 +62,7 @@ public:
 
   inline bool shrink(ssize_t count)
   {
-    if(count <= 0)
+    if(count < 0)
       return false;
     if(m_virt_begin + count < m_virt_end)
       m_virt_begin += count;
@@ -73,7 +73,7 @@ public:
 
   inline bool expand(ssize_t count)
   {
-    if(count <= 0)
+    if(count < 0)
       return false;
     if(m_virt_end + count < end())
       m_virt_end += count;
