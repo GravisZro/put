@@ -1,5 +1,5 @@
-#ifndef POSIX_TYPES_H
-#define POSIX_TYPES_H
+#ifndef SOCKET_HELPERS_H
+#define SOCKET_HELPERS_H
 
 // STL
 #include <system_error>
@@ -13,41 +13,10 @@
 #include <sys/types.h>
 #include <sys/time.h>   // for struct timeval
 #include <fcntl.h>      // for fcntl()
-#include <signal.h>
 #include <unistd.h>     // for close()
 
-
-enum class ESignal : int
-{
-  abort               = SIGABRT,    // Process abort signal.
-  timer_alarm         = SIGALRM,    // Alarm clock.
-  bus_error           = SIGBUS,     // Access to an undefined portion of a memory object.
-  child_changed       = SIGCHLD,    // Child process terminated, stopped, or continued.
-  continue_execution  = SIGCONT,    // Continue executing, if stopped.
-  floating_point      = SIGFPE,     // Erroneous arithmetic operation.
-  hangup              = SIGHUP,     // Hangup.
-  illegal_instruction = SIGILL,     // Illegal instruction.
-  interrupt           = SIGINT,     // Terminal interrupt signal.
-  kill                = SIGKILL,    // Kill (cannot be caught or ignored).
-  broken_pipe         = SIGPIPE,    // Write on a pipe with no one to read it.
-  quit                = SIGQUIT,    // Terminal quit signal.
-  segmentation_fault  = SIGSEGV,    // Invalid memory reference.
-  stop_execution      = SIGSTOP,    // Stop executing (cannot be caught or ignored).
-  terminate           = SIGTERM,    // Termination signal.
-  terminal_stop       = SIGTSTP,    // Terminal stop signal.
-  tty_input           = SIGTTIN,    // Background process attempting read.
-  tty_output          = SIGTTOU,    // Background process attempting write.
-  user1               = SIGUSR1,    // User-defined signal 1.
-  user2               = SIGUSR2,    // User-defined signal 2.
-  polled              = SIGPOLL,    // Pollable event.
-  profiling_timer     = SIGPROF,    // Profiling timer expired.
-  bad_system_call     = SIGSYS,     // Bad system call.
-  debug_breakpoint    = SIGTRAP,    // Trace/breakpoint trap.
-  urgent              = SIGURG,     // High bandwidth data is available at a socket.
-  virtual_timer       = SIGVTALRM,  // Virtual timer expired.
-  cpu_time_exceeded   = SIGXCPU,    // CPU time limit exceeded.
-  file_size_exceeded  = SIGXFSZ,    // File size limit exceeded.
-};
+// PDTK
+#include "error_helpers.h"
 
 enum class EDomain : sa_family_t
 {
@@ -84,17 +53,8 @@ enum class EType : int
 };
 
 
-template<typename T>
-constexpr bool operator ==(std::errc err, T err_num)
-  { return *reinterpret_cast<T*>(&err) == err_num; }
-
-template<typename T>
-constexpr bool operator ==(T err_num, std::errc err)
-  { return *reinterpret_cast<T*>(&err) == err_num; }
-
 namespace posix
 {
-  static const int error_response = -1;
   typedef int fd_t;
 
 /*
@@ -216,5 +176,5 @@ namespace posix
 }
 
 
-#endif // POSIX_TYPES_H
+#endif // SOCKET_HELPERS_H
 
