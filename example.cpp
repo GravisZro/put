@@ -14,7 +14,8 @@ public:
   void trigger(int num)
   {
     std::cout << "executing trigger" << std::endl;
-    queue(test_signal, num, 99);
+    int num2 = 99;
+    enqueue(test_signal, num, num2);
   }
 
   void activated(int num, int num2)
