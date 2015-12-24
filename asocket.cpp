@@ -9,7 +9,8 @@
 static_assert(sizeof(uint8_t) == sizeof(char), "size mismatch!");
 
 AsyncSocket::AsyncSocket(void)
-  : AsyncSocket(posix::socket(EDomain::unix, EType::stream, EProtocol::unspec))
+  : AsyncSocket(posix::socket(EDomain::unix, EType::stream, EProtocol::unspec, 0))
+//  : AsyncSocket(posix::socket(EDomain::unix, EType::datagram, EProtocol::unspec, 0))
 {
   m_connected = false;
 }
@@ -18,12 +19,14 @@ AsyncSocket::AsyncSocket(AsyncSocket& other)
   : AsyncSocket(other.m_read.socket)
 {
   m_connected = other.m_connected;
+  m_bound     = other.m_bound;
 }
 
 AsyncSocket::AsyncSocket(posix::fd_t socket)
 {
   m_read .socket = dup(socket);
   m_write.socket = dup(socket);
+  posix::close(socket);
 
   // socket shutdowns do not behave as expected :(
   //shutdown(m_read .socket, SHUT_WR); // make read only
@@ -68,6 +71,8 @@ if ((s2 = accept(s, (struct sockaddr *)&remote, &t)) == -1) {
 */
 
   }
+  m_connected = ok;
+  return ok;
 }
 
 bool AsyncSocket::connect(const char *socket_path)
@@ -84,29 +89,54 @@ bool AsyncSocket::connect(const char *socket_path)
 void AsyncSocket::async_read(void)
 {
   std::mutex m;
+  msghdr msg;
+  iovec iov;
+
+  msg.msg_iov = &iov;
+  msg.msg_iovlen = 1;
+
   for(;;)
   {
     m_read.buffer.allocate(); // allocate 64KB buffer
     std::unique_lock<std::mutex> lk(m);
     m_read.condition.wait(lk, [this] { return is_connected(); } );
 
-    int rval = ::read(m_read.socket, m_read.buffer.data(), m_read.buffer.capacity());
-    if(rval != posix::error_response)
-      m_read.buffer.resize(rval);
-    enqueue<vqueue&>(readFinished, m_read.buffer);
+    iov.iov_base = m_read.buffer.data();
+    iov.iov_len = m_read.buffer.capacity();
+    if(m_read.buffer.expand(posix::recvmsg(m_read.socket, &msg, 0)))
+    {
+      for (cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); cmsg != nullptr; cmsg = CMSG_NXTHDR(&msg, cmsg))
+      {
+      }
+      enqueue<vqueue&>(readFinished, m_read.buffer);
+    }
+    else // error
+    {
+    }
   }
 }
 
 void AsyncSocket::async_write(void)
 {
   std::mutex m;
+  msghdr msg;
+  iovec iov;
+
+  msg.msg_iov = &iov;
+  msg.msg_iovlen = 1;
+
   for(;;)
   {
     std::unique_lock<std::mutex> lk(m);
     m_write.condition.wait(lk, [this] { return is_connected() && !m_write.buffer.empty(); } );
 
-    ::write(m_write.socket, m_write.buffer.data(), m_write.buffer.size());
-    enqueue(writeFinished);
+    iov.iov_base = m_write.buffer.data();
+    iov.iov_len = m_write.buffer.size();
+    if(m_write.buffer.shrink(posix::sendmsg(m_write.socket, &msg, 0)))
+      enqueue(writeFinished);
+    else // error
+    {
+    }
   }
 }
 
