@@ -7,7 +7,7 @@
 #include <mutex>
 #include <condition_variable>
 
-// project
+// PDTK
 #include "object.h"
 #include "cxxutils/socket_helpers.h"
 #include "cxxutils/vqueue.h"
@@ -41,7 +41,7 @@ private:
   struct async_pkg_t
   {
     inline  async_pkg_t(void) : buffer(0) { } // empty buffer
-    inline ~async_pkg_t(void) { ::close(socket); thread.detach(); }
+    inline ~async_pkg_t(void) { posix::close(socket); thread.detach(); }
     posix::fd_t             socket;
     vqueue                  buffer;
     std::thread             thread;
