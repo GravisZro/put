@@ -88,13 +88,11 @@ public:
   template<typename T = char> inline const T& back    (void) const { return *dataEnd<T>(); }
   template<typename T = char> inline       T& back    (void)       { return *dataEnd<T>(); }
 
-  template<typename T = char> inline const T* data    (void) const { return reinterpret_cast<const T*>(m_virt_begin); }
-  template<typename T = char> inline       T* data    (void)       { return reinterpret_cast<      T*>(m_virt_begin); }
-  template<typename T = char> inline const T* dataEnd (void) const { return reinterpret_cast<const T*>(m_virt_end  ); }
-  template<typename T = char> inline       T* dataEnd (void)       { return reinterpret_cast<      T*>(m_virt_end  ); }
+  template<typename T = char> inline       T* data    (void) const { return reinterpret_cast<T*>(m_virt_begin); }
+  template<typename T = char> inline       T* dataEnd (void) const { return reinterpret_cast<T*>(m_virt_end  ); }
 
-  template<typename T = char> inline const T* begin   (void) const { return reinterpret_cast<const T*>(m_data.get()); }
-  template<typename T = char> inline const T* end     (void) const { return begin<T>() + m_capacity; }
+  template<typename T = char> inline       T* begin   (void) const { return reinterpret_cast<T*>(m_data.get()); }
+  template<typename T = char> inline       T* end     (void) const { return reinterpret_cast<T*>(m_data.get() + m_capacity); }
 
   inline const uint16_t& capacity(void) const { return m_capacity; }
 private:
