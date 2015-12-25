@@ -52,13 +52,16 @@ public:
     return true;
   }
 
-  inline bool     empty(void) const { return dataEnd() == data(); }
-  inline uint16_t size (void) const { return dataEnd() -  data(); }
+  inline bool     empty (void) const { return dataEnd() == data   (); }
+  inline uint16_t size  (void) const { return dataEnd() -  data   (); }
+  inline uint16_t used  (void) const { return data   () -  begin  (); }
+  inline uint16_t unused(void) const { return end    () -  dataEnd(); }
 
-  inline void resize(uint16_t sz)
+  inline bool resize(uint16_t sz)
   {
     m_virt_begin = m_data.get();
     m_virt_end   = m_data.get() + sz;
+    return m_virt_end <= end();
   }
 
   inline bool shrink(ssize_t count)
@@ -95,8 +98,6 @@ public:
   template<typename T = char> inline       T* begin   (void) const { return reinterpret_cast<T*>(m_data.get()); }
   template<typename T = char> inline       T* end     (void) const { return reinterpret_cast<T*>(m_data.get() + m_capacity); }
 
-  inline uint16_t used     (void) const { return data()  - begin(); }
-  inline uint16_t remaining(void) const { return dataEnd() - end(); }
   inline const uint16_t& capacity(void) const { return m_capacity; }
 private:
   std::shared_ptr<char> m_data;
