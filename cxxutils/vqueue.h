@@ -94,6 +94,8 @@ public:
   template<typename T = char> inline       T* begin   (void) const { return reinterpret_cast<T*>(m_data.get()); }
   template<typename T = char> inline       T* end     (void) const { return reinterpret_cast<T*>(m_data.get() + m_capacity); }
 
+  inline uint16_t used     (void) const { return data()  - begin(); }
+  inline uint16_t remaining(void) const { return dataEnd() - end(); }
   inline const uint16_t& capacity(void) const { return m_capacity; }
 private:
   std::shared_ptr<char> m_data;
