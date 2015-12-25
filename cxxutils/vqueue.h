@@ -25,11 +25,12 @@ public:
     return *this;
   }
 
-  inline void allocate(uint16_t length = 0xFFFF)
+  inline bool allocate(uint16_t length = 0xFFFF)
   {
     m_data.reset(new char[length]);
     m_capacity = length;
     resize(0);
+    return m_data.get() != nullptr;
   }
 
   template<typename T>
