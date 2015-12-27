@@ -36,7 +36,7 @@ public:
   template<typename T>
   inline bool push(const T& d)
   {
-    if(dataEnd<T>() + 1 >= end<T>())
+    if(dataEnd<T>() + 1 > end<T>())
       return false;
     back<T>() = d;
     m_virt_end += sizeof(T);

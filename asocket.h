@@ -27,9 +27,10 @@ public:
 
   bool read(void);
   bool write(vqueue& buffer);
+  bool write(posix::fd_t fd);
 
   signal<vqueue&> readFinished;
-  signal<> writeFinished;
+  signal<int> writeFinished;
 
 private:
   inline bool is_connected(void) const { return m_connected; }
@@ -38,11 +39,19 @@ private:
   void async_write(void);
 
 private:
+  enum class messages : int
+  {
+    data            = 0,
+    file_descriptor = SCM_RIGHTS,
+    credentials     = SCM_CREDENTIALS,
+  };
+
   struct async_pkg_t
   {
     inline  async_pkg_t(void) : buffer(0) { } // empty buffer
     inline ~async_pkg_t(void) { posix::close(socket); thread.detach(); }
     posix::fd_t             socket;
+    messages                msg_type;
     vqueue                  buffer;
     std::thread             thread;
     std::condition_variable condition;
