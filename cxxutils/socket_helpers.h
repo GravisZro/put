@@ -17,6 +17,7 @@
 
 // PDTK
 #include "error_helpers.h"
+#include "nullable.h"
 
 enum class EDomain : sa_family_t
 {
@@ -55,7 +56,7 @@ enum class EType : int
 
 namespace posix
 {
-  typedef int fd_t;
+  typedef nullable<int> fd_t;
 
 /*
   struct fdset_t : fd_set
@@ -129,7 +130,7 @@ namespace posix
 
   static inline fd_t accept(fd_t sockfd, sockaddr* addr, socklen_t* addrlen, int flags = 0)
   {
-    fd_t fd = ignore_interruption(::accept, sockfd, addr, addrlen);
+    fd_t fd = ignore_interruption(::accept, sockfd.value(), addr, addrlen);
     if(fd != error_response)
     {
       ::fcntl(fd, F_SETFD, FD_CLOEXEC);
@@ -143,28 +144,28 @@ namespace posix
     { return ::listen(sockfd, backlog) != error_response; }
 
   static inline bool accept(fd_t sockfd, sockaddr* addr, socklen_t* addrlen)
-    { return ignore_interruption(::accept, sockfd, addr, addrlen) != error_response; }
+    { return ignore_interruption(::accept, sockfd.value(), addr, addrlen) != error_response; }
 
   static inline bool connect(fd_t sockfd, const sockaddr* addr, socklen_t addrlen)
-    { return ignore_interruption(::connect, sockfd, addr, addrlen) != error_response; }
+    { return ignore_interruption(::connect, sockfd.value(), addr, addrlen) != error_response; }
 
   static inline bool bind(fd_t sockfd, const sockaddr* addr, socklen_t addrlen)
     { return ::bind(sockfd, addr, addrlen) != error_response; }
 
   static inline bool close(fd_t sockfd)
-    { return ignore_interruption(::close, sockfd) != error_response; }
+    { return ignore_interruption(::close, sockfd.value()) != error_response; }
 
   static inline ssize_t send(fd_t sockfd, const void* buffer, size_t length, int flags = 0)
-    { return ignore_interruption(::send, sockfd, buffer, length, flags); }
+    { return ignore_interruption(::send, sockfd.value(), buffer, length, flags); }
 
   static inline ssize_t recv(fd_t sockfd, void* buffer, size_t length, int flags = 0)
-    { return ignore_interruption(::recv, sockfd, buffer, length, flags); }
+    { return ignore_interruption(::recv, sockfd.value(), buffer, length, flags); }
 
   static inline ssize_t sendmsg(fd_t sockfd, const msghdr* msg, int flags = 0)
-    { return ignore_interruption(::sendmsg, sockfd, msg, flags); }
+    { return ignore_interruption(::sendmsg, sockfd.value(), msg, flags); }
 
   static inline ssize_t recvmsg(fd_t sockfd, msghdr* msg, int flags = 0)
-    { return ignore_interruption(::recvmsg, sockfd, msg, flags); }
+    { return ignore_interruption(::recvmsg, sockfd.value(), msg, flags); }
 
 /*
   static inline int select(int max_fd, fd_set* read_set, fd_set* write_set = nullptr, fd_set* except_set = nullptr, timeval* timeout = nullptr)
