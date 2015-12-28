@@ -28,6 +28,8 @@ public:
   inline bool allocate(uint16_t length = 0xFFFF)
   {
     m_data.reset(new char[length]);
+    memset(m_data.get(), 0, length);
+
     m_capacity = length;
     resize(0);
     return m_data.get() != nullptr;
