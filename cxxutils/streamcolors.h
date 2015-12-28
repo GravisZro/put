@@ -29,7 +29,7 @@ namespace std
     white
   };
 
-  ostream& operator <<(ostream& os, const color& name)
+  static ostream& operator <<(ostream& os, const color& name)
   {
     switch(name)
     {
