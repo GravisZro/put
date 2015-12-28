@@ -8,6 +8,7 @@
 
 // PDTK
 #include "cxxutils/error_helpers.h"
+#include "cxxutils/streamcolors.h"
 
 #ifndef CMSG_LEN
 #define CMSG_LEN(len) ((CMSG_DATA((struct cmsghdr *) NULL) - (unsigned char *) NULL) + len);
@@ -100,11 +101,9 @@ bool AsyncSocket::connect(const char *socket_path)
 void AsyncSocket::async_read(void)
 {
   std::mutex m;
-  msghdr msg;
-  iovec iov;
+  msghdr msg = {};
+  iovec iov = {};
 
-  msg.msg_name = nullptr;
-  msg.msg_namelen = 0;
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
 
@@ -118,66 +117,60 @@ void AsyncSocket::async_read(void)
     iov.iov_len = m_read.buffer.capacity();
     if(m_read.buffer.expand(posix::recvmsg(m_read.socket, &msg, 0)))
     {
-      for (cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); cmsg != nullptr; cmsg = CMSG_NXTHDR(&msg, cmsg))
+      if(msg.msg_controllen == CMSG_SPACE(sizeof(int)))
       {
+        cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
+        if(cmsg->cmsg_level == SOL_SOCKET &&
+           cmsg->cmsg_type == SCM_RIGHTS &&
+           cmsg->cmsg_len == CMSG_LEN(sizeof(int)))
+         m_read.fd = *reinterpret_cast<int*>(CMSG_DATA(cmsg));
       }
-      enqueue<vqueue&>(readFinished, m_read.buffer);
+      else
+        m_read.fd = nullptr;
+      enqueue<vqueue&, posix::fd_t>(readFinished, m_read.buffer, m_read.fd);
     }
     else // error
-    {
-    }
+      std::cout << std::flush << std::endl << std::red << "error: " << ::strerror(errno) << std::none << std::endl << std::flush;
   }
 }
 
 void AsyncSocket::async_write(void)
 {
-  char non = 0;
   std::mutex m;
-  msghdr msg;
-  iovec iov;
+  msghdr msg = {};
+  iovec iov = {};
+  char aux_buffer[CMSG_SPACE(sizeof(int)) + CMSG_SPACE(sizeof(ucred))] = { 0 };
 
-  msg.msg_name = nullptr;
-  msg.msg_namelen = 0;
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
+  msg.msg_control = aux_buffer;
 
   for(;;)
   {
     std::unique_lock<std::mutex> lk(m);
     m_write.condition.wait(lk, [this] { return is_connected() && !m_write.buffer.empty(); } );
 
-    switch(m_write.msg_type)
+    iov.iov_base = m_write.buffer.begin();
+    iov.iov_len = m_write.buffer.size();
+
+    msg.msg_controllen = 0;
+
+    if(m_write.fd != nullptr)
     {
-      case messages::data:
-        msg.msg_controllen = 0;
-        iov.iov_base = m_write.buffer.data();
-        iov.iov_len = m_write.buffer.capacity();
-        break;
-
-      case messages::credentials:
-      case messages::file_descriptor:
-        iov.iov_base = &non;
-        iov.iov_len = 1;
-        msg.msg_control = m_write.buffer.begin();
-        msg.msg_controllen = m_write.buffer.capacity();
-
-        cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
-        cmsg->cmsg_len = CMSG_LEN(sizeof(posix::fd_t));
-        cmsg->cmsg_level = SOL_SOCKET;
-        cmsg->cmsg_type = static_cast<int>(m_write.msg_type);
-        break;
+      msg.msg_controllen = CMSG_SPACE(sizeof(int));
+      cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
+      cmsg->cmsg_level = SOL_SOCKET;
+      cmsg->cmsg_type = SCM_RIGHTS;
+      cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+      *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = m_write.fd;
     }
 
     int count = posix::sendmsg(m_write.socket, &msg, 0);
     if(count == posix::error_response) // error
-    {
-      std::cout << std::flush << "error: " << ::strerror(errno) << std::endl << std::flush;
-    }
+      std::cout << std::flush << std::endl << std::red << "error: " << ::strerror(errno) << std::none << std::endl << std::flush;
     else
-    {
-      m_write.buffer.resize(0);
       enqueue(writeFinished, count);
-    }
+    m_write.buffer.resize(0);
   }
 }
 
@@ -189,26 +182,13 @@ bool AsyncSocket::read(void)
   return true;
 }
 
-bool AsyncSocket::write(vqueue& buffer)
+bool AsyncSocket::write(vqueue& buffer, posix::fd_t fd)
 {
   if(!is_connected())
     return false;
 
-  m_write.msg_type = messages::data;
+  m_write.fd = fd;
   m_write.buffer = buffer; // share buffer memory
-  m_write.condition.notify_one();
-  return true;
-}
-
-bool AsyncSocket::write(posix::fd_t fd)
-{
-  if(!is_connected() || // ensure connection is active
-     !m_write.buffer.allocate(CMSG_SPACE(sizeof(posix::fd_t))) || // allocate memory
-     !m_write.buffer.expand  (CMSG_SPACE(0)) || // move end of buffer
-     !m_write.buffer.shrink  (CMSG_SPACE(0)) || // move beginning of buffer
-     !m_write.buffer.push(fd)) // push the data to the buffer
-    return false;
-  m_write.msg_type = messages::file_descriptor;
   m_write.condition.notify_one();
   return true;
 }
