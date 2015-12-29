@@ -12,7 +12,9 @@ template<typename T>
 constexpr bool operator ==(T err_num, std::errc err)
   { return *reinterpret_cast<T*>(&err) == err_num; }
 
-namespace posix {
+namespace posix
+{
+  static const int success = 0;
   static const int error_response = -1;
 }
 
