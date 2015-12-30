@@ -18,6 +18,8 @@
 // PDTK
 #include "error_helpers.h"
 #include "nullable.h"
+#include <nonposix/getpeerid.h>
+
 
 enum class EDomain : sa_family_t
 {
@@ -166,6 +168,9 @@ namespace posix
 
   static inline ssize_t recvmsg(fd_t sockfd, msghdr* msg, int flags = 0)
     { return ignore_interruption(::recvmsg, sockfd.value(), msg, flags); }
+
+  static inline bool getpeereid(fd_t sockfd, uid_t& uid, gid_t& gid)
+    { return ::getpeereid(sockfd.value(), &uid, &gid) != error_response; }
 
 /*
   static inline int select(int max_fd, fd_set* read_set, fd_set* write_set = nullptr, fd_set* except_set = nullptr, timeval* timeout = nullptr)
