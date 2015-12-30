@@ -2,22 +2,19 @@
 #define SOCKET_HELPERS_H
 
 // STL
-#include <system_error>
-#include <cerrno>
 #include <cstring>
 
 // POSIX
 #include <sys/un.h>     // for struct sockaddr_un
 #include <sys/socket.h> // for socket()
-#include <sys/select.h> // for select()
-#include <sys/types.h>
-#include <sys/time.h>   // for struct timeval
+//#include <sys/select.h> // for select()
+//#include <sys/time.h>   // for struct timeval
 #include <fcntl.h>      // for fcntl()
 #include <unistd.h>     // for close()
 
 // PDTK
 #include "error_helpers.h"
-#include "nullable.h"
+#include "posix_helpers.h"
 #include <nonposix/getpeerid.h>
 
 
@@ -58,49 +55,6 @@ enum class EType : int
 
 namespace posix
 {
-  typedef nullable<int> fd_t;
-
-/*
-  struct fdset_t : fd_set
-  {
-    inline ~fdset_t(void) { clear(); }
-
-    inline operator fd_set*(void) { return this; }
-
-    inline bool contains(fd_t fd) const { return FD_ISSET (fd, this); }
-    inline void clear   (void   ) { FD_ZERO(    this); }
-    inline void add     (fd_t fd) { FD_SET (fd, this); }
-    inline void remove  (fd_t fd) { FD_CLR (fd, this); }
-  };
-
-  struct socket_t : fdset_t
-  {
-    socket_t(fd_t s) : m_socket(s) { }
-    inline operator fd_t(void) { return m_socket; }
-    inline fd_t operator =(fd_t s) { return m_socket = s; }
-
-    fd_t m_socket;
-  };
-*/
-
-#ifndef __clang__
-  template<typename RType, typename... ArgTypes>
-  using function = RType(*)(ArgTypes...);
-
-  template<typename RType, typename... ArgTypes>
-  static inline RType ignore_interruption(function<RType, ArgTypes...> func, ArgTypes... args)
-#else
-  template<typename RType, typename... ArgTypes>
-  static inline RType ignore_interruption(RType(*func)(ArgTypes...), ArgTypes... args)
-#endif
-  {
-    RType rval;
-    do {
-      rval = func(args...);
-    } while(rval == error_response && errno == std::errc::interrupted);
-    return rval;
-  }
-
   struct sockaddr_t : sockaddr_un
   {
     inline sockaddr_t(void)
@@ -116,6 +70,7 @@ namespace posix
     inline sockaddr_t& operator = (const char* path) { std::strcpy(sun_path, path); return *this; }
   };
 
+// POSIX wrappers
   static inline fd_t socket(EDomain domain, EType type, EProtocol protocol = EProtocol::unspec, int flags = 0)
   {
     fd_t fd = ::socket(static_cast<int>(domain),
@@ -132,7 +87,7 @@ namespace posix
 
   static inline fd_t accept(fd_t sockfd, sockaddr* addr, socklen_t* addrlen, int flags = 0)
   {
-    fd_t fd = ignore_interruption(::accept, sockfd.value(), addr, addrlen);
+    fd_t fd = ignore_interruption(::accept, sockfd, addr, addrlen);
     if(fd != error_response)
     {
       ::fcntl(fd, F_SETFD, FD_CLOEXEC);
@@ -146,31 +101,28 @@ namespace posix
     { return ::listen(sockfd, backlog) != error_response; }
 
   static inline bool accept(fd_t sockfd, sockaddr* addr, socklen_t* addrlen)
-    { return ignore_interruption(::accept, sockfd.value(), addr, addrlen) != error_response; }
+    { return ignore_interruption(::accept, sockfd, addr, addrlen) != error_response; }
 
   static inline bool connect(fd_t sockfd, const sockaddr* addr, socklen_t addrlen)
-    { return ignore_interruption(::connect, sockfd.value(), addr, addrlen) != error_response; }
+    { return ignore_interruption(::connect, sockfd, addr, addrlen) != error_response; }
 
   static inline bool bind(fd_t sockfd, const sockaddr* addr, socklen_t addrlen)
     { return ::bind(sockfd, addr, addrlen) != error_response; }
 
   static inline bool close(fd_t sockfd)
-    { return ignore_interruption(::close, sockfd.value()) != error_response; }
+    { return ignore_interruption(::close, sockfd) != error_response; }
 
   static inline ssize_t send(fd_t sockfd, const void* buffer, size_t length, int flags = 0)
-    { return ignore_interruption(::send, sockfd.value(), buffer, length, flags); }
+    { return ignore_interruption(::send, sockfd, buffer, length, flags); }
 
   static inline ssize_t recv(fd_t sockfd, void* buffer, size_t length, int flags = 0)
-    { return ignore_interruption(::recv, sockfd.value(), buffer, length, flags); }
+    { return ignore_interruption(::recv, sockfd, buffer, length, flags); }
 
   static inline ssize_t sendmsg(fd_t sockfd, const msghdr* msg, int flags = 0)
-    { return ignore_interruption(::sendmsg, sockfd.value(), msg, flags); }
+    { return ignore_interruption(::sendmsg, sockfd, msg, flags); }
 
   static inline ssize_t recvmsg(fd_t sockfd, msghdr* msg, int flags = 0)
-    { return ignore_interruption(::recvmsg, sockfd.value(), msg, flags); }
-
-  static inline bool getpeereid(fd_t sockfd, uid_t& uid, gid_t& gid)
-    { return ::getpeereid(sockfd.value(), &uid, &gid) != error_response; }
+    { return ignore_interruption(::recvmsg, sockfd, msg, flags); }
 
 /*
   static inline int select(int max_fd, fd_set* read_set, fd_set* write_set = nullptr, fd_set* except_set = nullptr, timeval* timeout = nullptr)
@@ -179,6 +131,10 @@ namespace posix
   static inline int select(fd_set* read_set, fd_set* write_set = nullptr, fd_set* except_set = nullptr, timeval* timeout = nullptr)
     { return ignore_interruption(::select, FD_SETSIZE, read_set, write_set, except_set, timeout); }
 */
+
+// non-POSIX wrappers
+  static inline bool getpeereid(fd_t sockfd, uid_t& uid, gid_t& gid)
+    { return ::getpeereid(sockfd, &uid, &gid) == success; }
 }
 
 
