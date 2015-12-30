@@ -65,10 +65,6 @@ namespace rpc
     return true;
   }
 
-  template<typename T>
-  static inline bool deserialize(vqueue& data, const T* arg, uint16_t length)
-    { return deserialize<T>(data, const_cast<T*>(arg), length); }
-
 // simple types
   template<typename T>
   static inline bool serialize(vqueue& data, T& arg)
@@ -114,7 +110,7 @@ namespace rpc
   inline bool deserialize<std::string>(vqueue& data, std::string& arg)
   {
     arg.resize(data.front<uint16_t>());
-    return deserialize(data, arg.data(), arg.size());
+    return deserialize(data, const_cast<char*>(arg.data()), arg.size()); // bad form! not guaranteed to work.
   }
 
 // wide string
@@ -126,7 +122,7 @@ namespace rpc
   inline bool deserialize<std::wstring>(vqueue& data, std::wstring& arg)
   {
     arg.resize(data.front<uint16_t>());
-    return deserialize(data, arg.data(), arg.size());
+    return deserialize(data, const_cast<wchar_t*>(arg.data()), arg.size()); // bad form! not guaranteed to work.
   }
 
 // multi-arg interface
