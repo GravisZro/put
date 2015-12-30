@@ -25,7 +25,7 @@ public:
 
   bool connect(const char *socket_path);
 
-  bool getpeereid(uid_t& uid, gid_t& gid)
+  inline bool getpeereid(uid_t& uid, gid_t& gid)
     { return posix::getpeereid(m_read.socket, uid, gid); }
 
   bool read(void);
