@@ -25,20 +25,23 @@ public:
 
   bool connect(const char *socket_path);
 
-  bool read(void);
+  bool getpeereid(uid_t& uid, gid_t& gid)
+    { return posix::getpeereid(m_read.socket, uid, gid); }
 
+  bool read(void);
   inline bool write(posix::fd_t fd) { vqueue b(1); b.resize(1); return write(b, fd); }
   bool write(vqueue& buffer, posix::fd_t fd = nullptr);
 
   signal<vqueue&, posix::fd_t> readFinished;  // msesage received
   signal<int>                  writeFinished; // message sent
-private:
+
+protected:
   inline bool is_connected(void) const { return m_connected; }
   inline bool is_bound    (void) const { return m_bound    ; }
   void async_read(void);
   void async_write(void);
 
-private:
+protected:
   struct async_pkg_t
   {
     inline  async_pkg_t(void) : buffer(0) { } // empty buffer
