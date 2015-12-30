@@ -124,7 +124,7 @@ void AsyncSocket::async_read(void)
          m_read.fd = *reinterpret_cast<int*>(CMSG_DATA(cmsg));
       }
       else
-        m_read.fd = nullptr;
+        m_read.fd = posix::invalid_descriptor;
       enqueue<vqueue&, posix::fd_t>(readFinished, m_read.buffer, m_read.fd);
     }
     else // error
@@ -153,7 +153,7 @@ void AsyncSocket::async_write(void)
 
     msg.msg_controllen = 0;
 
-    if(m_write.fd != nullptr)
+    if(m_write.fd != posix::invalid_descriptor)
     {
       msg.msg_controllen = CMSG_SPACE(sizeof(int));
       cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);

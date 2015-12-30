@@ -30,7 +30,7 @@ public:
 
   bool read(void);
   inline bool write(posix::fd_t fd) { vqueue b(1); b.resize(1); return write(b, fd); }
-  bool write(vqueue& buffer, posix::fd_t fd = nullptr);
+  bool write(vqueue& buffer, posix::fd_t fd = posix::invalid_descriptor);
 
   signal<vqueue&, posix::fd_t> readFinished;  // msesage received
   signal<int>                  writeFinished; // message sent
