@@ -9,6 +9,7 @@
 // PDTK
 #include "cxxutils/error_helpers.h"
 #include "cxxutils/streamcolors.h"
+#include "nonposix/getpeercred.h"
 
 #ifndef CMSG_LEN
 #define CMSG_ALIGN(len) (((len) + sizeof(size_t) - 1) & (size_t) ~ (sizeof(size_t) - 1))
@@ -65,7 +66,7 @@ bool AsyncSocket::bind(const char *socket_path)
   return m_bound = posix::bind(m_read.socket, m_addr, m_addr.size());
 }
 
-bool AsyncSocket::listen(int max_connections, std::vector<const char*> allowed_endpoints)
+bool AsyncSocket::listen(int max_connections)
 {
   if(!is_bound())
     return false;
@@ -82,6 +83,7 @@ if ((s2 = accept(s, (struct sockaddr *)&remote, &t)) == -1) {
 
   }
   m_connected = ok;
+  ok &= ::getpeercred(m_read.socket, m_peer) == posix::success;
   return ok;
 }
 
@@ -93,7 +95,8 @@ bool AsyncSocket::connect(const char *socket_path)
   assert(std::strlen(socket_path) < sizeof(sockaddr_un::sun_path));
   m_addr = socket_path;
   m_addr = EDomain::unix;
-  return m_connected = posix::connect(m_read.socket, m_addr, m_addr.size());
+  m_connected = posix::connect(m_read.socket, m_addr, m_addr.size());
+  return m_connected && ::getpeercred(m_read.socket, m_peer) == posix::success;
 }
 
 void AsyncSocket::async_read(void)

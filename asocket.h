@@ -11,6 +11,7 @@
 #include "object.h"
 #include "cxxutils/socket_helpers.h"
 #include "cxxutils/vqueue.h"
+#include "nonposix/getpeercred.h"
 
 class AsyncSocket : public Object
 {
@@ -21,12 +22,13 @@ public:
  ~AsyncSocket(void);
 
   bool bind(const char *socket_path);
-  bool listen(int max_connections = SOMAXCONN, std::vector<const char*> allowed_endpoints = { });
+  bool listen(int max_connections = SOMAXCONN);
 
   bool connect(const char *socket_path);
 
-  inline bool getpeereid(uid_t& uid, gid_t& gid)
-    { return posix::getpeereid(m_read.socket, uid, gid); }
+  inline pid_t getpeerpid(void) const { return m_peer.pid; }
+  inline gid_t getpeergid(void) const { return m_peer.gid; }
+  inline uid_t getpeeruid(void) const { return m_peer.uid; }
 
   bool read(void);
   inline bool write(posix::fd_t fd) { vqueue b(1); b.resize(1); return write(b, fd); }
@@ -59,6 +61,7 @@ protected:
   posix::sockaddr_t m_addr;
   bool m_connected;
   bool m_bound;
+  proccred_t m_peer;
 };
 
 #endif // ASYNCSOCKET_H
