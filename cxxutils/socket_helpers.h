@@ -15,8 +15,6 @@
 // PDTK
 #include "error_helpers.h"
 #include "posix_helpers.h"
-#include <nonposix/getpeerid.h>
-
 
 enum class EDomain : sa_family_t
 {
@@ -131,10 +129,6 @@ namespace posix
   static inline int select(fd_set* read_set, fd_set* write_set = nullptr, fd_set* except_set = nullptr, timeval* timeout = nullptr)
     { return ignore_interruption(::select, FD_SETSIZE, read_set, write_set, except_set, timeout); }
 */
-
-// non-POSIX wrappers
-  static inline bool getpeereid(fd_t sockfd, uid_t& uid, gid_t& gid)
-    { return ::getpeereid(sockfd, &uid, &gid) == success; }
 }
 
 
