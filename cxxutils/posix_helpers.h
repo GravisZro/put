@@ -84,15 +84,14 @@ namespace posix
   static inline std::string getusername(uid_t uid)
   {
     passwd* rval = posix::getpwuid(uid);
-    return rval == nullptr ? nullptr : rval->pw_name;
+    return rval == nullptr ? "" : rval->pw_name;
   }
 
   static inline std::string getgroupname(gid_t gid)
   {
     group* rval = posix::getgrgid(gid);
-    return rval == nullptr ? nullptr : rval->gr_name;
+    return rval == nullptr ? "" : rval->gr_name;
   }
-
 }
 
 #endif // POSIX_HELPERS_H

@@ -17,13 +17,21 @@ struct proccred_t
 };
 
 #if defined(SO_PEERCRED)
+// Linux
 static int getpeercred(int sockfd, proccred_t& cred)
 {
   struct ucred data;
   socklen_t len = sizeof(data);
 
   int rval = getsockopt(sockfd, SOL_SOCKET, SO_PEERCRED, &data, &len);
-  if(rval == posix::success && len == sizeof(data))
+
+  if(len != sizeof(data))
+  {
+    errno = EINVAL;
+    rval = -1;
+  }
+
+  if(rval == posix::success)
   {
     cred.pid = data.pid;
     cred.uid = data.uid;
@@ -32,25 +40,49 @@ static int getpeercred(int sockfd, proccred_t& cred)
   return rval;
 }
 #elif defined(LOCAL_PEERCRED)
-
+// Older FreeBSD
+#include <sys/ucred.h>
 static int getpeercred(int sockfd, proccred_t& cred)
 {
   struct xucred data;
   ACCEPT_TYPE_ARG3 len = sizeof(data);
 
   int rval = getsockopt(sock, 0, LOCAL_PEERCRED, &data, &so_len);
-  if(rval == posix::success &&
-     len == sizeof(data) &&
-     data.cr_version == XUCRED_VERSION)
+
+  if(len != sizeof(data) || data.cr_version != XUCRED_VERSION))
   {
-    cred.pid = 0; // FIXME
+    errno = EINVAL;
+    rval = -1;
+  }
+
+  if(rval == posix::success)
+  {
+    cred.pid = -1; // FIXME
     cred.uid = data.cr_uid;
     cred.gid = data.cr_gid;
   }
   return rval;
 }
+#elif defined(LOCAL_PEEREID)
+// NetBSD
+static int getpeercred(int sockfd, proccred_t& cred)
+{
+  struct unpcbid data;
+  socklen_t len = sizeof(data);
+
+  int rval = getsockopt(s, 0, LOCAL_PEEREID, &data, &len);
+
+  if(rval == posix::success)
+  {
+    cred.uid = data.unp_euid;
+    cred.gid = data.unp_egid;
+    cred.pid = data.unp_pid;
+  }
+  return rval;
+}
 
 #elif defined(__sun) && defined(__SVR4)
+// Solaris
 #include <ucred.h>
 
 static int getpeercred(int sockfd, proccred_t& cred)
@@ -58,6 +90,7 @@ static int getpeercred(int sockfd, proccred_t& cred)
   uproccred_t* data = nullptr;
 
   int rval = getpeerucred(sock, &data);
+
   if(rval == posix::success)
   {
     cred.pid = ucred_getpid (data);
@@ -70,6 +103,14 @@ static int getpeercred(int sockfd, proccred_t& cred)
       rval = posix::error_response;
   }
   return rval;
+}
+#elif defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+#include <sys/param.h>
+
+static int getpeercred(int sockfd, proccred_t& cred)
+{
+  cred.pid = -1; // FIXME
+  return getpeereid(sockfd, &cred.uid, &cred.gid);
 }
 #else
 #error no acceptible way to implement getpeercred
