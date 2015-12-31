@@ -1,6 +1,7 @@
 #ifndef STREAMCOLORS_H
 #define STREAMCOLORS_H
 
+// STL
 #include <ostream>
 
 // Text Modifiers

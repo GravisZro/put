@@ -10,7 +10,6 @@
 // PDTK
 #include "vqueue.h"
 
-
 namespace rpc
 {
 // ===== interface declarations =====

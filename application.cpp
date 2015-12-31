@@ -1,7 +1,11 @@
 #include "application.h"
+
+// STL
+#include <atomic>
+
+// PDTK
 #include "object.h"
 
-#include <atomic>
 
 static std::atomic_int  s_return_value (0);
 static std::atomic_bool s_run (true);

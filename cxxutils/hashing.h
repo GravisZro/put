@@ -1,6 +1,7 @@
 #ifndef HASHING_H
 #define HASHING_H
 
+// STL
 #include <string>
 
 template<typename T> constexpr unsigned int hash_array(const T* key, std::size_t size)

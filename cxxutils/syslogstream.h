@@ -1,9 +1,11 @@
 #ifndef SYSLOG_H
 #define SYSLOG_H
 
+// STL
 #include <iostream>
 #include <string>
 
+// POSIX
 #include <sys/syslog.h>
 
 namespace std
