@@ -66,7 +66,7 @@ namespace rpc
 
 // simple types
   template<typename T>
-  static inline bool serialize(vqueue& data, T& arg)
+  static inline bool serialize(vqueue& data, const T& arg)
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "bad type");
     return serialize<T>(data, &arg, 1);
@@ -95,14 +95,18 @@ namespace rpc
     return deserialize(data, arg.data(), arg.size());
   }
 
-// const char* string
+// char* string
   template<>
   inline bool serialize<const char*>(vqueue& data, const char*& arg)
     { return serialize(data, arg, std::strlen(arg)); }
 
+  template<>
+  inline bool deserialize<const char*>(vqueue& data, char*& arg)
+    { return deserialize(data, arg, data.front<uint16_t>()); }
+
 // string
   template<>
-  inline bool serialize<std::string>(vqueue& data, std::string& arg)
+  inline bool serialize<std::string>(vqueue& data, const std::string& arg)
     { return serialize(data, arg.data(), arg.size()); }
 
   template<>
@@ -114,7 +118,7 @@ namespace rpc
 
 // wide string
   template<>
-  inline bool serialize<std::wstring>(vqueue& data, std::wstring& arg)
+  inline bool serialize<std::wstring>(vqueue& data, const std::wstring& arg)
     { return serialize(data, arg.data(), arg.size()); }
 
   template<>
