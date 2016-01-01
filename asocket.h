@@ -44,10 +44,10 @@ protected:
   void async_write(void);
 
 protected:
-  struct async_pkg_t
+  struct async_channel_t
   {
-    inline  async_pkg_t(void) : buffer(0) { } // empty buffer
-    inline ~async_pkg_t(void) { posix::close(socket); thread.detach(); }
+    inline  async_channel_t(void) : buffer(0) { } // empty buffer
+    inline ~async_channel_t(void) { posix::close(socket); thread.detach(); }
     posix::fd_t             socket;
     vqueue                  buffer;
     posix::fd_t             fd;
@@ -56,8 +56,8 @@ protected:
   };
 
   std::mutex  m_connection;
-  async_pkg_t m_read;
-  async_pkg_t m_write;
+  async_channel_t m_read;
+  async_channel_t m_write;
   posix::sockaddr_t m_addr;
   bool m_connected;
   bool m_bound;
