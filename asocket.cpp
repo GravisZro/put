@@ -26,8 +26,10 @@ namespace posix
 }
 
 AsyncSocket::AsyncSocket(void)
-  : AsyncSocket(posix::socket(EDomain::unix, EType::stream, EProtocol::unspec, 0))
 {
+  const int enable = 1;
+  m_socket = posix::socket(EDomain::unix, EType::stream, EProtocol::unspec, 0);
+  assert(setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) == posix::success);
 }
 
 AsyncSocket::AsyncSocket(posix::fd_t socket)
@@ -44,7 +46,10 @@ AsyncSocket::~AsyncSocket(void)
   if(m_socket != posix::invalid_descriptor)
     posix::close(m_socket);
   m_socket = posix::invalid_descriptor;
+  if(m_selfaddr != EDomain::unspec)
+    ::unlink(m_selfaddr.sun_path);
   m_accept.detach();
+
 }
 
 bool AsyncSocket::bind(const char *socket_path, int socket_backlog)
@@ -89,6 +94,7 @@ bool AsyncSocket::connect(const char *socket_path)
   posix::sockaddr_t m_peeraddr;
   m_peeraddr = socket_path;
   m_peeraddr = EDomain::unix;
+  m_selfaddr = EDomain::unspec;
 
   m_read.connection = m_socket;
   bool ok = m_read.connect(m_peeraddr);
