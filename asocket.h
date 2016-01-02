@@ -17,18 +17,11 @@ class AsyncSocket : public Object
 {
 public:
   AsyncSocket(void);
-  AsyncSocket(AsyncSocket& other);
   AsyncSocket(posix::fd_t socket);
  ~AsyncSocket(void);
 
-  bool bind(const char *socket_path);
-  bool listen(int max_connections = SOMAXCONN);
-
+  bool bind(const char *socket_path, int socket_backlog = SOMAXCONN);
   bool connect(const char *socket_path);
-
-  inline pid_t getpeerpid(void) const { return m_peer.pid; }
-  inline gid_t getpeergid(void) const { return m_peer.gid; }
-  inline uid_t getpeeruid(void) const { return m_peer.uid; }
 
   bool read(void);
   inline bool write(posix::fd_t fd) { vqueue b(1); b.resize(1); return write(b, fd); }
@@ -36,32 +29,44 @@ public:
 
   signal<vqueue&, posix::fd_t> readFinished;  // msesage received
   signal<int>                  writeFinished; // message sent
+  signal<posix::sockaddr_t, proccred_t> connectedToPeer; // connection is open with peer
 
 protected:
-  inline bool is_connected(void) const { return m_connected; }
-  inline bool is_bound    (void) const { return m_bound    ; }
-  void async_read(void);
+  void async_read (void);
   void async_write(void);
+  void async_accept(void);
 
 protected:
   struct async_channel_t
   {
-    inline  async_channel_t(void) : buffer(0) { } // empty buffer
-    inline ~async_channel_t(void) { posix::close(socket); thread.detach(); }
-    posix::fd_t             socket;
+    inline  async_channel_t(void) : buffer(0) { disconnect(); }
+    inline ~async_channel_t(void) { disconnect(); thread.detach(); }
+
+    inline bool is_connected(void) const
+      { return connection != posix::invalid_descriptor; }
+
+    inline bool connect(const posix::sockaddr_t& addr)
+      { return posix::connect(connection, addr, addr.size()); }
+
+    inline void disconnect(void)
+    {
+      if(is_connected())
+        posix::close(connection);
+      connection = posix::invalid_descriptor;
+    }
+
+    posix::fd_t             connection;
     vqueue                  buffer;
     posix::fd_t             fd;
     std::thread             thread;
     std::condition_variable condition;
   };
 
-  std::mutex  m_connection;
-  async_channel_t m_read;
-  async_channel_t m_write;
-  posix::sockaddr_t m_addr;
-  bool m_connected;
-  bool m_bound;
-  proccred_t m_peer;
+  posix::fd_t       m_socket;
+  posix::sockaddr_t m_selfaddr;
+  std::thread       m_accept;
+  async_channel_t   m_read;
+  async_channel_t   m_write;
 };
 
 #endif // ASYNCSOCKET_H

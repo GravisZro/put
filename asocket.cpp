@@ -19,84 +19,92 @@
 
 static_assert(sizeof(uint8_t) == sizeof(char), "size mismatch!");
 
-AsyncSocket::AsyncSocket(void)
-  : AsyncSocket(posix::socket(EDomain::unix, EType::stream, EProtocol::unspec, 0))
-//  : AsyncSocket(posix::socket(EDomain::unix, EType::datagram, EProtocol::unspec, 0))
+namespace posix
 {
-  m_connected = false;
+  inline bool getpeercred(fd_t sockfd, proccred_t& cred)
+    { return ::getpeercred(sockfd, cred) == posix::success; }
 }
 
-AsyncSocket::AsyncSocket(AsyncSocket& other)
-  : AsyncSocket(other.m_read.socket)
+AsyncSocket::AsyncSocket(void)
+  : AsyncSocket(posix::socket(EDomain::unix, EType::stream, EProtocol::unspec, 0))
 {
-  m_connected = other.m_connected;
-  m_bound     = other.m_bound;
 }
 
 AsyncSocket::AsyncSocket(posix::fd_t socket)
+  : m_socket(socket)
 {
-  m_write.socket = dup(socket);
-  m_read .socket = dup(socket);
-  posix::close(socket);
-
-  // socket shutdowns do not behave as expected :(
-  //shutdown(m_read .socket, SHUT_WR); // make read only
-  //shutdown(m_write.socket, SHUT_RD); // make write only
-
-  m_read .thread = std::thread(&AsyncSocket::async_read , this);
-  m_write.thread = std::thread(&AsyncSocket::async_write, this);
 }
 
 AsyncSocket::~AsyncSocket(void)
 {
-  if(is_bound() || is_connected())
-  {
-    posix::close(m_read .socket);
-    posix::close(m_write.socket);
-  }
+  if(m_read.is_connected())
+    m_read.disconnect();
+  if(m_write.is_connected())
+    m_write.disconnect();
+  if(m_socket != posix::invalid_descriptor)
+    posix::close(m_socket);
+  m_socket = posix::invalid_descriptor;
+  m_accept.detach();
 }
 
-bool AsyncSocket::bind(const char *socket_path)
+bool AsyncSocket::bind(const char *socket_path, int socket_backlog)
 {
-  if(is_bound() || is_connected())
+  if(m_read.is_connected())
     return false;
 
   assert(std::strlen(socket_path) < sizeof(sockaddr_un::sun_path));
-  m_addr = socket_path;
-  return m_bound = posix::bind(m_read.socket, m_addr, m_addr.size());
+  m_selfaddr = socket_path;
+  m_selfaddr = EDomain::unix;
+  ::unlink(socket_path);
+  bool ok;
+  ok = posix::bind(m_socket, m_selfaddr, m_selfaddr.size());
+  ok = ok && posix::listen(m_socket, socket_backlog);
+  if(ok)
+    m_accept = std::thread(&AsyncSocket::async_accept, this);
+  return ok;
 }
 
-bool AsyncSocket::listen(int max_connections)
+void AsyncSocket::async_accept(void)
 {
-  if(!is_bound())
-    return false;
+  posix::sockaddr_t m_peeraddr;
+  proccred_t m_peercred;
 
-  bool ok = posix::listen(m_read.socket, max_connections);
-  if(ok)
+  socklen_t addrlen;
+  m_read.connection = posix::accept(m_socket, m_peeraddr, &addrlen);
+  m_write.connection = ::dup(m_read.connection);
+  if(m_read.is_connected() &&
+     posix::getpeercred(m_read.connection, m_peercred))
   {
-/*
-if ((s2 = accept(s, (struct sockaddr *)&remote, &t)) == -1) {
-                        perror("accept");
-                        exit(1);
-                }
-*/
-
+    enqueue(connectedToPeer, m_peeraddr, m_peercred);
+    m_read .thread = std::thread(&AsyncSocket::async_read , this);
+    m_write.thread = std::thread(&AsyncSocket::async_write, this);
   }
-  m_connected = ok;
-  ok &= ::getpeercred(m_read.socket, m_peer) == posix::success;
-  return ok;
 }
 
 bool AsyncSocket::connect(const char *socket_path)
 {
-  if(is_connected())
+  if(m_read.is_connected())
     return false;
 
   assert(std::strlen(socket_path) < sizeof(sockaddr_un::sun_path));
-  m_addr = socket_path;
-  m_addr = EDomain::unix;
-  m_connected = posix::connect(m_read.socket, m_addr, m_addr.size());
-  return m_connected && ::getpeercred(m_read.socket, m_peer) == posix::success;
+  proccred_t m_peercred;
+  posix::sockaddr_t m_peeraddr;
+  m_peeraddr = socket_path;
+  m_peeraddr = EDomain::unix;
+
+  m_read.connection = m_socket;
+  bool ok = m_read.connect(m_peeraddr);
+
+  if((ok = ok && posix::getpeercred(m_read.connection, m_peercred)))
+  {
+    m_write.connection = ::dup(m_read.connection);
+    enqueue(connectedToPeer, m_peeraddr, m_peercred);
+    m_read .thread = std::thread(&AsyncSocket::async_read , this);
+    m_write.thread = std::thread(&AsyncSocket::async_write, this);
+  }
+  else
+    m_read.connection = posix::invalid_descriptor;
+  return ok;
 }
 
 void AsyncSocket::async_read(void)
@@ -112,11 +120,11 @@ void AsyncSocket::async_read(void)
   {
     m_read.buffer.allocate(); // allocate 64KB buffer
     std::unique_lock<std::mutex> lk(m);
-    m_read.condition.wait(lk, [this] { return is_connected(); } );
+    m_read.condition.wait(lk, [this] { return m_read.is_connected(); } );
 
     iov.iov_base = m_read.buffer.data();
     iov.iov_len = m_read.buffer.capacity();
-    if(m_read.buffer.expand(posix::recvmsg(m_read.socket, &msg, 0)))
+    if(m_read.buffer.expand(posix::recvmsg(m_read.connection, &msg, 0)))
     {
       if(msg.msg_controllen == CMSG_SPACE(sizeof(int)))
       {
@@ -149,7 +157,7 @@ void AsyncSocket::async_write(void)
   for(;;)
   {
     std::unique_lock<std::mutex> lk(m);
-    m_write.condition.wait(lk, [this] { return is_connected() && !m_write.buffer.empty(); } );
+    m_write.condition.wait(lk, [this] { return m_write.is_connected() && !m_write.buffer.empty(); } );
 
     iov.iov_base = m_write.buffer.begin();
     iov.iov_len = m_write.buffer.size();
@@ -166,7 +174,7 @@ void AsyncSocket::async_write(void)
       *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = m_write.fd;
     }
 
-    int count = posix::sendmsg(m_write.socket, &msg, 0);
+    int count = posix::sendmsg(m_write.connection, &msg, 0);
     if(count == posix::error_response) // error
       std::cout << std::flush << std::endl << std::red << "error: " << ::strerror(errno) << std::none << std::endl << std::flush;
     else
@@ -177,7 +185,7 @@ void AsyncSocket::async_write(void)
 
 bool AsyncSocket::read(void)
 {
-  if(!is_connected())
+  if(!m_read.is_connected())
     return false;
   m_read.condition.notify_one();
   return true;
@@ -185,7 +193,7 @@ bool AsyncSocket::read(void)
 
 bool AsyncSocket::write(vqueue& buffer, posix::fd_t fd)
 {
-  if(!is_connected())
+  if(!m_read.is_connected())
     return false;
 
   m_write.fd = fd;
