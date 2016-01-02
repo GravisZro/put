@@ -101,7 +101,7 @@ namespace rpc
     { return serialize(data, arg, std::strlen(arg)); }
 
   template<>
-  inline bool deserialize<const char*>(vqueue& data, char*& arg)
+  inline bool deserialize<char*>(vqueue& data, char*& arg)
     { return deserialize(data, arg, data.front<uint16_t>()); }
 
 // string
