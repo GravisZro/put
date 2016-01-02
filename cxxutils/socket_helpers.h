@@ -61,8 +61,9 @@ namespace posix
       std::memset(sun_path, 0, sizeof(sun_path));
     }
 
-    inline int size(void) { return sizeof(sa_family_t) + std::strlen(sun_path); }
+    inline int size(void) const { return sizeof(sun_family) + std::strlen(sun_path); }
     inline operator struct sockaddr*(void) { return reinterpret_cast<struct sockaddr*>(this); }
+    inline operator const struct sockaddr*(void) const { return reinterpret_cast<const struct sockaddr*>(this); }
     inline sockaddr_t& operator = (sa_family_t family) { sun_family = family; return *this; }
     inline sockaddr_t& operator = (EDomain family) { return operator =(static_cast<sa_family_t>(family)); }
     inline sockaddr_t& operator = (const char* path) { std::strcpy(sun_path, path); return *this; }
@@ -97,9 +98,6 @@ namespace posix
 
   static inline bool listen(fd_t sockfd, int backlog = SOMAXCONN)
     { return ::listen(sockfd, backlog) != error_response; }
-
-  static inline bool accept(fd_t sockfd, sockaddr* addr, socklen_t* addrlen)
-    { return ignore_interruption(::accept, sockfd, addr, addrlen) != error_response; }
 
   static inline bool connect(fd_t sockfd, const sockaddr* addr, socklen_t addrlen)
     { return ignore_interruption(::connect, sockfd, addr, addrlen) != error_response; }
