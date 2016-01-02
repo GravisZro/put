@@ -16,7 +16,11 @@
 class AsyncSocket : public Object
 {
 public:
-  AsyncSocket(void);
+  AsyncSocket(EDomain   domain    = EDomain::unix,
+              EType     type      = EType::stream,
+              EProtocol protocol  = EProtocol::unspec,
+              int       flags     = 0);
+
   AsyncSocket(posix::fd_t socket);
  ~AsyncSocket(void);
 

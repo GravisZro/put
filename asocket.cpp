@@ -25,11 +25,9 @@ namespace posix
     { return ::getpeercred(sockfd, cred) == posix::success; }
 }
 
-AsyncSocket::AsyncSocket(void)
+AsyncSocket::AsyncSocket(EDomain domain, EType type, EProtocol protocol, int flags)
+  : AsyncSocket(posix::socket(domain, type, protocol, flags))
 {
-  const int enable = 1;
-  m_socket = posix::socket(EDomain::unix, EType::stream, EProtocol::unspec, 0);
-  assert(setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) == posix::success);
 }
 
 AsyncSocket::AsyncSocket(posix::fd_t socket)
