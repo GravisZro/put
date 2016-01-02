@@ -55,9 +55,7 @@ bool AsyncSocket::bind(const char *socket_path, int socket_backlog)
   assert(std::strlen(socket_path) < sizeof(sockaddr_un::sun_path));
   m_selfaddr = socket_path;
   m_selfaddr = EDomain::unix;
-  ::unlink(socket_path);
-  bool ok;
-  ok = posix::bind(m_socket, m_selfaddr, m_selfaddr.size());
+  bool ok = posix::bind(m_socket, m_selfaddr, m_selfaddr.size());
   ok = ok && posix::listen(m_socket, socket_backlog);
   if(ok)
     m_accept = std::thread(&AsyncSocket::async_accept, this);
@@ -94,8 +92,8 @@ bool AsyncSocket::connect(const char *socket_path)
 
   m_read.connection = m_socket;
   bool ok = m_read.connect(m_peeraddr);
-
-  if((ok = ok && posix::getpeercred(m_read.connection, m_peercred)))
+  ok = ok && posix::getpeercred(m_read.connection, m_peercred);
+  if(ok)
   {
     m_write.connection = ::dup(m_read.connection);
     enqueue(connectedToPeer, m_peeraddr, m_peercred);
