@@ -141,9 +141,7 @@ void AsyncSocket::async_read(void)
          m_read.fd = *reinterpret_cast<int*>(CMSG_DATA(cmsg));
       }
       else if(msg.msg_flags & MSG_CTRUNC)
-      {
-        std::cout << std::flush << std::endl << std::red << "error: " << ::strerror(errno) << std::none << std::endl << std::flush;
-      }
+        std::cout << std::flush << std::endl << std::red << "error: control buffer too small" << std::none << std::endl << std::flush;
       else
         m_read.fd = posix::invalid_descriptor;
       enqueue<vqueue&, posix::fd_t>(readFinished, m_read.buffer, m_read.fd);
