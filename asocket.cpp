@@ -114,9 +114,11 @@ void AsyncSocket::async_read(void)
   std::mutex m;
   msghdr msg = {};
   iovec iov = {};
+  char aux_buffer[CMSG_SPACE(sizeof(int))] = { 0 };
 
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
+  msg.msg_control = aux_buffer;
 
   for(;;)
   {
@@ -126,6 +128,8 @@ void AsyncSocket::async_read(void)
 
     iov.iov_base = m_read.buffer.data();
     iov.iov_len = m_read.buffer.capacity();
+    msg.msg_controllen = sizeof(aux_buffer);
+
     if(m_read.buffer.expand(posix::recvmsg(m_read.connection, &msg, 0)))
     {
       if(msg.msg_controllen == CMSG_SPACE(sizeof(int)))
@@ -135,6 +139,10 @@ void AsyncSocket::async_read(void)
            cmsg->cmsg_type == SCM_RIGHTS &&
            cmsg->cmsg_len == CMSG_LEN(sizeof(int)))
          m_read.fd = *reinterpret_cast<int*>(CMSG_DATA(cmsg));
+      }
+      else if(msg.msg_flags & MSG_CTRUNC)
+      {
+        std::cout << std::flush << std::endl << std::red << "error: " << ::strerror(errno) << std::none << std::endl << std::flush;
       }
       else
         m_read.fd = posix::invalid_descriptor;
@@ -150,7 +158,7 @@ void AsyncSocket::async_write(void)
   std::mutex m;
   msghdr msg = {};
   iovec iov = {};
-  char aux_buffer[CMSG_SPACE(sizeof(int)) + CMSG_SPACE(sizeof(ucred))] = { 0 };
+  char aux_buffer[CMSG_SPACE(sizeof(int))] = { 0 };
 
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
@@ -174,6 +182,7 @@ void AsyncSocket::async_write(void)
       cmsg->cmsg_type = SCM_RIGHTS;
       cmsg->cmsg_len = CMSG_LEN(sizeof(int));
       *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = m_write.fd;
+      m_write.fd = posix::invalid_descriptor;
     }
 
     int count = posix::sendmsg(m_write.connection, &msg, 0);
