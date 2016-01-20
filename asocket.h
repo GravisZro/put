@@ -8,10 +8,10 @@
 #include <condition_variable>
 
 // PDTK
-#include "object.h"
-#include "cxxutils/socket_helpers.h"
-#include "cxxutils/vqueue.h"
-#include "nonposix/getpeercred.h"
+#include <object.h>
+#include <cxxutils/socket_helpers.h>
+#include <cxxutils/vqueue.h>
+#include <specialized/getpeercred.h>
 
 class AsyncSocket : public Object
 {
