@@ -17,7 +17,7 @@ class AsyncSocket : public Object
 {
 public:
   AsyncSocket(EDomain   domain    = EDomain::unix,
-              EType     type      = EType::stream,
+              EType     type      = EType::seqpacket,
               EProtocol protocol  = EProtocol::unspec,
               int       flags     = 0);
 
