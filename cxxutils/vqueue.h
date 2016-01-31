@@ -31,21 +31,11 @@ public:
     return *this;
   }
 
+// === error functions ===
   inline bool hadError(void) const { return !m_ok; }
   inline void clearError(void) { m_ok = true; }
 
-  inline vqueue& operator << (const char* arg)
-  {
-    serialize_arr(arg, std::strlen(arg));
-    return *this;
-  }
-
-  inline vqueue& operator << (const wchar_t* arg)
-  {
-    serialize_arr(arg, std::wcslen(arg));
-    return *this;
-  }
-
+// === serializer frontends ===
   template<typename T>
   inline vqueue& operator << (const T& arg)
   {
@@ -60,6 +50,25 @@ public:
     return *this;
   }
 
+  template<typename T, typename... Args>
+  inline void serialize(const T& arg, Args... args)
+  {
+    serialize(arg);
+    serialize(args...);
+  }
+
+  template<typename T, typename... Args>
+  inline void deserialize(const T& arg, Args... args)
+  {
+    deserialize(arg);
+    deserialize(args...);
+  }
+
+  // dummy functions
+  constexpr void serialize(void) { }
+  constexpr void deserialize(void) { }
+
+// === manual queue manipulators ===
   inline bool allocate(uint16_t length = 0xFFFF)
   {
     m_data.reset(new char[length]);
@@ -147,6 +156,7 @@ private:
   uint16_t m_capacity;
   bool m_ok;
 
+// === serializer backends ===
 private:
 // sized array
   template<typename T>
@@ -200,6 +210,13 @@ private:
     arg.resize(front<uint16_t>());
     deserialize_arr(arg.data(), arg.size());
   }
+
+// string literals
+  inline void serialize(const char* arg)
+    { serialize_arr(arg, std::strlen(arg)); }
+
+  inline void serialize(const wchar_t* arg)
+    { serialize_arr(arg, std::wcslen(arg)); }
 
 // string
   template<typename T>
