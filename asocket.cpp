@@ -75,7 +75,7 @@ void AsyncSocket::async_accept(void)
   if(m_read.is_connected() &&
      posix::getpeercred(m_read.connection, m_peercred))
   {
-    enqueue(connectedToPeer, m_peeraddr, m_peercred);
+    enqueue<posix::sockaddr_t&, proccred_t&>(connectedToPeer, m_peeraddr, m_peercred);
     m_read .thread = std::thread(&AsyncSocket::async_read , this);
     m_write.thread = std::thread(&AsyncSocket::async_write, this);
   }
@@ -99,7 +99,7 @@ bool AsyncSocket::connect(const char *socket_path)
   if(ok)
   {
     m_write.connection = ::dup(m_read.connection);
-    enqueue(connectedToPeer, m_peeraddr, m_peercred);
+    enqueue<posix::sockaddr_t&, proccred_t&>(connectedToPeer, m_peeraddr, m_peercred);
     m_read .thread = std::thread(&AsyncSocket::async_read , this);
     m_write.thread = std::thread(&AsyncSocket::async_write, this);
   }

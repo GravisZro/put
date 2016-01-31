@@ -33,7 +33,7 @@ public:
 
   signal<vqueue&, posix::fd_t> readFinished;  // msesage received
   signal<int>                  writeFinished; // message sent
-  signal<posix::sockaddr_t, proccred_t> connectedToPeer; // connection is open with peer
+  signal<posix::sockaddr_t&, proccred_t&> connectedToPeer; // connection is open with peer
 
 protected:
   void async_read (void);
