@@ -125,7 +125,9 @@ void AsyncSocket::async_read(void)
   {
     m_read.buffer.allocate(); // allocate 64KB buffer
     std::unique_lock<std::mutex> lk(m);
-    m_read.condition.wait(lk, [this] { return m_read.is_connected(); } );
+    m_read.condition.wait(lk, [this] { return m_read.is_connected() || m_read.terminate; } );
+    if(m_read.terminate)
+      return;
 
     iov.iov_base = m_read.buffer.data();
     iov.iov_len = m_read.buffer.capacity();
@@ -168,7 +170,9 @@ void AsyncSocket::async_write(void)
   for(;;)
   {
     std::unique_lock<std::mutex> lk(m);
-    m_write.condition.wait(lk, [this] { return m_write.is_connected() && !m_write.buffer.empty(); } );
+    m_write.condition.wait(lk, [this] { return (m_write.is_connected() && !m_write.buffer.empty()) || m_write.terminate; } );
+    if(m_write.terminate)
+      return;
 
     iov.iov_base = m_write.buffer.begin();
     iov.iov_len = m_write.buffer.size();

@@ -46,8 +46,9 @@ protected:
     inline  async_channel_t(void)
       : buffer(0),
         connection(posix::invalid_descriptor),
-        fd(posix::invalid_descriptor) { }
-    inline ~async_channel_t(void) { disconnect(); thread.detach(); }
+        fd(posix::invalid_descriptor),
+    terminate(false) { }
+    inline ~async_channel_t(void) { disconnect(); }
 
     inline bool is_connected(void) const
       { return connection != posix::invalid_descriptor; }
@@ -58,8 +59,13 @@ protected:
     inline void disconnect(void)
     {
       if(is_connected())
+      {
         posix::close(connection);
-      connection = posix::invalid_descriptor;
+        connection = posix::invalid_descriptor;
+        terminate = true;
+        condition.notify_one();
+        thread.join();
+      }
     }
 
     vqueue                  buffer;
@@ -67,6 +73,7 @@ protected:
     posix::fd_t             fd;
     std::thread             thread;
     std::condition_variable condition;
+    bool terminate;
   };
 
   posix::fd_t       m_socket;
