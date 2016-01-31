@@ -43,12 +43,11 @@ protected:
 protected:
   struct async_channel_t
   {
-    inline  async_channel_t(void)
+    inline async_channel_t(void)
       : buffer(0),
         connection(posix::invalid_descriptor),
         fd(posix::invalid_descriptor),
-    terminate(false) { }
-    inline ~async_channel_t(void) { disconnect(); }
+        terminate(false) { }
 
     inline bool is_connected(void) const
       { return connection != posix::invalid_descriptor; }

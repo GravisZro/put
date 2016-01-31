@@ -36,17 +36,14 @@ AsyncSocket::AsyncSocket(posix::fd_t socket)
 
 AsyncSocket::~AsyncSocket(void)
 {
-  if(m_read.is_connected())
-    m_read.disconnect();
-  if(m_write.is_connected())
-    m_write.disconnect();
+  m_read.disconnect();
+  m_write.disconnect();
+
   if(m_socket != posix::invalid_descriptor)
     posix::close(m_socket);
   m_socket = posix::invalid_descriptor;
   if(m_selfaddr != EDomain::unspec)
     ::unlink(m_selfaddr.sun_path);
-  m_accept.detach();
-
 }
 
 bool AsyncSocket::bind(const char *socket_path, int socket_backlog)
@@ -60,7 +57,10 @@ bool AsyncSocket::bind(const char *socket_path, int socket_backlog)
   bool ok = posix::bind(m_socket, m_selfaddr, m_selfaddr.size());
   ok = ok && posix::listen(m_socket, socket_backlog);
   if(ok)
+  {
     m_accept = std::thread(&AsyncSocket::async_accept, this);
+    m_accept.detach(); // exits after AsyncSocket threads disconnect
+  }
   return ok;
 }
 
@@ -135,7 +135,7 @@ void AsyncSocket::async_read(void)
 
     bcount = posix::recvmsg(m_read.connection, &msg, 0);
     if(bcount == posix::error_response)
-      std::cout << std::red << "error: " << ::strerror(errno) << std::none << std::endl << std::flush;
+      std::cout << std::red << "recvmsg error: " << ::strerror(errno) << std::none << std::endl << std::flush;
     else if(!bcount)
       m_read.connection = posix::invalid_descriptor; // connection severed!
     else if(m_read.buffer.expand(bcount))
@@ -192,7 +192,7 @@ void AsyncSocket::async_write(void)
 
     int count = posix::sendmsg(m_write.connection, &msg, 0);
     if(count == posix::error_response) // error
-      std::cout << std::flush << std::endl << std::red << "error: " << ::strerror(errno) << std::none << std::endl << std::flush;
+      std::cout << std::flush << std::endl << std::red << "sendmsg error: " << ::strerror(errno) << std::none << std::endl << std::flush;
     else
       enqueue(writeFinished, count);
     m_write.buffer.resize(0);
