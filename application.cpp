@@ -18,15 +18,21 @@ Application::~Application(void) { }
 
 int Application::exec(void)
 {
+  static std::queue<vfunc> exec_queue;
+  static std::mutex exec_mutex;
   while(s_run)
   {
-    std::unique_lock<std::mutex> lk(m_signal_queue); // multithread protection
+    std::unique_lock<std::mutex> lk(exec_mutex); // auto lock/unlock
     m_step_exec.wait(lk, [] { return !m_signal_queue.empty(); } ); // wait for notify_one() call and non-empty queue
 
-    while(s_run && !m_signal_queue.empty())
+    m_signal_queue.lock();
+    exec_queue.swap(m_signal_queue);
+    m_signal_queue.unlock();
+
+    while(s_run && !exec_queue.empty())
     {
-      m_signal_queue.front()();
-      m_signal_queue.pop();
+      exec_queue.front()();
+      exec_queue.pop();
     }
   }
   return s_return_value;
