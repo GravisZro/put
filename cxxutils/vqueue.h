@@ -50,7 +50,6 @@ public:
   inline vqueue& operator << (const T& arg)
   {
     serialize(arg);
-    assert(m_ok);
     return *this;
   }
 
@@ -58,7 +57,6 @@ public:
   inline vqueue& operator >> (T& arg)
   {
     deserialize(arg);
-    assert(m_ok);
     return *this;
   }
 
