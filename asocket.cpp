@@ -119,6 +119,8 @@ void AsyncSocket::async_read(void)
   msg.msg_iovlen = 1;
   msg.msg_control = aux_buffer;
 
+
+  int bcount = 0;
   for(;;)
   {
     m_read.buffer.allocate(); // allocate 64KB buffer
@@ -129,7 +131,12 @@ void AsyncSocket::async_read(void)
     iov.iov_len = m_read.buffer.capacity();
     msg.msg_controllen = sizeof(aux_buffer);
 
-    if(m_read.buffer.expand(posix::recvmsg(m_read.connection, &msg, 0)))
+    bcount = posix::recvmsg(m_read.connection, &msg, 0);
+    if(bcount == posix::error_response)
+      std::cout << std::red << "error: " << ::strerror(errno) << std::none << std::endl << std::flush;
+    else if(!bcount)
+      m_read.connection = posix::invalid_descriptor; // connection severed!
+    else if(m_read.buffer.expand(bcount))
     {
       if(msg.msg_controllen == CMSG_SPACE(sizeof(int)))
       {
@@ -140,13 +147,11 @@ void AsyncSocket::async_read(void)
          m_read.fd = *reinterpret_cast<int*>(CMSG_DATA(cmsg));
       }
       else if(msg.msg_flags & MSG_CTRUNC)
-        std::cout << std::flush << std::endl << std::red << "error: control buffer too small" << std::none << std::endl << std::flush;
+        std::cout << std::red << "error: control buffer too small" << std::none << std::endl << std::flush;
       else
         m_read.fd = posix::invalid_descriptor;
       enqueue<vqueue&, posix::fd_t>(readFinished, m_read.buffer, m_read.fd);
     }
-    else // error
-      std::cout << std::flush << std::endl << std::red << "error: " << ::strerror(errno) << std::none << std::endl << std::flush;
   }
 }
 
