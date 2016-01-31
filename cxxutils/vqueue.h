@@ -50,15 +50,15 @@ public:
     return *this;
   }
 
-  template<typename T, typename... Args>
-  inline void serialize(const T& arg, Args... args)
+  template<typename T, typename... ArgTypes>
+  inline void serialize(const T& arg, ArgTypes&... args)
   {
     serialize(arg);
     serialize(args...);
   }
 
-  template<typename T, typename... Args>
-  inline void deserialize(const T& arg, Args... args)
+  template<typename T, typename... ArgTypes>
+  inline void deserialize(T& arg, ArgTypes&... args)
   {
     deserialize(arg);
     deserialize(args...);
