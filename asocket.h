@@ -43,7 +43,10 @@ protected:
 protected:
   struct async_channel_t
   {
-    inline  async_channel_t(void) : buffer(0) { disconnect(); }
+    inline  async_channel_t(void)
+      : buffer(0),
+        connection(posix::invalid_descriptor),
+        fd(posix::invalid_descriptor) { }
     inline ~async_channel_t(void) { disconnect(); thread.detach(); }
 
     inline bool is_connected(void) const
@@ -59,8 +62,8 @@ protected:
       connection = posix::invalid_descriptor;
     }
 
-    posix::fd_t             connection;
     vqueue                  buffer;
+    posix::fd_t             connection;
     posix::fd_t             fd;
     std::thread             thread;
     std::condition_variable condition;
