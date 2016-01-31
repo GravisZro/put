@@ -138,6 +138,7 @@ void AsyncSocket::async_read(void)
       m_read.connection = posix::invalid_descriptor; // connection severed!
     else if(m_read.buffer.expand(bcount))
     {
+      m_read.fd = posix::invalid_descriptor;
       if(msg.msg_controllen == CMSG_SPACE(sizeof(int)))
       {
         cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
@@ -146,10 +147,8 @@ void AsyncSocket::async_read(void)
            cmsg->cmsg_len == CMSG_LEN(sizeof(int)))
          m_read.fd = *reinterpret_cast<int*>(CMSG_DATA(cmsg));
       }
-      else if(msg.msg_flags & MSG_CTRUNC)
-        std::cout << std::red << "error: control buffer too small" << std::none << std::endl << std::flush;
-      else
-        m_read.fd = posix::invalid_descriptor;
+      else if(msg.msg_flags)
+        std::cout << std::red << "error, message flags: " << std::hex << msg.msg_flags << std::dec << std::none << std::endl << std::flush;
       enqueue<vqueue&, posix::fd_t>(readFinished, m_read.buffer, m_read.fd);
     }
   }
