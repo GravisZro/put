@@ -38,14 +38,16 @@ public:
     { sig.func = [slot](ProtoObject*, ArgTypes... args) { slot(args...); }; }
 
   template<typename... ArgTypes>
-  static inline void enqueue(signal<ArgTypes...>& sig, ArgTypes&... args)
+  static inline bool enqueue(signal<ArgTypes...>& sig, ArgTypes&... args)
   {
     if(sig.func != nullptr) // ensure that invalid signals are not enqueued
     {
       std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::m_signal_queue); // multithread protection
       Application::m_signal_queue.emplace(std::bind(sig.func, sig.obj, args...));
       Application::m_step_exec.notify_one(); // inform execution stepper
+      return true;
     }
+    return false;
   }
 };
 
