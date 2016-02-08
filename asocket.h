@@ -17,7 +17,7 @@
 #include <cxxutils/vqueue.h>
 #include <specialized/getpeercred.h>
 
-typedef size_t index_t;
+typedef nfds_t index_t;
 
 struct message_t
 {
@@ -28,13 +28,9 @@ struct message_t
 
 struct pollfd_t : pollfd
 {
-  pollfd_t(void) : pollfd_t(0,0,0) { }
+  pollfd_t(void) { }
   pollfd_t(int fd, short int events, short int revents)
-  {
-    pollfd::fd = fd;
-    pollfd::events = events;
-    pollfd::revents = revents;
-  }
+    : pollfd({fd, events, revents}) { }
 };
 
 class AsyncSocket : public Object
@@ -98,7 +94,7 @@ private:
   posix::fd_t m_write_command;
   posix::fd_t m_read_command;
   std::vector<pollfd_t> m_io;
-  std::queue<nfds_t> m_expired;
+  std::queue<index_t> m_expired;
 
   std::vector<message_t> m_messages;
   message_t m_incomming;
