@@ -93,7 +93,6 @@ private:
   posix::fd_t       m_socket;
   bool              m_bound;
   posix::sockaddr_t m_selfaddr;
-  std::thread       m_accept;
   std::thread       m_iothread;
 
   posix::fd_t m_write_command;
