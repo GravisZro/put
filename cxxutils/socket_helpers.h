@@ -7,8 +7,7 @@
 // POSIX
 #include <sys/un.h>     // for struct sockaddr_un
 #include <sys/socket.h> // for socket()
-//#include <sys/select.h> // for select()
-//#include <sys/time.h>   // for struct timeval
+#include <poll.h>       // for poll()
 #include <fcntl.h>      // for fcntl()
 #include <unistd.h>     // for close()
 
@@ -85,7 +84,7 @@ namespace posix
     return fd;
   }
 
-  static inline fd_t accept(fd_t sockfd, sockaddr* addr, socklen_t* addrlen, int flags = 0)
+  static inline fd_t accept(fd_t sockfd, sockaddr* addr = nullptr, socklen_t* addrlen = nullptr, int flags = 0)
   {
     fd_t fd = ignore_interruption(::accept, sockfd, addr, addrlen);
     if(fd != error_response)
@@ -109,6 +108,12 @@ namespace posix
   static inline bool close(fd_t sockfd)
     { return ignore_interruption(::close, sockfd) != error_response; }
 
+  static inline ssize_t write(fd_t sockfd, const void* buffer, size_t length)
+    { return ignore_interruption(::write, sockfd, buffer, length); }
+
+  static inline ssize_t read(fd_t sockfd, void* buffer, size_t length)
+    { return ignore_interruption(::read, sockfd, buffer, length); }
+
   static inline ssize_t send(fd_t sockfd, const void* buffer, size_t length, int flags = 0)
     { return ignore_interruption(::send, sockfd, buffer, length, flags); }
 
@@ -121,13 +126,8 @@ namespace posix
   static inline ssize_t recvmsg(fd_t sockfd, msghdr* msg, int flags = 0)
     { return ignore_interruption(::recvmsg, sockfd, msg, flags); }
 
-/*
-  static inline int select(int max_fd, fd_set* read_set, fd_set* write_set = nullptr, fd_set* except_set = nullptr, timeval* timeout = nullptr)
-    { return ignore_interruption(::select, max_fd, read_set, write_set, except_set, timeout); }
-
-  static inline int select(fd_set* read_set, fd_set* write_set = nullptr, fd_set* except_set = nullptr, timeval* timeout = nullptr)
-    { return ignore_interruption(::select, FD_SETSIZE, read_set, write_set, except_set, timeout); }
-*/
+  static inline int poll(pollfd* fds, nfds_t nfds, int timeout = -1)
+    { return ignore_interruption(::poll, fds, nfds, timeout); }
 }
 
 
