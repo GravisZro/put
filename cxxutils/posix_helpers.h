@@ -4,6 +4,7 @@
 // STL
 #include <string>
 #include <cerrno>
+#include <set>
 
 // POSIX
 #include <pwd.h>
@@ -16,29 +17,6 @@ namespace posix
 {
   typedef int fd_t;
   static const fd_t invalid_descriptor = -1;
-
-  /*
-    struct fdset_t : fd_set
-    {
-      inline ~fdset_t(void) { clear(); }
-
-      inline operator fd_set*(void) { return this; }
-
-      inline bool contains(fd_t fd) const { return FD_ISSET (fd, this); }
-      inline void clear   (void   ) { FD_ZERO(    this); }
-      inline void add     (fd_t fd) { FD_SET (fd, this); }
-      inline void remove  (fd_t fd) { FD_CLR (fd, this); }
-    };
-
-    struct socket_t : fdset_t
-    {
-      socket_t(fd_t s) : m_socket(s) { }
-      inline operator fd_t(void) { return m_socket; }
-      inline fd_t operator =(fd_t s) { return m_socket = s; }
-
-      fd_t m_socket;
-    };
-  */
 
 #ifndef __clang__
   template<typename RType, typename... ArgTypes>
