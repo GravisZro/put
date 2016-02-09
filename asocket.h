@@ -59,19 +59,19 @@ protected:
   bool async_spawn (void);
 
 private:
-  constexpr bool has_socket()
+  bool has_socket()
     { return m_socket != posix::invalid_descriptor; }
-  constexpr bool is_bound()
+  bool is_bound()
     { return has_socket() && m_bound; }
 
-  constexpr bool is_connected(index_t index)
+  bool is_connected(index_t index)
   {
     return has_socket() &&
            m_io.size() > index &&
            m_io.at(index).fd != posix::invalid_descriptor;
   }
 
-  constexpr index_t add(posix::fd_t fd)
+  index_t add(posix::fd_t fd)
   {
     index_t pos = m_io.size();
     if(m_expired.empty())
@@ -104,9 +104,9 @@ class SingleSocket : public AsyncSocket
 {
 public:
   template<typename... Args>
-  inline SingleSocket(Args... args) : AsyncSocket(args...), m_index(0) { init(); }
+  SingleSocket(Args... args) : AsyncSocket(args...), m_index(0) { init(); }
 
-  inline bool write(vqueue buffer, posix::fd_t fd_buffer = posix::invalid_descriptor)
+  bool write(vqueue buffer, posix::fd_t fd_buffer = posix::invalid_descriptor)
     { assert(m_index); return AsyncSocket::write({ m_index, buffer, fd_buffer }); }
 
   signal<message_t>                     readFinished;          // msesage received
@@ -114,7 +114,7 @@ public:
   signal<posix::sockaddr_t, proccred_t> connectedToPeer;       // connection is open with peer
   signal<>                              disconnectedFromPeer;  // connection with peer was severed
 private:
-  inline void init(void)
+  void init(void)
   {
     Object::connect(AsyncSocket::readFinished, this, &SingleSocket::receive);
     Object::connect(AsyncSocket::writeFinished, this, &SingleSocket::sent);
@@ -122,25 +122,25 @@ private:
     Object::connect(AsyncSocket::disconnectedFromPeer, this, &SingleSocket::disconnected);
   }
 
-  inline void sent(index_t index, ssize_t count)
+  void sent(index_t index, ssize_t count)
   {
     assert(m_index == index);
     Object::enqueue(SingleSocket::writeFinished, count);
   }
 
-  inline void receive(index_t index, message_t msg)
+  void receive(index_t index, message_t msg)
   {
     assert(m_index == index);
     Object::enqueue(SingleSocket::readFinished, msg);
   }
 
-  inline void connected(index_t index, posix::sockaddr_t addr, proccred_t cred)
+  void connected(index_t index, posix::sockaddr_t addr, proccred_t cred)
   {
     m_index = index;
     Object::enqueue(SingleSocket::connectedToPeer, addr, cred);
   }
 
-  inline void disconnected(index_t index)
+  void disconnected(index_t index)
   {
     assert(m_index == index);
     Object::enqueue(SingleSocket::disconnectedFromPeer);

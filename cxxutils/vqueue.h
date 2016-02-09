@@ -19,57 +19,56 @@ public:
 
   vqueue& operator=(const vqueue& other)
   {
-    vqueue& that = const_cast<vqueue&>(other);
-    if (this != &that)
+    if (this != &other)
     {
-      m_data       = that.m_data;
-      m_virt_begin = that.m_virt_begin;
-      m_virt_end   = that.m_virt_end;
-      m_capacity   = that.m_capacity;
-      m_ok         = that.m_ok;
+      m_data       = const_cast<vqueue&>(other).m_data;
+      m_virt_begin = other.m_virt_begin;
+      m_virt_end   = other.m_virt_end;
+      m_capacity   = other.m_capacity;
+      m_ok         = other.m_ok;
     }
     return *this;
   }
 
 // === error functions ===
-  inline bool hadError(void) const { return !m_ok; }
-  inline void clearError(void) { m_ok = true; }
+  bool hadError(void) const { return !m_ok; }
+  void clearError(void) { m_ok = true; }
 
 // === serializer frontends ===
   template<typename T>
-  inline vqueue& operator << (const T& arg)
+  constexpr vqueue& operator << (const T& arg)
   {
     serialize(arg);
     return *this;
   }
 
   template<typename T>
-  inline vqueue& operator >> (T& arg)
+  constexpr vqueue& operator >> (T& arg)
   {
     deserialize(arg);
     return *this;
   }
 
   template<typename T, typename... ArgTypes>
-  inline void serialize(const T& arg, ArgTypes&... args)
+  constexpr void serialize(const T& arg, ArgTypes&... args)
   {
     serialize(arg);
     serialize(args...);
   }
 
   template<typename T, typename... ArgTypes>
-  inline void deserialize(T& arg, ArgTypes&... args)
+  constexpr void deserialize(T& arg, ArgTypes&... args)
   {
     deserialize(arg);
     deserialize(args...);
   }
 
   // dummy functions
-  constexpr void serialize(void) { }
-  constexpr void deserialize(void) { }
+  constexpr static void serialize(void) { }
+  constexpr static void deserialize(void) { }
 
 // === manual queue manipulators ===
-  inline bool allocate(uint16_t length = 0xFFFF)
+  bool allocate(uint16_t length = 0xFFFF)
   {
     m_data.reset(new char[length]);
     memset(m_data.get(), 0, length);
@@ -101,19 +100,19 @@ public:
     return true;
   }
 
-  inline bool     empty (void) const { return dataEnd() == data   (); }
-  inline uint16_t size  (void) const { return dataEnd() -  data   (); }
-  inline uint16_t used  (void) const { return data   () -  begin  (); }
-  inline uint16_t unused(void) const { return end    () -  dataEnd(); }
+  bool     empty (void) const { return dataEnd() == data   (); }
+  uint16_t size  (void) const { return dataEnd() -  data   (); }
+  uint16_t used  (void) const { return data   () -  begin  (); }
+  uint16_t unused(void) const { return end    () -  dataEnd(); }
 
-  inline bool resize(uint16_t sz)
+  bool resize(uint16_t sz)
   {
     m_virt_begin = m_data.get();
     m_virt_end   = m_data.get() + sz;
     return m_virt_end <= end();
   }
 
-  inline bool shrink(ssize_t count)
+  bool shrink(ssize_t count)
   {
     if(count < 0)
       return m_ok = false;
@@ -124,7 +123,7 @@ public:
     return true;
   }
 
-  inline bool expand(ssize_t count)
+  bool expand(ssize_t count)
   {
     if(count < 0)
       return m_ok = false;
@@ -135,19 +134,19 @@ public:
     return true;
   }
 
-  template<typename T = char> inline const T& front   (void) const { return *data<T>(); }
-  template<typename T = char> inline       T& front   (void)       { return *data<T>(); }
+  template<typename T = char> constexpr const T& front   (void) const { return *data<T>(); }
+  template<typename T = char> constexpr       T& front   (void)       { return *data<T>(); }
 
-  template<typename T = char> inline const T& back    (void) const { return *dataEnd<T>(); }
-  template<typename T = char> inline       T& back    (void)       { return *dataEnd<T>(); }
+  template<typename T = char> constexpr const T& back    (void) const { return *dataEnd<T>(); }
+  template<typename T = char> constexpr       T& back    (void)       { return *dataEnd<T>(); }
 
-  template<typename T = char> inline       T* data    (void) const { return reinterpret_cast<T*>(m_virt_begin); }
-  template<typename T = char> inline       T* dataEnd (void) const { return reinterpret_cast<T*>(m_virt_end  ); }
+  template<typename T = char> constexpr       T* data    (void) const { return reinterpret_cast<T*>(m_virt_begin); }
+  template<typename T = char> constexpr       T* dataEnd (void) const { return reinterpret_cast<T*>(m_virt_end  ); }
 
-  template<typename T = char> inline       T* begin   (void) const { return reinterpret_cast<T*>(m_data.get()); }
-  template<typename T = char> inline       T* end     (void) const { return reinterpret_cast<T*>(m_data.get() + m_capacity); }
+  template<typename T = char>                 T* begin   (void) const { return reinterpret_cast<T*>(m_data.get()); }
+  template<typename T = char> constexpr       T* end     (void) const { return reinterpret_cast<T*>(m_data.get() + m_capacity); }
 
-  inline const uint16_t& capacity(void) const { return m_capacity; }
+  const uint16_t& capacity(void) const { return m_capacity; }
 
 private:
   std::shared_ptr<char> m_data;
@@ -160,7 +159,7 @@ private:
 private:
 // sized array
   template<typename T>
-  inline void serialize_arr(const T* arg, uint16_t length)
+  constexpr void serialize_arr(const T* arg, uint16_t length)
   {
     if(push<uint16_t>(length) &&
        push<uint8_t>(sizeof(T)))
@@ -168,7 +167,7 @@ private:
   }
 
   template<typename T>
-  inline void deserialize_arr(T* arg, uint16_t length)
+  constexpr void deserialize_arr(T* arg, uint16_t length)
   {
     if(front<uint16_t>() == length &&    // length mismatch
        pop  <uint16_t>() &&              // buffer underflow
@@ -182,14 +181,14 @@ private:
 
 // simple types
   template<typename T>
-  inline void serialize(const T& arg)
+  constexpr void serialize(const T& arg)
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "compound or pointer type");
     serialize_arr<T>(&arg, 1);
   }
 
   template<typename T>
-  inline void deserialize(T& arg)
+  constexpr void deserialize(T& arg)
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "compound or pointer type");
     deserialize_arr<T>(&arg, 1);
@@ -197,14 +196,14 @@ private:
 
 // vector of simple types
   template<typename T>
-  inline void serialize(const std::vector<T>& arg)
+  constexpr void serialize(const std::vector<T>& arg)
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "vector of compound or pointer type");
     serialize_arr(arg.data(), arg.size());
   }
 
   template<typename T>
-  inline void deserialize(std::vector<T>& arg)
+  constexpr void deserialize(std::vector<T>& arg)
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "vector of compound or pointer type");
     arg.resize(front<uint16_t>());
@@ -212,19 +211,19 @@ private:
   }
 
 // string literals
-  inline void serialize(const char* arg)
+  void serialize(const char* arg)
     { serialize_arr(arg, std::strlen(arg)); }
 
-  inline void serialize(const wchar_t* arg)
+  void serialize(const wchar_t* arg)
     { serialize_arr(arg, std::wcslen(arg)); }
 
 // string
   template<typename T>
-  inline void serialize(const std::basic_string<T>& arg)
+  constexpr void serialize(const std::basic_string<T>& arg)
     { serialize_arr(arg.data(), arg.size()); }
 
   template<typename T>
-  inline void deserialize(std::basic_string<T>& arg)
+  constexpr void deserialize(std::basic_string<T>& arg)
   {
     arg.resize(front<uint16_t>());
     deserialize_arr(const_cast<T*>(arg.data()), arg.size()); // bad form! not guaranteed to work.

@@ -23,7 +23,7 @@ namespace posix
   using function = RType(*)(ArgTypes...);
 
   template<typename RType, typename... ArgTypes>
-  static inline RType ignore_interruption(const RType bad_value, function<RType, ArgTypes...> func, ArgTypes... args)
+  static inline RType ignore_interruption(function<RType, ArgTypes...> func, ArgTypes... args)
 #else
   template<typename RType, typename... ArgTypes>
   static inline RType ignore_interruption(RType(*func)(ArgTypes...), ArgTypes... args)
@@ -53,10 +53,10 @@ namespace posix
 
 // POSIX wrappers
   static inline passwd* getpwuid(uid_t uid)
-    { return ignore_interruption(::getpwuid, uid); }
+    { return ignore_interruption<passwd, __uid_t>(::getpwuid, uid); }
 
   static inline group* getgrgid(gid_t gid)
-    { return ignore_interruption(::getgrgid, gid); }
+    { return ignore_interruption<group, __gid_t>(::getgrgid, gid); }
 
 // shortcuts
   static inline std::string getusername(uid_t uid)
