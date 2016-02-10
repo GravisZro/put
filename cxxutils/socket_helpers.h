@@ -54,19 +54,19 @@ namespace posix
 {
   struct sockaddr_t : sockaddr_un
   {
-    inline sockaddr_t(void)
+    sockaddr_t(void)
     {
       operator =(EDomain::unspec);
       std::memset(sun_path, 0, sizeof(sun_path));
     }
 
-    inline int size(void) const { return sizeof(sun_family) + std::strlen(sun_path); }
-    inline operator struct sockaddr*(void) { return reinterpret_cast<struct sockaddr*>(this); }
-    inline operator const struct sockaddr*(void) const { return reinterpret_cast<const struct sockaddr*>(this); }
-    inline operator EDomain(void) const { return static_cast<EDomain>(sun_family); }
-    inline sockaddr_t& operator = (sa_family_t family) { sun_family = family; return *this; }
-    inline sockaddr_t& operator = (EDomain family) { return operator =(static_cast<sa_family_t>(family)); }
-    inline sockaddr_t& operator = (const char* path) { std::strcpy(sun_path, path); return *this; }
+    int size(void) const { return sizeof(sun_family) + std::strlen(sun_path); }
+    operator struct sockaddr*(void) { return reinterpret_cast<struct sockaddr*>(this); }
+    operator const struct sockaddr*(void) const { return reinterpret_cast<const struct sockaddr*>(this); }
+    operator EDomain(void) const { return static_cast<EDomain>(sun_family); }
+    sockaddr_t& operator = (sa_family_t family) { sun_family = family; return *this; }
+    sockaddr_t& operator = (EDomain family) { return operator =(static_cast<sa_family_t>(family)); }
+    sockaddr_t& operator = (const char* path) { std::strcpy(sun_path, path); return *this; }
   };
 
 // POSIX wrappers

@@ -23,13 +23,13 @@ namespace posix
   using function = RType(*)(ArgTypes...);
 
   template<typename RType, typename... ArgTypes>
-  static inline RType ignore_interruption(function<RType, ArgTypes...> func, ArgTypes... args)
+  constexpr RType ignore_interruption(function<RType, ArgTypes...> func, ArgTypes... args)
 #else
   template<typename RType, typename... ArgTypes>
-  static inline RType ignore_interruption(RType(*func)(ArgTypes...), ArgTypes... args)
+  constexpr RType ignore_interruption(RType(*func)(ArgTypes...), ArgTypes... args)
 #endif
   {
-    RType rval;
+    RType rval = error_response;
     do {
       rval = func(args...);
     } while(rval == error_response && errno == std::errc::interrupted);
@@ -38,13 +38,13 @@ namespace posix
 
 #ifndef __clang__
   template<typename RType, typename... ArgTypes>
-  static inline RType* ignore_interruption(function<RType*, ArgTypes...> func, ArgTypes... args)
+  constexpr RType* ignore_interruption(function<RType*, ArgTypes...> func, ArgTypes... args)
 #else
   template<typename RType, typename... ArgTypes>
-  static inline RType* ignore_interruption(RType*(*func)(ArgTypes...), ArgTypes... args)
+  constexpr RType* ignore_interruption(RType*(*func)(ArgTypes...), ArgTypes... args)
 #endif
   {
-    RType* rval;
+    RType* rval = nullptr;
     do {
       rval = func(args...);
     } while(rval == nullptr && errno == std::errc::interrupted);
@@ -52,10 +52,10 @@ namespace posix
   }
 
 // POSIX wrappers
-  static inline passwd* getpwuid(uid_t uid)
+  constexpr passwd* getpwuid(uid_t uid)
     { return ignore_interruption<passwd, __uid_t>(::getpwuid, uid); }
 
-  static inline group* getgrgid(gid_t gid)
+  constexpr group* getgrgid(gid_t gid)
     { return ignore_interruption<group, __gid_t>(::getgrgid, gid); }
 
 // shortcuts
