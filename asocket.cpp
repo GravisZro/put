@@ -34,7 +34,7 @@ namespace LocalCommand
 namespace posix
 {
   inline bool getpeercred(fd_t sockfd, proccred_t& cred)
-    { return ::getpeercred(sockfd, cred) == posix::success; }
+    { return ::getpeercred(sockfd, cred) == posix::success_response; }
 }
 
 AsyncSocket::AsyncSocket(EDomain domain, EType type, EProtocol protocol, int flags)

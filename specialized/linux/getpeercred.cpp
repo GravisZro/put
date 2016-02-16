@@ -15,12 +15,9 @@ int getpeercred(int sockfd, proccred_t& cred)
   int rval = getsockopt(sockfd, SOL_SOCKET, SO_PEERCRED, &data, &len);
 
   if(len != sizeof(data))
-  {
-    errno = EINVAL;
-    rval = -1;
-  }
+    rval = posix::error(std::errc::invalid_argument);
 
-  if(rval == posix::success)
+  if(rval == posix::success_response)
   {
     cred.pid = data.pid;
     cred.uid = data.uid;

@@ -14,8 +14,10 @@ constexpr bool operator ==(T err_num, std::errc err)
 
 namespace posix
 {
-  static const int success = 0;
+  static const int success_response = 0;
   static const int error_response = -1;
+  static int success(void) { return errno = 0; }
+  static int error(std::errc err) { return errno = *reinterpret_cast<int*>(&err) ? error_response : success_response; }
 }
 
 #endif // ERROR_HELPERS_H
