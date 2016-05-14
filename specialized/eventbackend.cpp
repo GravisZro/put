@@ -1,5 +1,7 @@
 #include "eventbackend.h"
 
+#if defined(__linux__)
+
 // Linux
 #include <sys/epoll.h>
 
@@ -103,3 +105,8 @@ bool EventBackend::invoke(int timeout)
 
   return m_data->num_events != posix::error_response;
 }
+#elif defined(__unix__)
+
+#error no code yet for your operating system. :(
+
+#endif
