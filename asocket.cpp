@@ -93,14 +93,14 @@ bool AsyncSocket::connect(const char *socket_path)
 
 bool AsyncSocket::async_spawn(void)
 {
-  if(m_iothread.joinable())
-    return posix::write(m_write_command, &LocalCommand::update, sizeof(uint64_t)) != posix::error_response;
+  if(m_iothread.joinable()) // if thread already active
+    return posix::write(m_write_command, &LocalCommand::update, sizeof(uint64_t)) != posix::error_response; // notify thread of an update
 
-  m_iothread = std::thread(&AsyncSocket::async_io , this);
-  return m_iothread.joinable();
+  m_iothread = std::thread(&AsyncSocket::async_io , this); // create a new thread
+  return m_iothread.joinable(); // if thread creation succeeded
 }
 
-void AsyncSocket::async_io(void)
+void AsyncSocket::async_io(void) // runs as it's own thread
 {
   msghdr msg = {};
   iovec iov = {};
@@ -144,7 +144,7 @@ void AsyncSocket::async_io(void)
 
                 msg.msg_controllen = 0;
 
-                if(msg_pos.fd_buffer != posix::invalid_descriptor)
+                if(msg_pos.fd_buffer != posix::invalid_descriptor) // if a file descriptor needs to be sent
                 {
                   msg.msg_controllen = CMSG_SPACE(sizeof(int));
                   cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
@@ -165,21 +165,21 @@ void AsyncSocket::async_io(void)
             }
           }
         }
-        else if(m_bound &&
-                pos.first == m_socket &&
-                pos.second & EventFlags::Read)
+        else if(m_bound && // if in server mode
+                pos.first == m_socket && // and this is a primary socket
+                pos.second & EventFlags::Read) // and it's a read event
         {
           proccred_t peercred;
           posix::sockaddr_t peeraddr;
           socklen_t addrlen = 0;
-          posix::fd_t fd = posix::accept(m_socket, peeraddr, &addrlen);
+          posix::fd_t fd = posix::accept(m_socket, peeraddr, &addrlen); // accept a new socket connection
           if(fd == posix::error_response)
             std::cout << "accept error: " << ::strerror(errno) << std::endl << std::flush;
           else
           {
-            if(!EventBackend::watch(fd, EventFlags::Read))
+            if(!EventBackend::watch(fd, EventFlags::Read)) // monitor new socket connection
               std::cout << "watch failure: " << ::strerror(errno) << std::endl << std::flush;
-            if(!posix::getpeercred(fd, peercred))
+            if(!posix::getpeercred(fd, peercred)) // get creditials of connected peer process
               std::cout << "peercred failure: " << ::strerror(errno) << std::endl << std::flush;
             Object::enqueue(connectedToPeer, fd, peeraddr, peercred);
           }
@@ -193,7 +193,7 @@ void AsyncSocket::async_io(void)
           }
           else if(pos.second & EventFlags::Read) // read
           {
-            m_incomming.socket = m_bound ? m_socket : m_read_command;
+            m_incomming.socket = m_bound ? m_socket : m_read_command; // select proper output socket
             m_incomming.buffer.allocate(); // allocate 64KB buffer
 
             iov.iov_base = m_incomming.buffer.data();
