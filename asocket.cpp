@@ -224,7 +224,6 @@ void AsyncSocket::async_io(void)
               }
               else if(msg.msg_flags)
                 std::cout << std::red << "error, message flags: " << std::hex << msg.msg_flags << std::dec << std::none << std::endl << std::flush;
-              posix::fd_t fd = pos.first;
               Object::enqueue(readFinished, m_incomming.socket, m_incomming);
             }
           }

@@ -64,7 +64,6 @@ EventBackend::~EventBackend(void)
   m_pollfd = posix::error_response;
 }
 
-#include <iostream>
 bool EventBackend::watch(posix::fd_t fd, EventFlags_t events)
 {
   struct epoll_event native_event;
@@ -80,8 +79,12 @@ bool EventBackend::watch(posix::fd_t fd, EventFlags_t events)
       posix::success();
     }
   }
-  else if(epoll_ctl(m_pollfd, EPOLL_CTL_ADD, fd, &native_event) == posix::success_response) // try adding
+  else if(epoll_ctl(m_pollfd, EPOLL_CTL_ADD, fd, &native_event) == posix::success_response || // try adding FD first
+          (errno == EEXIST && epoll_ctl(m_pollfd, EPOLL_CTL_MOD, fd, &native_event) == posix::success_response)) // error: FD already added, so try modifying
+  {
     m_queue.emplace(fd, events); // create a new entry
+    posix::success();
+  }
 
   return errno == posix::success_response;
 }
