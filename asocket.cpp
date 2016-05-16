@@ -18,11 +18,6 @@
 
 static_assert(sizeof(uint8_t) == sizeof(char), "size mismatch!");
 
-enum : index_t
-{
-  command_index = 0,
-  socket_index,
-};
 
 namespace LocalCommand
 {
@@ -49,21 +44,14 @@ AsyncSocket::AsyncSocket(posix::fd_t socket)
   m_read_command  = cmdio[0];
   m_write_command = cmdio[1];
 
-  m_io.reserve(1024);
-  m_io.emplace_back(m_read_command, POLLIN, 0);
-  m_io.emplace_back(m_socket, POLLIN, 0);
+  EventBackend::watch(m_read_command, EventFlags::Read);
+  EventBackend::watch(m_socket, EventFlags::Read);
 }
 
 AsyncSocket::~AsyncSocket(void)
 {
   posix::write(m_write_command, &LocalCommand::exit, sizeof(uint64_t));
   m_iothread.join(); // wait for thread to exit
-
-  for(auto& pos : m_io)
-    posix::close(pos.fd);
-  m_io.resize(0);
-  while(!m_expired.empty())
-    m_expired.pop();
 
   if(m_socket != posix::invalid_descriptor)
     posix::close(m_socket);
@@ -92,7 +80,6 @@ bool AsyncSocket::connect(const char *socket_path)
   assert(std::strlen(socket_path) < sizeof(sockaddr_un::sun_path));
   posix::sockaddr_t peeraddr;
   proccred_t peercred;
-  index_t index = socket_index;
 
   peeraddr = socket_path;
   peeraddr = EDomain::unix;
@@ -101,9 +88,8 @@ bool AsyncSocket::connect(const char *socket_path)
   return posix::connect(m_socket, peeraddr, peeraddr.size()) &&
          posix::getpeercred(m_socket, peercred) &&
          async_spawn() &&
-         Object::enqueue(connectedToPeer, index, peeraddr, peercred);
+         Object::enqueue(connectedToPeer, m_socket, peeraddr, peercred);
 }
-
 
 bool AsyncSocket::async_spawn(void)
 {
@@ -116,8 +102,6 @@ bool AsyncSocket::async_spawn(void)
 
 void AsyncSocket::async_io(void)
 {
-  const pollfd& local_command = m_io.at(command_index);
-  const pollfd& master_socket = m_io.at(socket_index);
   msghdr msg = {};
   iovec iov = {};
   char aux_buffer[CMSG_SPACE(sizeof(int))] = { 0 };
@@ -130,133 +114,124 @@ void AsyncSocket::async_io(void)
 
   for(;;)
   {
-    int event_count = posix::poll(m_io.data(), m_io.size());
-
-    if(local_command.revents & POLLIN)
+    if(EventBackend::invoke())
     {
-      --event_count;
-      command_buffer = 0;
-      byte_count = posix::read(local_command.fd, &command_buffer, sizeof(uint64_t));
-      if(byte_count == posix::error_response)
-        continue;
-
-      std::cout << "local command: " << command_buffer << std::endl << std::flush;
-
-      switch(command_buffer)
+      for(const auto& pos : EventBackend::results())
       {
-        case LocalCommand::update: continue; // m_fds size changed
-        case LocalCommand::exit:
-          std::cout << "thread exiting!" << std::endl << std::flush;
-          return; // thread exit
-        case LocalCommand::write: // m_messages isn't empty
+        if(pos.first == m_read_command && (pos.second & EventFlags::Read))
         {
-          for(const auto& pos : m_messages)
-          {
-            index_t index = pos.index;
-            msg.msg_iov = &iov;
-            msg.msg_iovlen = 1;
-            msg.msg_control = aux_buffer;
-
-            iov.iov_base = pos.buffer.begin();
-            iov.iov_len = pos.buffer.size();
-
-            msg.msg_controllen = 0;
-
-            if(pos.fd_buffer != posix::invalid_descriptor)
-            {
-              msg.msg_controllen = CMSG_SPACE(sizeof(int));
-              cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
-              cmsg->cmsg_level = SOL_SOCKET;
-              cmsg->cmsg_type = SCM_RIGHTS;
-              cmsg->cmsg_len = CMSG_LEN(sizeof(int));
-              *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = pos.fd_buffer;
-            }
-
-            byte_count = posix::sendmsg(m_io.at(pos.index).fd, &msg, 0);
-
-            if(byte_count == posix::error_response) // error
-              std::cout << std::flush << std::endl << std::red << "sendmsg error: " << ::strerror(errno) << std::none << std::endl << std::flush;
-            else
-              Object::enqueue(writeFinished, index, byte_count);
-          }
-          m_messages.clear();
-        }
-      }
-    }
-
-    if(event_count && m_bound && master_socket.revents & POLLIN)
-    {
-      --event_count;
-      posix::sockaddr_t peeraddr;
-      socklen_t addrlen = 0;
-      posix::fd_t newfd = posix::accept(m_socket, peeraddr, &addrlen);
-      if(newfd == posix::error_response)
-        std::cout << "accept error: " << ::strerror(errno) << std::endl << std::flush;
-      else
-      {
-        proccred_t peercred;
-        index_t index = add(newfd);
-        pollfd_t& connection = m_io.at(index);
-        posix::getpeercred(connection.fd, peercred);
-        enqueue(connectedToPeer, index, peeraddr, peercred);
-      }
-    }
-
-    if(event_count)
-    {
-      index_t index = m_bound ? socket_index + 1 : command_index + 1;
-      for(auto pos = m_io.begin() + index; event_count > 0 && pos != m_io.end(); ++pos, ++index)
-      {
-        if(pos->revents & (POLLHUP | POLLERR | POLLNVAL)) // connection error or connection severed
-        {
-          --event_count;
-          posix::close(pos->fd); // close connection if open
-          m_io.at(index).fd = posix::invalid_descriptor;
-          m_expired.push(index);
-        }
-        else if(pos->revents & POLLIN) // read
-        {
-          --event_count;
-          m_incomming.index = index;
-          m_incomming.buffer.allocate(); // allocate 64KB buffer
-
-          iov.iov_base = m_incomming.buffer.data();
-          iov.iov_len = m_incomming.buffer.capacity();
-          msg.msg_controllen = sizeof(aux_buffer);
-
-          byte_count = posix::recvmsg(pos->fd, &msg, 0);
-
+          command_buffer = 0;
+          byte_count = posix::read(pos.first, &command_buffer, sizeof(uint64_t));
           if(byte_count == posix::error_response)
-            std::cout << std::red << "recvmsg error: " << ::strerror(errno) << std::none << std::endl << std::flush;
-          else if(!byte_count)
+            continue;
+
+          switch(command_buffer)
           {
-            if(is_connected(index) &&
-               (posix::close(pos->fd) || errno == std::errc::bad_file_descriptor))
+            case LocalCommand::update: continue; // EventBackend::m_queue size changed
+            case LocalCommand::exit:
+              std::cout << "thread exiting!" << std::endl << std::flush;
+              return; // thread exit
+            case LocalCommand::write: // m_messages isn't empty
             {
-              m_io.at(index).fd = posix::invalid_descriptor;
-              m_expired.push(index); // connection severed!
+              for(auto& msg_pos : m_messages)
+              {
+                msg.msg_iov = &iov;
+                msg.msg_iovlen = 1;
+                msg.msg_control = aux_buffer;
+
+                iov.iov_base = msg_pos.buffer.begin();
+                iov.iov_len = msg_pos.buffer.size();
+
+                msg.msg_controllen = 0;
+
+                if(msg_pos.fd_buffer != posix::invalid_descriptor)
+                {
+                  msg.msg_controllen = CMSG_SPACE(sizeof(int));
+                  cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
+                  cmsg->cmsg_level = SOL_SOCKET;
+                  cmsg->cmsg_type = SCM_RIGHTS;
+                  cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+                  *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = msg_pos.fd_buffer;
+                }
+
+                byte_count = posix::sendmsg(msg_pos.socket, &msg, 0);
+
+                if(byte_count == posix::error_response) // error
+                  std::cout << std::flush << std::endl << std::red << "sendmsg error: " << ::strerror(errno) << std::none << std::endl << std::flush;
+                else
+                {
+                  Object::enqueue(writeFinished, msg_pos.socket, byte_count);
+                }
+              }
+              m_messages.clear();
             }
-          }
-          else if(m_incomming.buffer.expand(byte_count))
-          {
-            m_incomming.fd_buffer = posix::invalid_descriptor;
-            if(msg.msg_controllen == CMSG_SPACE(sizeof(int)))
-            {
-              cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
-              if(cmsg->cmsg_level == SOL_SOCKET &&
-                 cmsg->cmsg_type == SCM_RIGHTS &&
-                 cmsg->cmsg_len == CMSG_LEN(sizeof(int)))
-               m_incomming.fd_buffer = *reinterpret_cast<int*>(CMSG_DATA(cmsg));
-            }
-            else if(msg.msg_flags)
-              std::cout << std::red << "error, message flags: " << std::hex << msg.msg_flags << std::dec << std::none << std::endl << std::flush;
-            enqueue(readFinished, index, m_incomming);
           }
         }
-        else if(pos->revents)
+        else if(m_bound &&
+                pos.first == m_socket &&
+                pos.second & EventFlags::Read)
         {
-          --event_count;
-          std::cout << "unknown event at: " << index << " value: " << std::hex << (int)pos->revents << std::dec << std::endl << std::flush;
+          proccred_t peercred;
+          posix::sockaddr_t peeraddr;
+          socklen_t addrlen = 0;
+          posix::fd_t fd = posix::accept(m_socket, peeraddr, &addrlen);
+          if(fd == posix::error_response)
+            std::cout << "accept error: " << ::strerror(errno) << std::endl << std::flush;
+          else
+          {
+            if(!EventBackend::watch(fd, EventFlags::Read))
+              std::cout << "watch failure: " << ::strerror(errno) << std::endl << std::flush;
+            if(!posix::getpeercred(fd, peercred))
+              std::cout << "peercred failure: " << ::strerror(errno) << std::endl << std::flush;
+            Object::enqueue(connectedToPeer, fd, peeraddr, peercred);
+          }
+        }
+        else
+        {
+          if(pos.second & (EventFlags::Disconnect | EventFlags::Error)) // connection severed or connection error
+          {
+            EventBackend::remove(pos.first); // stop watching for events
+            posix::close(pos.first); // close connection if open
+          }
+          else if(pos.second & EventFlags::Read) // read
+          {
+            m_incomming.socket = m_bound ? m_socket : m_read_command;
+            m_incomming.buffer.allocate(); // allocate 64KB buffer
+
+            iov.iov_base = m_incomming.buffer.data();
+            iov.iov_len = m_incomming.buffer.capacity();
+            msg.msg_controllen = sizeof(aux_buffer);
+
+            byte_count = posix::recvmsg(pos.first, &msg, 0);
+
+            if(byte_count == posix::error_response)
+              std::cout << std::red << "recvmsg error: " << ::strerror(errno) << std::none << std::endl << std::flush;
+            else if(!byte_count)
+            {
+              EventBackend::remove(pos.first); // stop watching for events
+              posix::close(pos.first); // connection severed!
+            }
+            else if(m_incomming.buffer.expand(byte_count))
+            {
+              m_incomming.fd_buffer = posix::invalid_descriptor;
+              if(msg.msg_controllen == CMSG_SPACE(sizeof(int)))
+              {
+                cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
+                if(cmsg->cmsg_level == SOL_SOCKET &&
+                   cmsg->cmsg_type == SCM_RIGHTS &&
+                   cmsg->cmsg_len == CMSG_LEN(sizeof(int)))
+                 m_incomming.fd_buffer = *reinterpret_cast<int*>(CMSG_DATA(cmsg));
+              }
+              else if(msg.msg_flags)
+                std::cout << std::red << "error, message flags: " << std::hex << msg.msg_flags << std::dec << std::none << std::endl << std::flush;
+              posix::fd_t fd = pos.first;
+              Object::enqueue(readFinished, m_incomming.socket, m_incomming);
+            }
+          }
+          else if(pos.second)
+          {
+            std::cout << "unknown event at: " << pos.first << " value: " << std::hex << (int)pos.second << std::dec << std::endl << std::flush;
+          }
         }
       }
     }
@@ -265,7 +240,7 @@ void AsyncSocket::async_io(void)
 
 bool AsyncSocket::write(message_t msg)
 {
-  if(!is_connected(msg.index))
+  if(!is_connected(msg.socket))
     return false;
   m_messages.push_back(msg);
   posix::write(m_write_command, &LocalCommand::write, sizeof(uint64_t));

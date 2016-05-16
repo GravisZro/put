@@ -16,24 +16,17 @@
 #include <cxxutils/socket_helpers.h>
 #include <cxxutils/vqueue.h>
 #include <specialized/getpeercred.h>
-
-typedef nfds_t index_t;
+#include <specialized/eventbackend.h>
 
 struct message_t
 {
-  index_t     index;
+  posix::fd_t socket;
   vqueue      buffer;
   posix::fd_t fd_buffer;
 };
 
-struct pollfd_t : pollfd
-{
-  pollfd_t(void) { }
-  pollfd_t(int fd, short int events, short int revents)
-    : pollfd({fd, events, revents}) { }
-};
-
-class AsyncSocket : public Object
+class AsyncSocket : public Object,
+                    protected EventBackend
 {
 public:
   AsyncSocket(EDomain   domain    = EDomain::unix,
@@ -49,40 +42,25 @@ public:
 
   bool write(message_t msg);
 
-  signal<index_t, message_t>                     readFinished;          // msesage received
-  signal<index_t, ssize_t>                       writeFinished;         // message sent
-  signal<index_t, posix::sockaddr_t, proccred_t> connectedToPeer;       // connection is open with peer
-  signal<index_t>                                disconnectedFromPeer;  // connection with peer was severed
+  signal<posix::fd_t, message_t>                     readFinished;          // msesage received
+  signal<posix::fd_t, ssize_t>                       writeFinished;         // message sent
+  signal<posix::fd_t, posix::sockaddr_t, proccred_t> connectedToPeer;       // connection is open with peer
+  signal<posix::fd_t>                                disconnectedFromPeer;  // connection with peer was severed
 
 protected:
   void async_io    (void);
   bool async_spawn (void);
 
 private:
-  bool has_socket()
+  bool has_socket(void)
     { return m_socket != posix::invalid_descriptor; }
-  bool is_bound()
+  bool is_bound(void)
     { return has_socket() && m_bound; }
 
-  bool is_connected(index_t index)
+  bool is_connected(posix::fd_t socket)
   {
     return has_socket() &&
-           m_io.size() > index &&
-           m_io.at(index).fd != posix::invalid_descriptor;
-  }
-
-  index_t add(posix::fd_t fd)
-  {
-    index_t pos = m_io.size();
-    if(m_expired.empty())
-      m_io.emplace_back(fd, POLLIN, 0);
-    else
-    {
-      pos = m_expired.front();
-      m_expired.pop();
-      m_io.at(pos) = { fd, POLLIN, 0 };
-    }
-    return pos;
+        queue().find(socket) != queue().end();
   }
 
 private:
@@ -93,8 +71,6 @@ private:
 
   posix::fd_t m_write_command;
   posix::fd_t m_read_command;
-  std::vector<pollfd_t> m_io;
-  std::queue<index_t> m_expired;
 
   std::vector<message_t> m_messages;
   message_t m_incomming;
@@ -104,10 +80,11 @@ class SingleSocket : public AsyncSocket
 {
 public:
   template<typename... Args>
-  SingleSocket(Args... args) : AsyncSocket(args...), m_index(0) { init(); }
+  SingleSocket(Args... args) : AsyncSocket(args...), m_fd(posix::invalid_descriptor) { init(); }
 
   bool write(vqueue buffer, posix::fd_t fd_buffer = posix::invalid_descriptor)
-    { assert(m_index); return AsyncSocket::write({ m_index, buffer, fd_buffer }); }
+    { assert(m_fd != posix::invalid_descriptor);
+      return AsyncSocket::write({ m_fd, buffer, fd_buffer }); }
 
   signal<message_t>                     readFinished;          // msesage received
   signal<ssize_t>                       writeFinished;         // message sent
@@ -122,32 +99,19 @@ private:
     Object::connect(AsyncSocket::disconnectedFromPeer, this, &SingleSocket::disconnected);
   }
 
-  void sent(index_t index, ssize_t count)
-  {
-    assert(m_index == index);
-    Object::enqueue(SingleSocket::writeFinished, count);
-  }
+  void sent(posix::fd_t, ssize_t count)
+    { Object::enqueue(SingleSocket::writeFinished, count); }
 
-  void receive(index_t index, message_t msg)
-  {
-    assert(m_index == index);
-    Object::enqueue(SingleSocket::readFinished, msg);
-  }
+  void receive(posix::fd_t, message_t msg)
+    { Object::enqueue(SingleSocket::readFinished, msg); }
 
-  void connected(index_t index, posix::sockaddr_t addr, proccred_t cred)
-  {
-    m_index = index;
-    Object::enqueue(SingleSocket::connectedToPeer, addr, cred);
-  }
+  void connected(posix::fd_t fd, posix::sockaddr_t addr, proccred_t cred)
+    { m_fd = fd; Object::enqueue(SingleSocket::connectedToPeer, addr, cred); }
 
-  void disconnected(index_t index)
-  {
-    assert(m_index == index);
-    Object::enqueue(SingleSocket::disconnectedFromPeer);
-  }
-
+  void disconnected(posix::fd_t)
+    { Object::enqueue(SingleSocket::disconnectedFromPeer); }
 private:
-  index_t m_index;
+  posix::fd_t m_fd;
 };
 
 #endif // ASYNCSOCKET_H
