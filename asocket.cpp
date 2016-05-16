@@ -159,9 +159,7 @@ void AsyncSocket::async_io(void)
                 if(byte_count == posix::error_response) // error
                   std::cout << std::flush << std::endl << std::red << "sendmsg error: " << ::strerror(errno) << std::none << std::endl << std::flush;
                 else
-                {
                   Object::enqueue(writeFinished, msg_pos.socket, byte_count);
-                }
               }
               m_messages.clear();
             }
