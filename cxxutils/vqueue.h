@@ -161,18 +161,19 @@ private:
   template<typename T>
   constexpr void serialize_arr(const T* arg, uint16_t length)
   {
-    if(push<uint16_t>(length) &&
-       push<uint8_t>(sizeof(T)))
+    if(push<uint16_t>(sizeof(T)) &&
+       push<uint16_t>(length))
       for(size_t i = 0; m_ok && i < length; push(arg[i]), ++i);
   }
 
   template<typename T>
   constexpr void deserialize_arr(T* arg, uint16_t length)
   {
-    if(front<uint16_t>() == length &&    // length mismatch
-       pop  <uint16_t>() &&              // buffer underflow
-       front<uint8_t >() == sizeof(T) && // size mismatch
-       pop  <uint8_t >())                // buffer underflow
+    if(front<uint16_t>() == sizeof(T) &&  // size matches
+       pop  <uint16_t>() &&               // no buffer underflow
+       front<uint16_t>() == length &&     // length matches
+       pop  <uint16_t>())                 // no buffer underflow
+
       for(size_t i = 0; m_ok && i < length; pop<T>(), ++i)
         arg[i] = front<T>();
     else
@@ -226,7 +227,7 @@ private:
   constexpr void deserialize(std::basic_string<T>& arg)
   {
     arg.resize(front<uint16_t>());
-    deserialize_arr(const_cast<T*>(arg.data()), arg.size()); // bad form! not guaranteed to work.
+    deserialize_arr(const_cast<T*>(arg.data()), arg.size()); // not guaranteed to work per the STL spec but will never fail catastrophically.
   }
 };
 
