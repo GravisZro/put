@@ -63,9 +63,6 @@ public:
     deserialize(args...);
   }
 
-  // dummy functions
-  constexpr static void serialize(void) { }
-  constexpr static void deserialize(void) { }
 
 // === manual queue manipulators ===
   bool allocate(uint16_t length = 0xFFFF)
@@ -134,10 +131,10 @@ public:
     return true;
   }
 
-  template<typename T = char> constexpr const T& front   (void) const { return *data<T>(); }
+  //template<typename T = char> constexpr const T& front   (void) const { return *data<T>(); }
   template<typename T = char> constexpr       T& front   (void)       { return *data<T>(); }
 
-  template<typename T = char> constexpr const T& back    (void) const { return *dataEnd<T>(); }
+  //template<typename T = char> constexpr const T& back    (void) const { return *dataEnd<T>(); }
   template<typename T = char> constexpr       T& back    (void)       { return *dataEnd<T>(); }
 
   template<typename T = char> constexpr       T* data    (void) const { return reinterpret_cast<T*>(m_virt_begin); }
@@ -157,9 +154,13 @@ private:
 
 // === serializer backends ===
 private:
+  // dummy functions
+  static void serialize(void) { }
+  static void deserialize(void) { }
+
 // sized array
   template<typename T>
-  constexpr void serialize_arr(const T* arg, uint16_t length)
+  void serialize_arr(const T* arg, uint16_t length)
   {
     if(push<uint16_t>(sizeof(T)) &&
        push<uint16_t>(length))
@@ -167,7 +168,7 @@ private:
   }
 
   template<typename T>
-  constexpr void deserialize_arr(T* arg, uint16_t length)
+  void deserialize_arr(T* arg, uint16_t length)
   {
     if(front<uint16_t>() == sizeof(T) &&  // size matches
        pop  <uint16_t>() &&               // no buffer underflow

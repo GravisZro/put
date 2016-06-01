@@ -157,7 +157,7 @@ void AsyncSocket::async_io(void) // runs as it's own thread
                 byte_count = posix::sendmsg(msg_pos.socket, &msg, 0);
 
                 if(byte_count == posix::error_response) // error
-                  std::cout << std::flush << std::endl << std::red << "sendmsg error: " << ::strerror(errno) << std::none << std::endl << std::flush;
+                  std::cout << std::flush << std::endl << std::red << "sendmsg error: " << std::strerror(errno) << std::none << std::endl << std::flush;
                 else
                   Object::enqueue(writeFinished, msg_pos.socket, byte_count);
               }
@@ -174,13 +174,13 @@ void AsyncSocket::async_io(void) // runs as it's own thread
           socklen_t addrlen = 0;
           posix::fd_t fd = posix::accept(m_socket, peeraddr, &addrlen); // accept a new socket connection
           if(fd == posix::error_response)
-            std::cout << "accept error: " << ::strerror(errno) << std::endl << std::flush;
+            std::cout << "accept error: " << std::strerror(errno) << std::endl << std::flush;
           else
           {
             if(!EventBackend::watch(fd, EventFlags::Read)) // monitor new socket connection
-              std::cout << "watch failure: " << ::strerror(errno) << std::endl << std::flush;
+              std::cout << "watch failure: " << std::strerror(errno) << std::endl << std::flush;
             if(!posix::getpeercred(fd, peercred)) // get creditials of connected peer process
-              std::cout << "peercred failure: " << ::strerror(errno) << std::endl << std::flush;
+              std::cout << "peercred failure: " << std::strerror(errno) << std::endl << std::flush;
             Object::enqueue(connectedToPeer, fd, peeraddr, peercred);
           }
         }
@@ -203,7 +203,7 @@ void AsyncSocket::async_io(void) // runs as it's own thread
             byte_count = posix::recvmsg(pos.first, &msg, 0);
 
             if(byte_count == posix::error_response)
-              std::cout << std::red << "recvmsg error: " << ::strerror(errno) << std::none << std::endl << std::flush;
+              std::cout << std::red << "recvmsg error: " << std::strerror(errno) << std::none << std::endl << std::flush;
             else if(!byte_count)
             {
               EventBackend::remove(pos.first); // stop watching for events

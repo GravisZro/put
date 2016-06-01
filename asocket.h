@@ -65,7 +65,7 @@ private:
 
 private:
   posix::fd_t       m_socket;
-  bool              m_bound;
+  bool              m_bound;    // indicates if in server or client mode
   posix::sockaddr_t m_selfaddr;
   std::thread       m_iothread;
 
