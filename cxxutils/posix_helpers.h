@@ -9,12 +9,48 @@
 // POSIX
 #include <pwd.h>
 #include <grp.h>
+#include <signal.h>
 
 // PDTK
 #include "error_helpers.h"
 
 namespace posix
 {
+  enum signal_t
+  {
+    Hangup                  = SIGHUP,
+    Interrupt               = SIGINT,
+    Quit                    = SIGQUIT,
+    IllegalInstruction      = SIGILL,
+    TraceTrap               = SIGTRAP,
+    Abort                   = SIGABRT,
+    BusError                = SIGBUS,
+    FloatingPointException  = SIGFPE,
+    Kill                    = SIGKILL,
+    UserSignal1             = SIGUSR1,
+    SegmentationViolation   = SIGSEGV,
+    UserSignal2             = SIGUSR2,
+    BrokenPipe              = SIGPIPE,
+    Timer                   = SIGALRM,
+    Terminate               = SIGTERM,
+    StackFault              = SIGSTKFLT,
+    ChildStatusChanged      = SIGCHLD,
+    Resume                  = SIGCONT,
+    Stop                    = SIGSTOP,
+    KeyboardStop            = SIGTSTP,
+    TTYRead                 = SIGTTIN,
+    TTYWrite                = SIGTTOU,
+    Urgent                  = SIGURG,
+    LimitExceededCPU        = SIGXCPU,
+    LimitExceededFile       = SIGXFSZ,
+    VirtualTimer            = SIGVTALRM,
+    ProfilingTimer          = SIGPROF,
+    WindowSizeUpdate        = SIGWINCH,
+    Poll                    = SIGPOLL,
+    PowerFailure            = SIGPWR,
+    BadSystemCall           = SIGSYS,
+  };
+
   typedef int fd_t;
   static const fd_t invalid_descriptor = -1;
 
@@ -70,6 +106,9 @@ namespace posix
     group* rval = posix::getgrgid(gid);
     return rval == nullptr ? "" : rval->gr_name;
   }
+
+  static inline bool raise(signal_t id)
+    { return ::raise(id) == success_response; }
 }
 
 #include <spawn.h>
