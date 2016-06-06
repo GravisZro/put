@@ -20,10 +20,11 @@ void Process::setArguments(std::vector<const char*> arguments)
 
 void Process::setEnvironment(std::vector<std::pair<const char*, const char*>> environment)
 {
-  m_environment.clear();
-  for(auto env : environment)
-    m_environment.emplace(env.first, env.second);
+  environment.clear();
+  for(auto& pos : environment)
+    setEnvironmentVariable(pos.first, pos.second);
 }
+
 
 Process::State Process::state(void)
 {

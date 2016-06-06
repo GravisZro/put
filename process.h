@@ -43,10 +43,19 @@ public:
   Process(void);
  ~Process(void);
 
-  void  setExecutable(const char* executable) { m_executable = executable; }
-  void  setArguments(std::vector<const char*> arguments);
+  // for string literals
   void  setWorkingDirectory(const char* dir) { m_workingdir = dir; }
-  void  setEnvironment(std::vector<std::pair<const char*, const char*>> environment);
+  void  setExecutable(const char* executable) { m_executable = executable; }
+  void  setArguments(std::vector<const char*>& arguments);
+  void  setEnvironment(std::vector<std::pair<const char*, const char*>>& environment);
+  void  setEnvironmentVariable(const char* name, const char* value) { m_environment.insert_or_assign(name, value); }
+
+  // for strings
+  void  setWorkingDirectory(const std::string& dir) { m_workingdir = dir; }
+  void  setExecutable(const std::string& executable) { m_executable = executable; }
+  void  setArguments(const std::vector<std::string>& arguments) { m_arguments = arguments; }
+  void  setEnvironment(const std::unordered_map<std::string, std::string>& environment)  { m_environment = environment; }
+  void  setEnvironmentVariable(const std::string& name, const std::string& value) { m_environment.insert_or_assign(name, value); }
 
   pid_t id   (void) const { return m_pid; }
   State state(void);
