@@ -1,5 +1,5 @@
 #ifndef POSIX_HELPERS_H
-#define POSIX_HELPERS_H
+POSIX_HELPERS_H
 
 // STL
 #include <string>
@@ -16,7 +16,7 @@
 
 namespace posix
 {
-  enum signal_t
+  enum signal_t : int
   {
     Hangup                  = SIGHUP,
     Interrupt               = SIGINT,
@@ -49,6 +49,58 @@ namespace posix
     Poll                    = SIGPOLL,
     PowerFailure            = SIGPWR,
     BadSystemCall           = SIGSYS,
+  };
+
+  enum signal_code_t : int
+  {
+    // SIGILL
+    IllegalOpcode                     = ILL_ILLOPC,
+    IllegalOperand                    = ILL_ILLOPN,
+    IllegalAddressingMode             = ILL_ILLADR,
+    IllegalTrap                       = ILL_ILLTRP,
+    PrivilegedOpcode                  = ILL_PRVOPC,
+    PrivilegedRegister                = ILL_PRVREG,
+    CoprocessorError                  = ILL_COPROC,
+    InternalStackError                = ILL_BADSTK,
+
+    // SIGFPE
+    IntegerDivideByZero               = FPE_INTDIV,
+    IntegerOverflow                   = FPE_INTOVF,
+    FloatingPointDivideByZero         = FPE_FLTDIV,
+    FloatingPointOverflow             = FPE_FLTOVF,
+    FloatingPointInderflow            = FPE_FLTUND,
+    FloatingPointInexactResult        = FPE_FLTRES,
+    FloatingPointInvalidOperation     = FPE_FLTINV,
+    SubscriptOutOfRange               = FPE_FLTSUB,
+
+    // SIGSEGV
+    AddressNotMappedToObject          = SEGV_MAPERR,
+    InvalidPermissionsForMappedObject = SEGV_ACCERR,
+
+    // SIGBUS
+    InvalidAddressAlignment           = BUS_ADRALN,
+    NonExistantPhysicalAddress        = BUS_ADRERR,
+    ObjectSpecificHardwareError       = BUS_OBJERR,
+
+    // SIGTRAP
+    ProcessBreakpoint                 = TRAP_BRKPT,
+    ProcessTraceTrap                  = TRAP_TRACE,
+
+    // SIGCHLD
+    ChildHasExited                    = CLD_EXITED,
+    ChildWasKilled                    = CLD_KILLED,
+    ChildTerminatedAbnormally         = CLD_DUMPED,
+    TracedChildHasTrapped             = CLD_TRAPPED,
+    ChildHasStopped                   = CLD_STOPPED,
+    StoppedChildHasContinued          = CLD_CONTINUED,
+
+    // SIGPOLL
+    DataInputAvailable                = POLL_IN,
+    OutputBuffersAvailable            = POLL_OUT,
+    InputMessageAvailable             = POLL_MSG,
+    IOError                           = POLL_ERR,
+    HighPriorityInputAvailable        = POLL_PRI,
+    DeviceDisconnected                = POLL_HUP,
   };
 
   typedef int fd_t;
@@ -107,8 +159,14 @@ namespace posix
     return rval == nullptr ? "" : rval->gr_name;
   }
 
-  static inline bool raise(signal_t id)
-    { return ::raise(id) == success_response; }
+  namespace signal
+  {
+    static inline bool raise(signal_t id)
+      { return ::raise(id) == success_response; }
+
+    static inline bool send(pid_t pid, signal_t id, int value = 0)
+      { return ::sigqueue(pid, id, value) == success_response; }
+  }
 }
 
 #include <spawn.h>
