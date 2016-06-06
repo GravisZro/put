@@ -1,5 +1,5 @@
 #ifndef POSIX_HELPERS_H
-POSIX_HELPERS_H
+#define POSIX_HELPERS_H
 
 // STL
 #include <string>
