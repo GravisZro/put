@@ -49,6 +49,10 @@ public:
     }
     return false;
   }
+
+  template<typename... ArgTypes>
+  static inline bool enqueue_copy(signal<ArgTypes...>& sig, ArgTypes... args)
+    { return enqueue(sig, args...);}
 };
 
 #endif // OBJECT_H
