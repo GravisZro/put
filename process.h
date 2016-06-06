@@ -61,7 +61,7 @@ public:
   State state(void);
 
   void  start     (void);
-  void  sendSignal(Signal signum) const;
+  bool  sendSignal(posix::ESignal signum) const;
 
   void  stop      (void) const { sendSignal(Signal::Stop      ); }
   void  resume    (void) const { sendSignal(Signal::Resume    ); }
