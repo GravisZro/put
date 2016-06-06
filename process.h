@@ -63,12 +63,12 @@ public:
   void  start     (void);
   bool  sendSignal(posix::ESignal signum) const;
 
-  void  stop      (void) const { sendSignal(Signal::Stop      ); }
-  void  resume    (void) const { sendSignal(Signal::Resume    ); }
+  void  stop      (void) const { sendSignal(posix::Stop      ); }
+  void  resume    (void) const { sendSignal(posix::Resume    ); }
 
-  void  quit      (void) const { sendSignal(Signal::Quit      ); }
-  void  terminate (void) const { sendSignal(Signal::Terminate ); }
-  void  kill      (void) const { sendSignal(Signal::Kill      ); }
+  void  quit      (void) const { sendSignal(posix::Quit      ); }
+  void  terminate (void) const { sendSignal(posix::Terminate ); }
+  void  kill      (void) const { sendSignal(posix::Kill      ); }
 
 
   signal<> started;
@@ -82,6 +82,9 @@ private:
   std::unordered_map<std::string, std::string> m_environment;
   pid_t m_pid;
   State m_state;
+  posix::fd_t m_stdin;
+  posix::fd_t m_stdout;
+  posix::fd_t m_stderr;
 };
 
 #endif // PROCESS_H
