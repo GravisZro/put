@@ -61,14 +61,14 @@ public:
   State state(void);
 
   void  start     (void);
-  bool  sendSignal(posix::ESignal signum) const;
+  bool  sendSignal(posix::signal::EId id) const;
 
-  void  stop      (void) const { sendSignal(posix::Stop      ); }
-  void  resume    (void) const { sendSignal(posix::Resume    ); }
+  void  stop      (void) const { sendSignal(posix::signal::Stop      ); }
+  void  resume    (void) const { sendSignal(posix::signal::Resume    ); }
 
-  void  quit      (void) const { sendSignal(posix::Quit      ); }
-  void  terminate (void) const { sendSignal(posix::Terminate ); }
-  void  kill      (void) const { sendSignal(posix::Kill      ); }
+  void  quit      (void) const { sendSignal(posix::signal::Quit      ); }
+  void  terminate (void) const { sendSignal(posix::signal::Terminate ); }
+  void  kill      (void) const { sendSignal(posix::signal::Kill      ); }
 
 
   signal<> started;
