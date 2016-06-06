@@ -44,5 +44,6 @@ void Process::start(void)
 
 bool Process::sendSignal(posix::signal_t signum) const
 {
-  posix::raise(signum);
+  if(m_pid)
+    ::sigqueue
 }

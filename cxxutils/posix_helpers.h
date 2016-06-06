@@ -16,7 +16,7 @@
 
 namespace posix
 {
-  enum signal_t : int
+  enum ESignal : int
   {
     Hangup                  = SIGHUP,
     Interrupt               = SIGINT,
@@ -51,7 +51,7 @@ namespace posix
     BadSystemCall           = SIGSYS,
   };
 
-  enum signal_code_t : int
+  enum ESignalCode : int
   {
     // SIGILL
     IllegalOpcode                     = ILL_ILLOPC,
@@ -161,10 +161,10 @@ namespace posix
 
   namespace signal
   {
-    static inline bool raise(signal_t id)
+    static inline bool raise(ESignal id)
       { return ::raise(id) == success_response; }
 
-    static inline bool send(pid_t pid, signal_t id, int value = 0)
+    static inline bool send(pid_t pid, ESignal id, int value = 0)
       { return ::sigqueue(pid, id, value) == success_response; }
   }
 }
