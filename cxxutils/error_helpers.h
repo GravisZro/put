@@ -16,8 +16,8 @@ namespace posix
 {
   static const int success_response = 0;
   static const int error_response = -1;
-  static int success(void) { return errno = 0; }
-  static int error(std::errc err) { return errno = (int)err ? error_response : success_response; }
+  static inline int success(void) { return errno = 0; }
+  static inline int error(std::errc err) { return errno = (int)err ? error_response : success_response; }
 }
 
 #endif // ERROR_HELPERS_H
