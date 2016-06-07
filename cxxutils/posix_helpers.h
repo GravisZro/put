@@ -10,6 +10,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <signal.h>
+#include <spawn.h>
 
 // PDTK
 #include "error_helpers.h"
@@ -165,45 +166,45 @@ namespace posix
       { return ::raise(id) == success_response; }
 
     static inline bool send(pid_t pid, EId id, int value = 0)
-      { return ::sigqueue(pid, id, value) == success_response; }
+      { return ::sigqueue(pid, id, {value}) == success_response; }
+  }
+
+  namespace spawn
+  {
+    struct FileActions : posix_spawn_file_actions_t
+    {
+      FileActions(void) { errno = ::posix_spawn_file_actions_init   (this); }
+     ~FileActions(void) { errno = ::posix_spawn_file_actions_destroy(this); }
+
+      operator const posix_spawn_file_actions_t*(void) const { return this; }
+
+      int addClose(posix::fd_t fd) { return ::posix_spawn_file_actions_addclose(this, fd); }
+      int addOpen(posix::fd_t fd, const char* path, int oflag, mode_t mode) { return ::posix_spawn_file_actions_addopen(this, fd, path, oflag, mode); }
+      int addDup2(posix::fd_t fd, posix::fd_t newfd) { return ::posix_spawn_file_actions_adddup2(this, fd, newfd); }
+    };
+
+    struct Attributes : posix_spawnattr_t
+    {
+      Attributes(void) { errno = ::posix_spawnattr_init   (this); }
+     ~Attributes(void) { errno = ::posix_spawnattr_destroy(this); }
+
+      operator const posix_spawnattr_t*(void) const { return this; }
+
+      int getSigDefault (sigset_t&    set   ) const { return ::posix_spawnattr_getsigdefault  (this, &set   ); }
+      int getFlags      (short&       flags ) const { return ::posix_spawnattr_getflags       (this, &flags ); }
+      int getPgroup     (pid_t&       pid   ) const { return ::posix_spawnattr_getpgroup      (this, &pid   ); }
+      int getSchedParam (sched_param& param ) const { return ::posix_spawnattr_getschedparam  (this, &param ); }
+      int getSchedPolicy(int&         policy) const { return ::posix_spawnattr_getschedpolicy (this, &policy); }
+      int getSigMask    (sigset_t&    mask  ) const { return ::posix_spawnattr_getsigmask     (this, &mask  ); }
+
+      int setSigDefault (const sigset_t&    set   ) { return ::posix_spawnattr_setsigdefault  (this, &set   ); }
+      int setFlags      (const short        flags ) { return ::posix_spawnattr_setflags       (this, flags  ); }
+      int setPgroup     (const pid_t        pid   ) { return ::posix_spawnattr_setpgroup      (this, pid    ); }
+      int setSchedParam (const sched_param& param ) { return ::posix_spawnattr_setschedparam  (this, &param ); }
+      int setSchedPolicy(const int          policy) { return ::posix_spawnattr_setschedpolicy (this, policy ); }
+      int setSigMask    (const sigset_t&    mask  ) { return ::posix_spawnattr_setsigmask     (this, &mask  ); }
+    };
   }
 }
-
-#include <spawn.h>
-
-struct PosixSpawnFileActions : posix_spawn_file_actions_t
-{
-  PosixSpawnFileActions(void) { errno = ::posix_spawn_file_actions_init   (this); }
- ~PosixSpawnFileActions(void) { errno = ::posix_spawn_file_actions_destroy(this); }
-
-  operator const posix_spawn_file_actions_t*(void) const { return this; }
-
-  int addClose(posix::fd_t fd) { return ::posix_spawn_file_actions_addclose(this, fd); }
-  int addOpen(posix::fd_t fd, const char* path, int oflag, mode_t mode) { return ::posix_spawn_file_actions_addopen(this, fd, path, oflag, mode); }
-  int addDup2(posix::fd_t fd, posix::fd_t newfd) { return ::posix_spawn_file_actions_adddup2(this, fd, newfd); }
-};
-
-struct PosixSpawnAttr : posix_spawnattr_t
-{
-  PosixSpawnAttr(void) { errno = ::posix_spawnattr_init   (this); }
- ~PosixSpawnAttr(void) { errno = ::posix_spawnattr_destroy(this); }
-
-  operator const posix_spawnattr_t*(void) const { return this; }
-
-  int getSigDefault (sigset_t&    set   ) const { return ::posix_spawnattr_getsigdefault  (this, &set   ); }
-  int getFlags      (short&       flags ) const { return ::posix_spawnattr_getflags       (this, &flags ); }
-  int getPgroup     (pid_t&       pid   ) const { return ::posix_spawnattr_getpgroup      (this, &pid   ); }
-  int getSchedParam (sched_param& param ) const { return ::posix_spawnattr_getschedparam  (this, &param ); }
-  int getSchedPolicy(int&         policy) const { return ::posix_spawnattr_getschedpolicy (this, &policy); }
-  int getSigMask    (sigset_t&    mask  ) const { return ::posix_spawnattr_getsigmask     (this, &mask  ); }
-
-  int setSigDefault (const sigset_t&    set   ) { return ::posix_spawnattr_setsigdefault  (this, &set   ); }
-  int setFlags      (const short        flags ) { return ::posix_spawnattr_setflags       (this, flags  ); }
-  int setPgroup     (const pid_t        pid   ) { return ::posix_spawnattr_setpgroup      (this, pid    ); }
-  int setSchedParam (const sched_param& param ) { return ::posix_spawnattr_setschedparam  (this, &param ); }
-  int setSchedPolicy(const int          policy) { return ::posix_spawnattr_setschedpolicy (this, policy ); }
-  int setSigMask    (const sigset_t&    mask  ) { return ::posix_spawnattr_setsigmask     (this, &mask  ); }
-};
-
 
 #endif // POSIX_HELPERS_H

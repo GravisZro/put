@@ -10,7 +10,7 @@ Process::~Process(void)
   m_pid = 0;
   m_state = NotStarted;
 }
-
+/*
 void Process::setArguments(std::vector<const char*> arguments)
 {
   m_arguments.clear();
@@ -24,23 +24,32 @@ void Process::setEnvironment(std::vector<std::pair<const char*, const char*>> en
   for(auto& pos : environment)
     setEnvironmentVariable(pos.first, pos.second);
 }
+*/
 
 
-Process::State Process::state(void)
+bool Process::start(void)
 {
+  std::vector<std::string> environment;
+  std::vector<const char*> argv;
+  std::vector<const char*> envp;
+  bool result;
 
-}
+  posix::spawn::Attributes attr;
+  posix::spawn::FileActions actions;
 
-void Process::start(void)
-{
-  /*
-  posix_spawn_file_actions_t
-  int posix_spawn(&m_pid, m_executable.c_str(),
-        pid_t *restrict pid, const char *restrict path,
-                          const posix_spawn_file_actions_t *file_actions,
-                          const posix_spawnattr_t *restrict attrp,
-                          char *const argv[restrict], char *const envp[restrict]);
-                          */
+  for(auto& env : m_environment) { environment.push_back(env.first + "=" + env.second); } // create environment string
+  for(auto& env : environment  ) { envp.push_back(env.c_str()); } // copy pointers to environment string data
+  for(auto& arg : m_arguments  ) { argv.push_back(arg.c_str()); } // copy pointers to argument string data
+
+  result = ::posix_spawn(&m_pid, m_executable.c_str(),
+                         actions, attr,
+                         (char* const*)argv.data(),
+                         (char* const*)envp.data()) == posix::success_response;
+  if(result)
+    m_state = Running;
+  else
+    Object::enqueue_copy(error, FailedToStart, static_cast<std::errc>(errno));
+  return result;
 }
 
 bool Process::sendSignal(posix::signal::EId id) const
