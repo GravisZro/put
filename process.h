@@ -42,15 +42,7 @@ public:
 
   Process(void);
  ~Process(void);
-/*
-  // for string literals
-  void  setWorkingDirectory(const char* dir) { m_workingdir = dir; }
-  void  setExecutable(const char* executable) { m_executable = executable; }
-  void  setArguments(std::vector<const char*>& arguments);
-  void  setEnvironment(std::vector<std::pair<const char*, const char*>>& environment);
-  void  setEnvironmentVariable(const char* name, const char* value) { m_environment.insert_or_assign(name, value); }
-*/
-  // for strings
+
   void  setWorkingDirectory(const std::string& dir) { m_workingdir = dir; }
   void  setExecutable(const std::string& executable) { m_executable = executable; }
   void  setArguments(const std::vector<std::string>& arguments) { m_arguments = arguments; }
@@ -76,6 +68,9 @@ public:
   signal<int> finished;
 
 private:
+  posix::spawn::Attributes attr;
+  posix::spawn::FileActions actions;
+
   std::string m_executable;
   std::vector<std::string> m_arguments;
   std::string m_workingdir;
