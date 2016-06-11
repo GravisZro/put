@@ -10,7 +10,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <signal.h>
-#include <spawn.h>
+#include <unistd.h>
 
 // PDTK
 #include "error_helpers.h"
@@ -169,42 +169,18 @@ namespace posix
       { return ::sigqueue(pid, id, {value}) == success_response; }
   }
 
-  namespace spawn
-  {
-    struct FileActions : posix_spawn_file_actions_t
-    {
-      FileActions(void) { errno = ::posix_spawn_file_actions_init   (this); }
-     ~FileActions(void) { errno = ::posix_spawn_file_actions_destroy(this); }
+// POSIX wrappers
+  static inline bool dup2(int a, int b)
+    { return ignore_interruption(::dup2, a, b) != error_response; }
 
-      operator const posix_spawn_file_actions_t*(void) const { return this; }
+  static inline bool close(fd_t fd)
+    { return ignore_interruption(::close, fd) != error_response; }
 
-      int addClose(posix::fd_t fd) { return ::posix_spawn_file_actions_addclose(this, fd); }
-      int addOpen(posix::fd_t fd, const char* path, int oflag, mode_t mode) { return ::posix_spawn_file_actions_addopen(this, fd, path, oflag, mode); }
-      int addDup2(posix::fd_t fd, posix::fd_t newfd) { return ::posix_spawn_file_actions_adddup2(this, fd, newfd); }
-    };
+  static inline ssize_t write(fd_t fd, const void* buffer, size_t length)
+    { return ignore_interruption(::write, fd, buffer, length); }
 
-    struct Attributes : posix_spawnattr_t
-    {
-      Attributes(void) { errno = ::posix_spawnattr_init   (this); }
-     ~Attributes(void) { errno = ::posix_spawnattr_destroy(this); }
-
-      operator const posix_spawnattr_t*(void) const { return this; }
-
-      int getSigDefault (sigset_t&    set   ) const { return ::posix_spawnattr_getsigdefault  (this, &set   ); }
-      int getFlags      (short&       flags ) const { return ::posix_spawnattr_getflags       (this, &flags ); }
-      int getPgroup     (pid_t&       pid   ) const { return ::posix_spawnattr_getpgroup      (this, &pid   ); }
-      int getSchedParam (sched_param& param ) const { return ::posix_spawnattr_getschedparam  (this, &param ); }
-      int getSchedPolicy(int&         policy) const { return ::posix_spawnattr_getschedpolicy (this, &policy); }
-      int getSigMask    (sigset_t&    mask  ) const { return ::posix_spawnattr_getsigmask     (this, &mask  ); }
-
-      int setSigDefault (const sigset_t&    set   ) { return ::posix_spawnattr_setsigdefault  (this, &set   ); }
-      int setFlags      (const short        flags ) { return ::posix_spawnattr_setflags       (this, flags  ); }
-      int setPgroup     (const pid_t        pid   ) { return ::posix_spawnattr_setpgroup      (this, pid    ); }
-      int setSchedParam (const sched_param& param ) { return ::posix_spawnattr_setschedparam  (this, &param ); }
-      int setSchedPolicy(const int          policy) { return ::posix_spawnattr_setschedpolicy (this, policy ); }
-      int setSigMask    (const sigset_t&    mask  ) { return ::posix_spawnattr_setsigmask     (this, &mask  ); }
-    };
-  }
+  static inline ssize_t read(fd_t fd, void* buffer, size_t length)
+    { return ignore_interruption(::read, fd, buffer, length); }
 }
 
 #endif // POSIX_HELPERS_H

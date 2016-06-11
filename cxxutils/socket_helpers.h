@@ -105,15 +105,6 @@ namespace posix
   static inline bool bind(fd_t sockfd, const sockaddr* addr, socklen_t addrlen)
     { return ::bind(sockfd, addr, addrlen) != error_response; }
 
-  static inline bool close(fd_t sockfd)
-    { return ignore_interruption(::close, sockfd) != error_response; }
-
-  static inline ssize_t write(fd_t sockfd, const void* buffer, size_t length)
-    { return ignore_interruption(::write, sockfd, buffer, length); }
-
-  static inline ssize_t read(fd_t sockfd, void* buffer, size_t length)
-    { return ignore_interruption(::read, sockfd, buffer, length); }
-
   static inline ssize_t send(fd_t sockfd, const void* buffer, size_t length, int flags = 0)
     { return ignore_interruption(::send, sockfd, buffer, length, flags); }
 

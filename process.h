@@ -15,8 +15,9 @@
 #include <unordered_map>
 
 // PDTK
-#include <object.h>
-#include <cxxutils/posix_helpers.h>
+#include "object.h"
+#include "cxxutils/posix_helpers.h"
+#include "cxxutils/ranged.h"
 
 
 class Process : public Object
@@ -43,11 +44,15 @@ public:
   Process(void);
  ~Process(void);
 
-  void  setWorkingDirectory(const std::string& dir) { m_workingdir = dir; }
-  void  setExecutable(const std::string& executable) { m_executable = executable; }
   void  setArguments(const std::vector<std::string>& arguments) { m_arguments = arguments; }
   void  setEnvironment(const std::unordered_map<std::string, std::string>& environment)  { m_environment = environment; }
   void  setEnvironmentVariable(const std::string& name, const std::string& value) { m_environment.emplace(name, value); }
+
+  bool  setWorkingDirectory(const std::string& dir);
+  bool  setExecutable(const std::string& executable);
+  void  setUID(uid_t id) { m_uid = id; }
+  void  setGID(gid_t id) { m_gid = id; }
+  bool  setPriority(int nval) { m_priority = nval; return m_priority.isValid(); }
 
   pid_t id   (void) const { return m_pid; }
   State state(void) const { return m_state; }
@@ -55,29 +60,27 @@ public:
   bool  start     (void);
   bool  sendSignal(posix::signal::EId id) const;
 
-  void  stop      (void) const { sendSignal(posix::signal::Stop      ); }
-  void  resume    (void) const { sendSignal(posix::signal::Resume    ); }
+  void  stop      (void) const { sendSignal(posix::signal::Stop     ); }
+  void  resume    (void) const { sendSignal(posix::signal::Resume   ); }
 
-  void  quit      (void) const { sendSignal(posix::signal::Quit      ); }
-  void  terminate (void) const { sendSignal(posix::signal::Terminate ); }
-  void  kill      (void) const { sendSignal(posix::signal::Kill      ); }
-
+  void  quit      (void) const { sendSignal(posix::signal::Quit     ); }
+  void  terminate (void) const { sendSignal(posix::signal::Terminate); }
+  void  kill      (void) const { sendSignal(posix::signal::Kill     ); }
 
   signal<> started;
   signal<Error, std::errc> error;
   signal<int> finished;
 
 private:
-  posix::spawn::Attributes attr;
-  posix::spawn::FileActions actions;
-
   std::string m_executable;
   std::vector<std::string> m_arguments;
   std::string m_workingdir;
   std::unordered_map<std::string, std::string> m_environment;
-  pid_t m_pid;
   State m_state;
-  posix::fd_t m_stdin;
+  pid_t m_pid;
+  uid_t m_uid;
+  gid_t m_gid;
+  ranged<int, -20, 20> m_priority;
   posix::fd_t m_stdout;
   posix::fd_t m_stderr;
 };
