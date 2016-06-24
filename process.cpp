@@ -11,7 +11,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
-//#include <cstring>
+#include <climits>
 
 // PDTK
 #include "cxxutils/cstringarray.h"
@@ -22,9 +22,12 @@
 
 Process::Process(void)
   : m_state(NotStarted),
-    m_pid(0),
-    m_uid(0),
-    m_gid(0),
+    m_pid (0),
+    m_uid (0),
+    m_gid (0),
+    m_euid(0),
+    m_egid(0),
+    m_priority(INT_MAX),
     m_stdout(posix::error_response),
     m_stderr(posix::error_response)
 {
@@ -33,9 +36,11 @@ Process::Process(void)
 Process::~Process(void)
 {
   m_state = NotStarted;
-  m_pid = 0;
-  m_uid = 0;
-  m_gid = 0;
+  m_pid  = 0;
+  m_uid  = 0;
+  m_gid  = 0;
+  m_euid = 0;
+  m_egid = 0;
 
   if(m_stdout != posix::error_response)
     posix::close(m_stdout);
@@ -59,6 +64,59 @@ bool Process::setExecutable(const std::string& executable)
   return errno == posix::success_response;
 }
 
+static inline bool validUID(uid_t id)
+  { return posix::getpwuid(id) != nullptr; }
+
+static inline bool validGID(gid_t id)
+  { return posix::getgrgid(id) != nullptr; }
+
+bool Process::setUID(uid_t id)
+{
+  bool valid = validUID(id);
+  if(valid)
+    m_uid = id;
+  return valid;
+}
+
+bool Process::setGID(gid_t id)
+{
+  bool valid = validGID(id);
+  if(valid)
+    m_gid = id;
+  return valid;
+}
+
+bool Process::setEUID(uid_t id)
+{
+  bool valid = validUID(id);
+  if(valid)
+    m_euid = id;
+  return valid;
+}
+
+bool Process::setEGID(gid_t id)
+{
+  bool valid = validGID(id);
+  if(valid)
+    m_egid = id;
+  return valid;
+}
+
+#ifndef PRIO_MIN
+#define PRIO_MIN -20
+#endif
+#ifndef PRIO_MAX
+#define PRIO_MAX 20
+#endif
+
+bool Process::setPriority(int nval)
+{
+  if(nval < PRIO_MIN || nval > PRIO_MAX)
+    return false;
+  m_priority = nval;
+  return true;
+}
+
 bool Process::start(void)
 {
   if(m_executable.empty())
@@ -71,14 +129,19 @@ bool Process::start(void)
   posix::fd_t pipe_stdout[2];
   posix::fd_t pipe_stderr[2];
 
+  m_state = NotStarted;
+  m_error = NoError;
+
   if(::pipe(pipe_stdout) == posix::error_response ||
      ::pipe(pipe_stderr) == posix::error_response ||
      (m_pid = ::fork()) <= posix::error_response)
   {
-    Object::enqueue_copy(error, UnknownError, static_cast<std::errc>(errno));
+    m_error = FailedToStart;
+    Object::enqueue_copy(error, m_error, static_cast<std::errc>(errno));
     return false;
   }
 
+  m_state = Starting;
 
   if(m_pid == posix::success_response) // if inside forked process
   {
@@ -89,39 +152,48 @@ bool Process::start(void)
     assertE(posix::close(pipe_stdout[1]));
     assertE(posix::close(pipe_stderr[0]));
     assertE(posix::close(pipe_stderr[1]));
+
     if(m_uid)
-      assertE(::setreuid(m_uid, m_uid) == posix::success_response);
+      assertE(::setuid(m_uid) == posix::success_response);
     if(m_gid)
-      assertE(::setregid(m_gid, m_gid) == posix::success_response);
+      assertE(::setgid(m_gid) == posix::success_response);
+    if(m_euid)
+      assertE(::seteuid(m_euid) == posix::success_response);
+    if(m_egid)
+      assertE(::setegid(m_egid) == posix::success_response);
+
     assertE(::execve(argv[0], argv, envv) == posix::success_response);
-    std::perror("Unreachable area has been reached!");
-    assert(false); // unreachable area: _should_ be impossible
+    std::perror("execve() implemenation error! This area should be unreachable!");
+    assert(false);
   }
 
   m_stdout = pipe_stdout[0];
   m_stderr = pipe_stderr[0];
-  m_state = Running;
 
   if(!posix::close(pipe_stdout[1]) ||
      !posix::close(pipe_stderr[1]))
   {
-    Object::enqueue_copy(error, UnknownError, static_cast<std::errc>(errno));
+    m_error = UnknownError;
+    Object::enqueue_copy(error, m_error, static_cast<std::errc>(errno));
     return false;
   }
 
-  if(m_priority.isValid() &&
-     ::setpriority(PRIO_PROCESS, m_pid, m_priority) != posix::success_response)
+  if(m_priority >= PRIO_MIN && // only if m_priority has been set
+     m_priority <= PRIO_MAX &&
+     ::setpriority(PRIO_PROCESS, m_pid, m_priority) != posix::success_response) // set priority
   {
-    Object::enqueue_copy(error, UnknownError, static_cast<std::errc>(errno));
+    m_error = UnknownError;
+    Object::enqueue_copy(error, m_error, static_cast<std::errc>(errno));
     return false;
   }
 
+  m_state = Running;
   return true;
 }
 
-bool Process::sendSignal(posix::signal::EId id) const
+bool Process::sendSignal(posix::signal::EId id, int value) const
 {
   if(m_pid)
-    return posix::signal::send(m_pid, id);
+    return posix::signal::send(m_pid, id, value);
   return false;
 }
