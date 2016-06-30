@@ -21,7 +21,7 @@ struct node_t
 class ConfigParser : public std::shared_ptr<node_t>
 {
 public:
-  ConfigParser(void);
+  ConfigParser(void) noexcept;
   bool parse(const std::string& strdata) noexcept;
 };
 

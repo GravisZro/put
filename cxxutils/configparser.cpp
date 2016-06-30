@@ -40,7 +40,7 @@ std::shared_ptr<node_t> node_t::subsection(size_t index, std::string& val) noexc
   return values.at(index_string);
 }
 
-ConfigParser::ConfigParser(void)
+ConfigParser::ConfigParser(void) noexcept
   : std::shared_ptr<node_t>(std::make_shared<node_t>())
 {
 }
