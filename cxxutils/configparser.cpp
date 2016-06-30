@@ -40,6 +40,11 @@ std::shared_ptr<node_t> node_t::subsection(size_t index, std::string& val) noexc
   return values.at(index_string);
 }
 
+ConfigParser::ConfigParser(void)
+  : std::shared_ptr<node_t>(std::make_shared<node_t>())
+{
+}
+
 bool ConfigParser::parse(const std::string& strdata) noexcept
 {
   enum state_e
@@ -56,8 +61,8 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
   const char* data = strdata.data();
   const char* end = data + strdata.size();
 
-  std::shared_ptr<node_t> node;
-  std::shared_ptr<node_t> section_node;
+  std::shared_ptr<node_t> node = nullptr;
+  std::shared_ptr<node_t> section_node = nullptr;
   std::string str;
   str.reserve(4096);
 
