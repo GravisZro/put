@@ -28,14 +28,14 @@ namespace LocalCommand
 
 namespace posix
 {
-  inline bool getpeercred(fd_t sockfd, proccred_t& cred)
+  inline bool getpeercred(fd_t sockfd, proccred_t& cred) noexcept
     { return ::getpeercred(sockfd, cred) == posix::success_response; }
 }
 
-AsyncSocket::AsyncSocket(EDomain domain, EType type, EProtocol protocol, int flags)
+AsyncSocket::AsyncSocket(EDomain domain, EType type, EProtocol protocol, int flags) noexcept
   : AsyncSocket(posix::socket(domain, type, protocol, flags)) { }
 
-AsyncSocket::AsyncSocket(posix::fd_t socket)
+AsyncSocket::AsyncSocket(posix::fd_t socket) noexcept
   : m_socket(socket),
     m_bound(false)
 {
@@ -48,7 +48,7 @@ AsyncSocket::AsyncSocket(posix::fd_t socket)
   EventBackend::watch(m_socket, EventFlags::Read);
 }
 
-AsyncSocket::~AsyncSocket(void)
+AsyncSocket::~AsyncSocket(void) noexcept
 {
   posix::write(m_write_command, &LocalCommand::exit, sizeof(uint64_t));
   m_iothread.join(); // wait for thread to exit
@@ -59,7 +59,7 @@ AsyncSocket::~AsyncSocket(void)
     ::unlink(m_selfaddr.sun_path);
 }
 
-bool AsyncSocket::bind(const char *socket_path, int socket_backlog)
+bool AsyncSocket::bind(const char *socket_path, int socket_backlog) noexcept
 {
   if(!has_socket())
     return false;
@@ -72,7 +72,7 @@ bool AsyncSocket::bind(const char *socket_path, int socket_backlog)
                    async_spawn();
 }
 
-bool AsyncSocket::connect(const char *socket_path)
+bool AsyncSocket::connect(const char *socket_path) noexcept
 {
   if(!has_socket())
     return false;
@@ -91,7 +91,7 @@ bool AsyncSocket::connect(const char *socket_path)
          Object::enqueue(connectedToPeer, m_socket, peeraddr, peercred);
 }
 
-bool AsyncSocket::async_spawn(void)
+bool AsyncSocket::async_spawn(void) noexcept
 {
   if(m_iothread.joinable()) // if thread already active
     return posix::write(m_write_command, &LocalCommand::update, sizeof(uint64_t)) != posix::error_response; // notify thread of an update
@@ -100,7 +100,7 @@ bool AsyncSocket::async_spawn(void)
   return m_iothread.joinable(); // if thread creation succeeded
 }
 
-void AsyncSocket::async_io(void) // runs as it's own thread
+void AsyncSocket::async_io(void) noexcept // runs as it's own thread
 {
   msghdr msg = {};
   iovec iov = {};
@@ -235,7 +235,7 @@ void AsyncSocket::async_io(void) // runs as it's own thread
   }
 }
 
-bool AsyncSocket::write(message_t msg)
+bool AsyncSocket::write(message_t msg) noexcept
 {
   if(!is_connected(msg.socket))
     return false;

@@ -8,11 +8,11 @@ class CStringArray
 {
 public:
   template<class container>
-  CStringArray(container& data)
+  CStringArray(container& data) noexcept
     : CStringArray(data, [](const auto& p) { return p; }) { }
 
   template<class container, typename filter>
-  CStringArray(container& data, filter func)
+  CStringArray(container& data, filter func) noexcept
   {
     for(auto& pos : data)
       m_datav.push_back(func(pos));
@@ -21,7 +21,7 @@ public:
     m_datapv.push_back(nullptr);
   }
 
-  operator char* const* (void) const { return (char* const*)m_datapv.data(); }
+  operator char* const* (void) const noexcept { return (char* const*)m_datapv.data(); }
 
 private:
   std::vector<std::string> m_datav;

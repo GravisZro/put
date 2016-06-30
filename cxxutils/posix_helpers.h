@@ -25,10 +25,10 @@ namespace posix
   using function = RType(*)(ArgTypes...);
 
   template<typename RType, typename... ArgTypes>
-  static inline RType ignore_interruption(function<RType, ArgTypes...> func, ArgTypes... args)
+  static inline RType ignore_interruption(function<RType, ArgTypes...> func, ArgTypes... args) noexcept
 #else
   template<typename RType, typename... ArgTypes>
-  static inline RType ignore_interruption(RType(*func)(ArgTypes...), ArgTypes... args)
+  static inline RType ignore_interruption(RType(*func)(ArgTypes...), ArgTypes... args) noexcept
 #endif
   {
     RType rval = error_response;
@@ -40,10 +40,10 @@ namespace posix
 
 #ifndef __clang__
   template<typename RType, typename... ArgTypes>
-  static inline RType* ignore_interruption(function<RType*, ArgTypes...> func, ArgTypes... args)
+  static inline RType* ignore_interruption(function<RType*, ArgTypes...> func, ArgTypes... args) noexcept
 #else
   template<typename RType, typename... ArgTypes>
-  static inline RType* ignore_interruption(RType*(*func)(ArgTypes...), ArgTypes... args)
+  static inline RType* ignore_interruption(RType*(*func)(ArgTypes...), ArgTypes... args) noexcept
 #endif
   {
     RType* rval = nullptr;
@@ -53,21 +53,26 @@ namespace posix
     return rval;
   }
 
+#ifdef __clang__
+#define __uid_t uid_t
+#define __gid_t gid_t
+#endif
+
 // POSIX wrappers
-  static inline passwd* getpwuid(uid_t uid)
+  static inline passwd* getpwuid(uid_t uid) noexcept
     { return ignore_interruption<passwd, __uid_t>(::getpwuid, uid); }
 
-  static inline group* getgrgid(gid_t gid)
+  static inline group* getgrgid(gid_t gid) noexcept
     { return ignore_interruption<group, __gid_t>(::getgrgid, gid); }
 
 // shortcuts
-  static inline std::string getusername(uid_t uid)
+  static inline std::string getusername(uid_t uid) noexcept
   {
     passwd* rval = posix::getpwuid(uid);
     return rval == nullptr ? "" : rval->pw_name;
   }
 
-  static inline std::string getgroupname(gid_t gid)
+  static inline std::string getgroupname(gid_t gid) noexcept
   {
     group* rval = posix::getgrgid(gid);
     return rval == nullptr ? "" : rval->gr_name;
@@ -162,24 +167,24 @@ namespace posix
       DeviceDisconnected                = POLL_HUP,
     };
 
-    static inline bool raise(EId id)
+    static inline bool raise(EId id) noexcept
       { return ::raise(id) == success_response; }
 
-    static inline bool send(pid_t pid, EId id, int value = 0)
+    static inline bool send(pid_t pid, EId id, int value = 0) noexcept
       { return ::sigqueue(pid, id, {value}) == success_response; }
   }
 
 // POSIX wrappers
-  static inline bool dup2(int a, int b)
+  static inline bool dup2(int a, int b) noexcept
     { return ignore_interruption(::dup2, a, b) != error_response; }
 
-  static inline bool close(fd_t fd)
+  static inline bool close(fd_t fd) noexcept
     { return ignore_interruption(::close, fd) != error_response; }
 
-  static inline ssize_t write(fd_t fd, const void* buffer, size_t length)
+  static inline ssize_t write(fd_t fd, const void* buffer, size_t length) noexcept
     { return ignore_interruption(::write, fd, buffer, length); }
 
-  static inline ssize_t read(fd_t fd, void* buffer, size_t length)
+  static inline ssize_t read(fd_t fd, void* buffer, size_t length) noexcept
     { return ignore_interruption(::read, fd, buffer, length); }
 }
 

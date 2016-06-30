@@ -20,7 +20,7 @@
   if(!(condition)) { std::perror("Error"); } \
   assert(condition);
 
-Process::Process(void)
+Process::Process(void) noexcept
   : m_state(NotStarted),
     m_pid (0),
     m_uid (0),
@@ -33,7 +33,7 @@ Process::Process(void)
 {
 }
 
-Process::~Process(void)
+Process::~Process(void) noexcept
 {
   m_state = NotStarted;
   m_pid  = 0;
@@ -48,7 +48,7 @@ Process::~Process(void)
     posix::close(m_stderr);
 }
 
-bool Process::setWorkingDirectory(const std::string& dir)
+bool Process::setWorkingDirectory(const std::string& dir) noexcept
 {
   struct stat statbuf;
   if(::stat(dir.c_str(), &statbuf) == posix::success_response)
@@ -56,7 +56,7 @@ bool Process::setWorkingDirectory(const std::string& dir)
   return errno == posix::success_response;
 }
 
-bool Process::setExecutable(const std::string& executable)
+bool Process::setExecutable(const std::string& executable) noexcept
 {
   struct stat statbuf;
   if(::stat(executable.c_str(), &statbuf) == posix::success_response)
@@ -64,13 +64,13 @@ bool Process::setExecutable(const std::string& executable)
   return errno == posix::success_response;
 }
 
-static inline bool validUID(uid_t id)
+static inline bool validUID(uid_t id) noexcept
   { return posix::getpwuid(id) != nullptr; }
 
-static inline bool validGID(gid_t id)
+static inline bool validGID(gid_t id) noexcept
   { return posix::getgrgid(id) != nullptr; }
 
-bool Process::setUID(uid_t id)
+bool Process::setUID(uid_t id) noexcept
 {
   bool valid = validUID(id);
   if(valid)
@@ -78,7 +78,7 @@ bool Process::setUID(uid_t id)
   return valid;
 }
 
-bool Process::setGID(gid_t id)
+bool Process::setGID(gid_t id) noexcept
 {
   bool valid = validGID(id);
   if(valid)
@@ -86,7 +86,7 @@ bool Process::setGID(gid_t id)
   return valid;
 }
 
-bool Process::setEUID(uid_t id)
+bool Process::setEUID(uid_t id) noexcept
 {
   bool valid = validUID(id);
   if(valid)
@@ -94,7 +94,7 @@ bool Process::setEUID(uid_t id)
   return valid;
 }
 
-bool Process::setEGID(gid_t id)
+bool Process::setEGID(gid_t id) noexcept
 {
   bool valid = validGID(id);
   if(valid)
@@ -109,7 +109,7 @@ bool Process::setEGID(gid_t id)
 #define PRIO_MAX 20
 #endif
 
-bool Process::setPriority(int nval)
+bool Process::setPriority(int nval) noexcept
 {
   if(nval < PRIO_MIN || nval > PRIO_MAX)
     return false;
@@ -117,7 +117,7 @@ bool Process::setPriority(int nval)
   return true;
 }
 
-bool Process::start(void)
+bool Process::start(void) noexcept
 {
   if(m_executable.empty())
     return false;
@@ -191,7 +191,7 @@ bool Process::start(void)
   return true;
 }
 
-bool Process::sendSignal(posix::signal::EId id, int value) const
+bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
 {
   if(m_pid)
     return posix::signal::send(m_pid, id, value);

@@ -37,11 +37,11 @@ struct EventFlags_t
 //  uint32_t Timeout      : 1;
 //  uint32_t Signal       : 1;
 
-  EventFlags_t(uint32_t flags = 0) { *reinterpret_cast<uint32_t*>(this) = flags; }
-  operator uint32_t(void) const { return *reinterpret_cast<const uint32_t*>(this); }
+  EventFlags_t(uint32_t flags = 0) noexcept { *reinterpret_cast<uint32_t*>(this) = flags; }
+  operator uint32_t(void) const noexcept { return *reinterpret_cast<const uint32_t*>(this); }
 
-  static EventFlags_t from_native(uint32_t flags);
-  static uint32_t to_native(EventFlags_t flags); // translates flags to the native platform flags
+  static EventFlags_t from_native(uint32_t flags) noexcept;
+  static uint32_t to_native(EventFlags_t flags) noexcept; // translates flags to the native platform flags
 };
 static_assert(sizeof(EventFlags_t) == sizeof(uint32_t), "EventFlags_t: bad size");
 
@@ -51,7 +51,7 @@ struct pollfd_t
   EventFlags_t events;
   EventFlags_t revents;
 
-  pollfd_t(posix::fd_t _fd = 0, EventFlags_t _events = 0, EventFlags_t _revents = 0)
+  pollfd_t(posix::fd_t _fd = 0, EventFlags_t _events = 0, EventFlags_t _revents = 0) noexcept
     : fd(_fd), events(_events), revents(_revents) { }
 };
 
@@ -69,24 +69,24 @@ public:
   };
 */
 
-  EventBackend(void);
- ~EventBackend(void);
+  EventBackend(void) noexcept;
+ ~EventBackend(void) noexcept;
 
   /* Enable reading/writing on a given fd or signal.
       - 'events' = the events that we're trying to enable: one or more of EV_READ, EV_WRITE, EV_SIGNAL, and EV_ET.
    */
-  bool watch(posix::fd_t fd, EventFlags_t events); // sets which events to montior in the watch queue
+  bool watch(posix::fd_t fd, EventFlags_t events) noexcept; // sets which events to montior in the watch queue
 
-  bool remove(posix::fd_t fd); // remove from watch queue
+  bool remove(posix::fd_t fd) noexcept; // remove from watch queue
 
   /* Function to implement the core of an event loop.  It must see which
      added events are ready, and cause event_active to be called for each
      active event (usually via event_io_active or such). */
-  bool invoke(int timeout = -1);
+  bool invoke(int timeout = -1) noexcept;
 
-  const std::unordered_map<posix::fd_t, EventFlags_t>& results(void) const { return m_results; }
+  const std::unordered_map<posix::fd_t, EventFlags_t>& results(void) const noexcept { return m_results; }
 
-  const std::unordered_map<posix::fd_t, EventFlags_t>& queue(void) const { return m_queue; }
+  const std::unordered_map<posix::fd_t, EventFlags_t>& queue(void) const noexcept { return m_queue; }
 
   // Bit-array of features that this backend has.
 //  const struct features_t features;

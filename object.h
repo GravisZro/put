@@ -7,8 +7,8 @@
 
 struct ProtoObject
 {
-  inline  ProtoObject(void) { self = this; }
-  inline ~ProtoObject(void) { self = nullptr; }
+  inline  ProtoObject(void) noexcept { self = this; }
+  inline ~ProtoObject(void) noexcept { self = nullptr; }
   ProtoObject* self;
 };
 
@@ -22,11 +22,11 @@ public:
     ProtoObject* obj;
   };
 
-  inline Object(void)  { }
-  inline ~Object(void) { }
+  inline Object(void) noexcept  { }
+  inline ~Object(void) noexcept { }
 
   template<class ObjType, typename RType, typename... ArgTypes>
-  static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, RType(ObjType::*slot)(ArgTypes...))
+  static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, RType(ObjType::*slot)(ArgTypes...)) noexcept
   {
     sig.obj = obj;
     sig.func = [slot](ProtoObject* p, ArgTypes... args)
@@ -34,11 +34,11 @@ public:
   }
 
   template<typename RType, typename... ArgTypes>
-  static inline void connect(signal<ArgTypes...>& sig, RType(*slot)(ArgTypes...))
-    { sig.func = [slot](ProtoObject*, ArgTypes... args) { slot(args...); }; }
+  static inline void connect(signal<ArgTypes...>& sig, RType(*slot)(ArgTypes...)) noexcept
+    { sig.func = [slot](ProtoObject*, ArgTypes... args) noexcept { slot(args...); }; }
 
   template<typename... ArgTypes>
-  static inline bool enqueue(signal<ArgTypes...>& sig, ArgTypes&... args)
+  static inline bool enqueue(signal<ArgTypes...>& sig, ArgTypes&... args) noexcept
   {
     if(sig.func != nullptr) // ensure that invalid signals are not enqueued
     {
@@ -51,7 +51,7 @@ public:
   }
 
   template<typename... ArgTypes>
-  static inline bool enqueue_copy(signal<ArgTypes...>& sig, ArgTypes... args)
+  static inline bool enqueue_copy(signal<ArgTypes...>& sig, ArgTypes... args) noexcept
     { return enqueue(sig, args...);}
 };
 

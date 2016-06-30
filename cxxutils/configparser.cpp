@@ -16,6 +16,15 @@ static inline std::string use_string(std::string& str) noexcept
 node_t::node_t(void) noexcept { }
 node_t::node_t(std::string& val) noexcept : value(use_string(val)) { }
 
+bool node_t::is_array(void) noexcept
+{
+  for(auto& val : values)
+    for(auto& character : val.first)
+      if(!isdigit(character))
+        return false;
+  return true;
+}
+
 std::shared_ptr<node_t> node_t::subsection(std::string& val) noexcept
 {
   std::string cleanval = use_string(val);

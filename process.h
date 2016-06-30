@@ -40,33 +40,33 @@ public:
     UnknownError,   // An unknown error occurred. This is the default return value of error().
   };
 
-  Process(void);
- ~Process(void);
+  Process(void) noexcept;
+ ~Process(void) noexcept;
 
-  void setArguments(const std::vector<std::string>& arguments) { m_arguments = arguments; }
-  void setEnvironment(const std::unordered_map<std::string, std::string>& environment)  { m_environment = environment; }
-  void setEnvironmentVariable(const std::string& name, const std::string& value) { m_environment.emplace(name, value); }
+  void setArguments(const std::vector<std::string>& arguments) noexcept { m_arguments = arguments; }
+  void setEnvironment(const std::unordered_map<std::string, std::string>& environment) noexcept { m_environment = environment; }
+  void setEnvironmentVariable(const std::string& name, const std::string& value) noexcept { m_environment.emplace(name, value); }
 
-  bool setWorkingDirectory(const std::string& dir);
-  bool setExecutable(const std::string& executable);
-  bool setUID(uid_t id);
-  bool setGID(gid_t id);
-  bool setEUID(uid_t id);
-  bool setEGID(gid_t id);
-  bool setPriority(int nval);
+  bool setWorkingDirectory(const std::string& dir) noexcept;
+  bool setExecutable(const std::string& executable) noexcept;
+  bool setUID(uid_t id) noexcept;
+  bool setGID(gid_t id) noexcept;
+  bool setEUID(uid_t id) noexcept;
+  bool setEGID(gid_t id) noexcept;
+  bool setPriority(int nval) noexcept;
 
-  pid_t id   (void) const { return m_pid; }
-  State state(void) const { return m_state; }
+  pid_t id   (void) const noexcept { return m_pid; }
+  State state(void) const noexcept { return m_state; }
 
-  bool start     (void);
-  bool sendSignal(posix::signal::EId id, int value = 0) const;
+  bool start     (void) noexcept;
+  bool sendSignal(posix::signal::EId id, int value = 0) const noexcept;
 
-  void stop      (void) const { sendSignal(posix::signal::Stop     ); }
-  void resume    (void) const { sendSignal(posix::signal::Resume   ); }
+  void stop      (void) const noexcept { sendSignal(posix::signal::Stop     ); }
+  void resume    (void) const noexcept { sendSignal(posix::signal::Resume   ); }
 
-  void quit      (void) const { sendSignal(posix::signal::Quit     ); }
-  void terminate (void) const { sendSignal(posix::signal::Terminate); }
-  void kill      (void) const { sendSignal(posix::signal::Kill     ); }
+  void quit      (void) const noexcept { sendSignal(posix::signal::Quit     ); }
+  void terminate (void) const noexcept { sendSignal(posix::signal::Terminate); }
+  void kill      (void) const noexcept { sendSignal(posix::signal::Kill     ); }
 
   signal<> started;
   signal<Error, std::errc> error;

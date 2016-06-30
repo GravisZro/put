@@ -54,23 +54,23 @@ namespace posix
 {
   struct sockaddr_t : sockaddr_un
   {
-    sockaddr_t(void)
+    sockaddr_t(void) noexcept
     {
       operator =(EDomain::unspec);
       std::memset(sun_path, 0, sizeof(sun_path));
     }
 
-    int size(void) const { return sizeof(sun_family) + std::strlen(sun_path); }
-    operator struct sockaddr*(void) { return reinterpret_cast<struct sockaddr*>(this); }
-    operator const struct sockaddr*(void) const { return reinterpret_cast<const struct sockaddr*>(this); }
-    operator EDomain(void) const { return static_cast<EDomain>(sun_family); }
-    sockaddr_t& operator = (sa_family_t family) { sun_family = family; return *this; }
-    sockaddr_t& operator = (EDomain family) { return operator =(static_cast<sa_family_t>(family)); }
-    sockaddr_t& operator = (const char* path) { std::strcpy(sun_path, path); return *this; }
+    int size(void) const noexcept { return sizeof(sun_family) + std::strlen(sun_path); }
+    operator struct sockaddr*(void) noexcept { return reinterpret_cast<struct sockaddr*>(this); }
+    operator const struct sockaddr*(void) const noexcept { return reinterpret_cast<const struct sockaddr*>(this); }
+    operator EDomain(void) const noexcept { return static_cast<EDomain>(sun_family); }
+    sockaddr_t& operator = (sa_family_t family) noexcept { sun_family = family; return *this; }
+    sockaddr_t& operator = (EDomain family) noexcept { return operator =(static_cast<sa_family_t>(family)); }
+    sockaddr_t& operator = (const char* path) noexcept { std::strcpy(sun_path, path); return *this; }
   };
 
 // POSIX wrappers
-  static inline fd_t socket(EDomain domain, EType type, EProtocol protocol = EProtocol::unspec, int flags = 0)
+  static inline fd_t socket(EDomain domain, EType type, EProtocol protocol = EProtocol::unspec, int flags = 0) noexcept
   {
     fd_t fd = ::socket(static_cast<int>(domain),
                        static_cast<int>(type),
@@ -84,7 +84,7 @@ namespace posix
     return fd;
   }
 
-  static inline fd_t accept(fd_t sockfd, sockaddr* addr = nullptr, socklen_t* addrlen = nullptr, int flags = 0)
+  static inline fd_t accept(fd_t sockfd, sockaddr* addr = nullptr, socklen_t* addrlen = nullptr, int flags = 0) noexcept
   {
     fd_t fd = ignore_interruption(::accept, sockfd, addr, addrlen);
     if(fd != error_response)
@@ -96,28 +96,28 @@ namespace posix
     return fd;
   }
 
-  static inline bool listen(fd_t sockfd, int backlog = SOMAXCONN)
+  static inline bool listen(fd_t sockfd, int backlog = SOMAXCONN) noexcept
     { return ::listen(sockfd, backlog) != error_response; }
 
-  static inline bool connect(fd_t sockfd, const sockaddr* addr, socklen_t addrlen)
+  static inline bool connect(fd_t sockfd, const sockaddr* addr, socklen_t addrlen) noexcept
     { return ignore_interruption(::connect, sockfd, addr, addrlen) != error_response; }
 
-  static inline bool bind(fd_t sockfd, const sockaddr* addr, socklen_t addrlen)
+  static inline bool bind(fd_t sockfd, const sockaddr* addr, socklen_t addrlen) noexcept
     { return ::bind(sockfd, addr, addrlen) != error_response; }
 
-  static inline ssize_t send(fd_t sockfd, const void* buffer, size_t length, int flags = 0)
+  static inline ssize_t send(fd_t sockfd, const void* buffer, size_t length, int flags = 0) noexcept
     { return ignore_interruption(::send, sockfd, buffer, length, flags); }
 
-  static inline ssize_t recv(fd_t sockfd, void* buffer, size_t length, int flags = 0)
+  static inline ssize_t recv(fd_t sockfd, void* buffer, size_t length, int flags = 0) noexcept
     { return ignore_interruption(::recv, sockfd, buffer, length, flags); }
 
-  static inline ssize_t sendmsg(fd_t sockfd, const msghdr* msg, int flags = 0)
+  static inline ssize_t sendmsg(fd_t sockfd, const msghdr* msg, int flags = 0) noexcept
     { return ignore_interruption(::sendmsg, sockfd, msg, flags); }
 
-  static inline ssize_t recvmsg(fd_t sockfd, msghdr* msg, int flags = 0)
+  static inline ssize_t recvmsg(fd_t sockfd, msghdr* msg, int flags = 0) noexcept
     { return ignore_interruption(::recvmsg, sockfd, msg, flags); }
 
-  static inline int poll(pollfd* fds, nfds_t nfds, int timeout = -1)
+  static inline int poll(pollfd* fds, nfds_t nfds, int timeout = -1) noexcept
     { return ignore_interruption(::poll, fds, nfds, timeout); }
 }
 

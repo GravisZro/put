@@ -13,10 +13,10 @@ static std::atomic_bool s_run (true);
 std::condition_variable     Application::m_step_exec;
 lockable<std::queue<vfunc>> Application::m_signal_queue;
 
-Application::Application (void) { }
-Application::~Application(void) { }
+Application::Application (void) noexcept { }
+Application::~Application(void) noexcept { }
 
-int Application::exec(void)
+int Application::exec(void) noexcept
 {
   static std::queue<vfunc> exec_queue;
   static std::mutex exec_mutex;
@@ -38,7 +38,7 @@ int Application::exec(void)
   return s_return_value;
 }
 
-void Application::quit(int return_value)
+void Application::quit(int return_value) noexcept
 {
   if(s_run)
   {

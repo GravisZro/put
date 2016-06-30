@@ -11,7 +11,7 @@ struct proccred_t
   gid_t gid;
 };
 
-int getpeercred(int sockfd, proccred_t& cred);
+int getpeercred(int sockfd, proccred_t& cred) noexcept;
 
 #endif // GETPEERID_H
 

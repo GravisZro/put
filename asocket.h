@@ -32,15 +32,15 @@ public:
   AsyncSocket(EDomain   domain    = EDomain::unix,
               EType     type      = EType::seqpacket,
               EProtocol protocol  = EProtocol::unspec,
-              int       flags     = 0);
+              int       flags     = 0) noexcept;
 
-  AsyncSocket(posix::fd_t socket);
- ~AsyncSocket(void);
+  AsyncSocket(posix::fd_t socket) noexcept;
+ ~AsyncSocket(void) noexcept;
 
-  bool bind(const char *socket_path, int socket_backlog = SOMAXCONN);
-  bool connect(const char *socket_path);
+  bool bind(const char *socket_path, int socket_backlog = SOMAXCONN) noexcept;
+  bool connect(const char *socket_path) noexcept;
 
-  bool write(message_t msg);
+  bool write(message_t msg) noexcept;
 
   signal<posix::fd_t, message_t>                     readFinished;          // msesage received
   signal<posix::fd_t, ssize_t>                       writeFinished;         // message sent
@@ -48,16 +48,16 @@ public:
   signal<posix::fd_t>                                disconnectedFromPeer;  // connection with peer was severed
 
 protected:
-  void async_io    (void);
-  bool async_spawn (void);
+  void async_io    (void) noexcept;
+  bool async_spawn (void) noexcept;
 
 private:
-  bool has_socket(void)
+  bool has_socket(void) noexcept
     { return m_socket != posix::invalid_descriptor; }
-  bool is_bound(void)
+  bool is_bound(void) noexcept
     { return has_socket() && m_bound; }
 
-  bool is_connected(posix::fd_t socket)
+  bool is_connected(posix::fd_t socket) noexcept
   {
     return has_socket() &&
         queue().find(socket) != queue().end();
@@ -80,9 +80,9 @@ class SingleSocket : public AsyncSocket
 {
 public:
   template<typename... Args>
-  SingleSocket(Args... args) : AsyncSocket(args...), m_fd(posix::invalid_descriptor) { init(); }
+  SingleSocket(Args... args) noexcept : AsyncSocket(args...), m_fd(posix::invalid_descriptor) { init(); }
 
-  bool write(vqueue buffer, posix::fd_t fd_buffer = posix::invalid_descriptor)
+  bool write(vqueue buffer, posix::fd_t fd_buffer = posix::invalid_descriptor) noexcept
     { assert(m_fd != posix::invalid_descriptor);
       return AsyncSocket::write({ m_fd, buffer, fd_buffer }); }
 
@@ -91,7 +91,7 @@ public:
   signal<posix::sockaddr_t, proccred_t> connectedToPeer;       // connection is open with peer
   signal<>                              disconnectedFromPeer;  // connection with peer was severed
 private:
-  void init(void)
+  void init(void) noexcept
   {
     Object::connect(AsyncSocket::readFinished, this, &SingleSocket::receive);
     Object::connect(AsyncSocket::writeFinished, this, &SingleSocket::sent);
@@ -99,16 +99,16 @@ private:
     Object::connect(AsyncSocket::disconnectedFromPeer, this, &SingleSocket::disconnected);
   }
 
-  void sent(posix::fd_t, ssize_t count)
+  void sent(posix::fd_t, ssize_t count) noexcept
     { Object::enqueue(SingleSocket::writeFinished, count); }
 
-  void receive(posix::fd_t, message_t msg)
+  void receive(posix::fd_t, message_t msg) noexcept
     { Object::enqueue(SingleSocket::readFinished, msg); }
 
-  void connected(posix::fd_t fd, posix::sockaddr_t addr, proccred_t cred)
+  void connected(posix::fd_t fd, posix::sockaddr_t addr, proccred_t cred) noexcept
     { m_fd = fd; Object::enqueue(SingleSocket::connectedToPeer, addr, cred); }
 
-  void disconnected(posix::fd_t)
+  void disconnected(posix::fd_t) noexcept
     { Object::enqueue(SingleSocket::disconnectedFromPeer); }
 private:
   posix::fd_t m_fd;

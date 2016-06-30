@@ -14,10 +14,10 @@
 class vqueue
 {
 public:
-  inline vqueue(uint16_t length = 0xFFFF) : m_ok(true) { allocate(length); }
-  vqueue(const vqueue& that) { operator=(that); }
+  inline vqueue(uint16_t length = 0xFFFF) noexcept : m_ok(true) { allocate(length); }
+  vqueue(const vqueue& that) noexcept { operator=(that); }
 
-  vqueue& operator=(const vqueue& other)
+  vqueue& operator=(const vqueue& other) noexcept
   {
     if (this != &other)
     {
@@ -31,33 +31,33 @@ public:
   }
 
 // === error functions ===
-  bool hadError(void) const { return !m_ok; }
-  void clearError(void) { m_ok = true; }
+  bool hadError(void) const noexcept { return !m_ok; }
+  void clearError(void) noexcept { m_ok = true; }
 
 // === serializer frontends ===
   template<typename T>
-  constexpr vqueue& operator << (const T& arg)
+  constexpr vqueue& operator << (const T& arg) noexcept
   {
     serialize(arg);
     return *this;
   }
 
   template<typename T>
-  constexpr vqueue& operator >> (T& arg)
+  constexpr vqueue& operator >> (T& arg) noexcept
   {
     deserialize(arg);
     return *this;
   }
 
   template<typename T, typename... ArgTypes>
-  constexpr void serialize(const T& arg, ArgTypes&... args)
+  constexpr void serialize(const T& arg, ArgTypes&... args) noexcept
   {
     serialize(arg);
     serialize(args...);
   }
 
   template<typename T, typename... ArgTypes>
-  constexpr void deserialize(T& arg, ArgTypes&... args)
+  constexpr void deserialize(T& arg, ArgTypes&... args) noexcept
   {
     deserialize(arg);
     deserialize(args...);
@@ -65,7 +65,7 @@ public:
 
 
 // === manual queue manipulators ===
-  bool allocate(uint16_t length = 0xFFFF)
+  bool allocate(uint16_t length = 0xFFFF) noexcept
   {
     m_data.reset(new char[length]);
     memset(m_data.get(), 0, length);
@@ -77,7 +77,7 @@ public:
   }
 
   template<typename T>
-  inline bool push(const T& d)
+  inline bool push(const T& d) noexcept
   {
     if(dataEnd<T>() + 1 > end<T>())
       return m_ok = false;
@@ -87,7 +87,7 @@ public:
   }
 
   template<typename T = char>
-  bool pop(void)
+  bool pop(void) noexcept
   {
     if(data<T>() + 1 > dataEnd<T>())
       return m_ok = false;
@@ -97,19 +97,19 @@ public:
     return true;
   }
 
-  bool     empty (void) const { return dataEnd() == data   (); }
-  uint16_t size  (void) const { return dataEnd() -  data   (); }
-  uint16_t used  (void) const { return data   () -  begin  (); }
-  uint16_t unused(void) const { return end    () -  dataEnd(); }
+  bool     empty (void) const noexcept { return dataEnd() == data   (); }
+  uint16_t size  (void) const noexcept { return dataEnd() -  data   (); }
+  uint16_t used  (void) const noexcept { return data   () -  begin  (); }
+  uint16_t unused(void) const noexcept { return end    () -  dataEnd(); }
 
-  bool resize(uint16_t sz)
+  bool resize(uint16_t sz) noexcept
   {
     m_virt_begin = m_data.get();
     m_virt_end   = m_data.get() + sz;
     return m_virt_end <= end();
   }
 
-  bool shrink(ssize_t count)
+  bool shrink(ssize_t count) noexcept
   {
     if(count < 0)
       return m_ok = false;
@@ -120,7 +120,7 @@ public:
     return true;
   }
 
-  bool expand(ssize_t count)
+  bool expand(ssize_t count) noexcept
   {
     if(count < 0)
       return m_ok = false;
@@ -132,16 +132,16 @@ public:
   }
 
   //template<typename T = char> constexpr const T& front   (void) const { return *data<T>(); }
-  template<typename T = char> constexpr       T& front   (void)       { return *data<T>(); }
+  template<typename T = char> constexpr       T& front   (void) noexcept       { return *data<T>(); }
 
   //template<typename T = char> constexpr const T& back    (void) const { return *dataEnd<T>(); }
-  template<typename T = char> constexpr       T& back    (void)       { return *dataEnd<T>(); }
+  template<typename T = char> constexpr       T& back    (void) noexcept       { return *dataEnd<T>(); }
 
-  template<typename T = char> constexpr       T* data    (void) const { return reinterpret_cast<T*>(m_virt_begin); }
-  template<typename T = char> constexpr       T* dataEnd (void) const { return reinterpret_cast<T*>(m_virt_end  ); }
+  template<typename T = char> constexpr       T* data    (void) const noexcept { return reinterpret_cast<T*>(m_virt_begin); }
+  template<typename T = char> constexpr       T* dataEnd (void) const noexcept { return reinterpret_cast<T*>(m_virt_end  ); }
 
-  template<typename T = char>                 T* begin   (void) const { return reinterpret_cast<T*>(m_data.get()); }
-  template<typename T = char> constexpr       T* end     (void) const { return reinterpret_cast<T*>(m_data.get() + m_capacity); }
+  template<typename T = char>                 T* begin   (void) const noexcept { return reinterpret_cast<T*>(m_data.get()); }
+  template<typename T = char> constexpr       T* end     (void) const noexcept { return reinterpret_cast<T*>(m_data.get() + m_capacity); }
 
   const uint16_t& capacity(void) const { return m_capacity; }
 
@@ -160,7 +160,7 @@ private:
 
 // sized array
   template<typename T>
-  void serialize_arr(const T* arg, uint16_t length)
+  void serialize_arr(const T* arg, uint16_t length) noexcept
   {
     if(push<uint16_t>(sizeof(T)) &&
        push<uint16_t>(length))
@@ -168,7 +168,7 @@ private:
   }
 
   template<typename T>
-  void deserialize_arr(T* arg, uint16_t length)
+  void deserialize_arr(T* arg, uint16_t length) noexcept
   {
     if(front<uint16_t>() == sizeof(T) &&  // size matches
        pop  <uint16_t>() &&               // no buffer underflow
@@ -183,14 +183,14 @@ private:
 
 // simple types
   template<typename T>
-  constexpr void serialize(const T& arg)
+  constexpr void serialize(const T& arg) noexcept
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "compound or pointer type");
     serialize_arr<T>(&arg, 1);
   }
 
   template<typename T>
-  constexpr void deserialize(T& arg)
+  constexpr void deserialize(T& arg) noexcept
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "compound or pointer type");
     deserialize_arr<T>(&arg, 1);
@@ -198,14 +198,14 @@ private:
 
 // vector of simple types
   template<typename T>
-  constexpr void serialize(const std::vector<T>& arg)
+  constexpr void serialize(const std::vector<T>& arg) noexcept
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "vector of compound or pointer type");
     serialize_arr(arg.data(), arg.size());
   }
 
   template<typename T>
-  constexpr void deserialize(std::vector<T>& arg)
+  constexpr void deserialize(std::vector<T>& arg) noexcept
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "vector of compound or pointer type");
     arg.resize(front<uint16_t>());
@@ -213,19 +213,19 @@ private:
   }
 
 // string literals
-  void serialize(const char* arg)
+  void serialize(const char* arg) noexcept
     { serialize_arr(arg, std::strlen(arg)); }
 
-  void serialize(const wchar_t* arg)
+  void serialize(const wchar_t* arg) noexcept
     { serialize_arr(arg, std::wcslen(arg)); }
 
 // string
   template<typename T>
-  constexpr void serialize(const std::basic_string<T>& arg)
+  constexpr void serialize(const std::basic_string<T>& arg) noexcept
     { serialize_arr(arg.data(), arg.size()); }
 
   template<typename T>
-  constexpr void deserialize(std::basic_string<T>& arg)
+  constexpr void deserialize(std::basic_string<T>& arg) noexcept
   {
     arg.resize(front<uint16_t>());
     deserialize_arr(const_cast<T*>(arg.data()), arg.size()); // not guaranteed to work per the STL spec but will never fail catastrophically.

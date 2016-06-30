@@ -9,7 +9,7 @@
 
 #if defined(__linux__)
 
-int getpeercred(int sockfd, proccred_t& cred)
+int getpeercred(int sockfd, proccred_t& cred) noexcept
 {
   struct ucred data;
   socklen_t len = sizeof(data);
@@ -32,7 +32,7 @@ int getpeercred(int sockfd, proccred_t& cred)
 
 // Old FreeBSD
 #include <sys/ucred.h>
-int getpeercred(int sockfd, proccred_t& cred)
+int getpeercred(int sockfd, proccred_t& cred) noexcept
 {
   struct xucred data;
   ACCEPT_TYPE_ARG3 len = sizeof(data);
@@ -61,7 +61,7 @@ int getpeercred(int sockfd, proccred_t& cred)
 // POSIX
 #include <sys/types.h>
 
-int getpeercred(int sockfd, proccred_t& cred)
+int getpeercred(int sockfd, proccred_t& cred) noexcept
 {
   cred.pid = -1; // FIXME?
   return getpeereid(sockfd, &cred.uid, &cred.gid);
@@ -72,7 +72,7 @@ int getpeercred(int sockfd, proccred_t& cred)
 // Solaris
 #include <ucred.h>
 
-int getpeercred(int sockfd, proccred_t& cred)
+int getpeercred(int sockfd, proccred_t& cred) noexcept
 {
   uproccred_t* data = nullptr;
 

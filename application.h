@@ -15,12 +15,12 @@ using vfunc = std::function<void()>;
 class Application
 {
 public:
-  Application(void);
- ~Application(void);
+  Application(void) noexcept;
+ ~Application(void) noexcept;
 
-  int exec(void);
+  int exec(void) noexcept;
 
-  static void quit(int return_value = 0);
+  static void quit(int return_value = 0) noexcept;
 
 private:
   static std::condition_variable m_step_exec;

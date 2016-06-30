@@ -13,7 +13,7 @@
 
 #define MAX_EVENTS 32000
 
-EventFlags_t EventFlags_t::from_native(const uint32_t flags)
+EventFlags_t EventFlags_t::from_native(const uint32_t flags) noexcept
 {
   EventFlags_t rval;
   rval.Error       = flags & EPOLLERR ? 1 : 0;
@@ -27,7 +27,7 @@ EventFlags_t EventFlags_t::from_native(const uint32_t flags)
   return rval;
 }
 
-uint32_t EventFlags_t::to_native(const EventFlags_t flags)
+uint32_t EventFlags_t::to_native(const EventFlags_t flags) noexcept
 {
   return
       (flags.Error       ? (uint32_t)EPOLLERR : 0) |
@@ -46,7 +46,7 @@ struct platform_dependant
   int num_events;
 };
 
-EventBackend::EventBackend(void)
+EventBackend::EventBackend(void) noexcept
 //  : features({1,1,1,1})
 {
   m_data = new platform_dependant;
@@ -55,7 +55,7 @@ EventBackend::EventBackend(void)
   m_results.reserve(MAX_EVENTS);
 }
 
-EventBackend::~EventBackend(void)
+EventBackend::~EventBackend(void) noexcept
 {
   delete m_data;
   m_data = nullptr;
@@ -64,7 +64,7 @@ EventBackend::~EventBackend(void)
   m_pollfd = posix::error_response;
 }
 
-bool EventBackend::watch(posix::fd_t fd, EventFlags_t events)
+bool EventBackend::watch(posix::fd_t fd, EventFlags_t events) noexcept
 {
   struct epoll_event native_event;
   native_event.data.fd = fd;
@@ -89,7 +89,7 @@ bool EventBackend::watch(posix::fd_t fd, EventFlags_t events)
   return errno == posix::success_response;
 }
 
-bool EventBackend::remove(posix::fd_t fd)
+bool EventBackend::remove(posix::fd_t fd) noexcept
 {
   struct epoll_event event;
   auto iter = m_queue.find(fd); // search queue for FD
@@ -99,7 +99,7 @@ bool EventBackend::remove(posix::fd_t fd)
   return errno == posix::success_response;
 }
 
-bool EventBackend::invoke(int timeout)
+bool EventBackend::invoke(int timeout) noexcept
 {
   m_data->num_events = epoll_wait(m_pollfd, m_data->output, MAX_EVENTS, timeout); // wait for new results
   m_results.clear(); // clear old results
