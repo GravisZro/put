@@ -14,8 +14,8 @@ struct node_t
   node_t(std::string& val) noexcept;
 
   bool is_array(void) noexcept;
+  std::shared_ptr<node_t> subsection(void) noexcept;
   std::shared_ptr<node_t> subsection(std::string& val) noexcept;
-  std::shared_ptr<node_t> subsection(size_t index, std::string& val) noexcept;
 };
 
 class ConfigParser : public std::shared_ptr<node_t>
