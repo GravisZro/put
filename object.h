@@ -29,7 +29,7 @@ public:
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, RType(ObjType::*slot)(ArgTypes...)) noexcept
   {
     sig.obj = obj;
-    sig.func = [slot](ProtoObject* p, ArgTypes... args)
+    sig.func = [slot](ProtoObject* p, ArgTypes... args) noexcept
       { if(p == p->self) (static_cast<ObjType*>(p)->*slot)(args...); };
   }
 
