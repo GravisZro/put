@@ -25,23 +25,53 @@ bool node_t::is_array(void) noexcept
   return true;
 }
 
-std::shared_ptr<node_t> node_t::subsection(void) noexcept
+
+std::shared_ptr<node_t> node_t::newChild(void) noexcept
+{ return values.emplace(std::to_string(values.size()), std::make_shared<node_t>()).first->second; }
+
+std::shared_ptr<node_t> node_t::findChild(std::string& index) noexcept
 {
-  std::string index_string = std::to_string(values.size());
-  return subsection(index_string);
+  auto val = values.find(use_string(index)); // find index if it exists
+  return val == values.end() ? nullptr : val->second;
 }
 
-std::shared_ptr<node_t> node_t::subsection(std::string& index) noexcept
-{
-  std::string clean_index = use_string(index);
-  values.emplace(clean_index, std::make_shared<node_t>());
-  return values.at(clean_index);
-}
+std::shared_ptr<node_t> node_t::getChild(std::string& index) noexcept
+{ return values.emplace(use_string(index), std::make_shared<node_t>()).first->second; } // insert if index does _not_ exist
 
 
 ConfigParser::ConfigParser(void) noexcept
   : std::shared_ptr<node_t>(std::make_shared<node_t>())
 {
+}
+
+std::shared_ptr<node_t> ConfigParser::findNode(std::string path) noexcept
+{ return lookupNode(path, [](std::shared_ptr<node_t>& node, std::string& str) noexcept { return node->findChild(str); }); }
+
+std::shared_ptr<node_t> ConfigParser::getNode(std::string path) noexcept
+{ return lookupNode(path, [](std::shared_ptr<node_t>& node, std::string& str) noexcept { return node->getChild(str); }); }
+
+std::shared_ptr<node_t> ConfigParser::lookupNode(std::string path, NodeAction func) noexcept
+{
+  std::shared_ptr<node_t> node = *this;
+  std::string str;
+  str.reserve(256);
+  for(auto& letter : path)
+  {
+    if(node == nullptr)
+      break;
+    if(letter == '/')
+    {
+      if(str.empty())
+        node = *this;
+      else
+        node = func(node, str);
+    }
+    else
+      str.push_back(letter);
+  }
+  if(!str.empty())
+    node = func(node, str);
+  return node;
 }
 
 bool ConfigParser::parse(const std::string& strdata) noexcept
@@ -136,14 +166,14 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
           case '/':
             if(str.empty())
               return false;
-            node = section_node = section_node->subsection(str); // goto subsection
+            node = section_node = section_node->getChild(str); // goto subsection
             continue;
 
 
           case ']':
             if(str.empty())
               return false;
-            node = section_node = section_node->subsection(str);
+            node = section_node = section_node->getChild(str);
             state = searching;
 
             if(!node->value.empty()) // value name / section name conflict
@@ -155,9 +185,9 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
               {
                 std::unordered_map<std::string, std::shared_ptr<node_t>> vals = node->values;
                 node->values.clear();
-                node->subsection()->values = vals;
+                node->newChild()->values = vals;
               }
-              node = node->subsection();
+              node = node->newChild();
             }
             continue;
         }
@@ -179,13 +209,13 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
             return false;
 
           case '=':
-            node = node->subsection(str);
+            node = node->getChild(str);
             state = equals;
             continue;
 
           case '/':
             if(!str.empty()) // subsection name stored
-              node = node->subsection(str);
+              node = node->getChild(str);
             else if(node == section_node) // root forward slash
               node = *this;
             else // double foward slash
@@ -216,7 +246,7 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
             continue;
 
           case ',':
-            node->subsection()->value = use_string(str);
+            node->newChild()->value = use_string(str);
             state = value;
             continue;
 
@@ -242,7 +272,7 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
             if(!str.empty())
             {
               if(!node->values.empty())
-                node->subsection();
+                node->newChild();
               node->value = use_string(str);
             }
             state = searching;
@@ -255,7 +285,7 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
             continue;
 
           case ',':
-            node->subsection()->value = use_string(str);
+            node->newChild()->value = use_string(str);
             continue;
         }
 
