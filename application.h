@@ -9,7 +9,7 @@
 
 template<typename T>
 struct lockable : T, std::mutex
-  { template<typename... ArgTypes> constexpr lockable(ArgTypes... args) : T(args...) { } };
+  { template<typename... ArgTypes> constexpr lockable(ArgTypes... args) noexcept : T(args...) { } };
 using vfunc = std::function<void()>;
 
 class Application

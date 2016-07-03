@@ -23,7 +23,7 @@ int Application::exec(void) noexcept
   while(s_run)
   {
     std::unique_lock<std::mutex> lk(exec_mutex); // auto lock/unlock
-    m_step_exec.wait(lk, [] { return !m_signal_queue.empty(); } ); // wait for notify_one() call and non-empty queue
+    m_step_exec.wait(lk, []() noexcept { return !m_signal_queue.empty(); } ); // wait for notify_one() call and non-empty queue
 
     m_signal_queue.lock();
     exec_queue.swap(m_signal_queue);
