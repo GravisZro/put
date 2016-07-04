@@ -109,7 +109,6 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
     switch(state)
     {
       case searching:
-
         switch(*pos)
         {
           default:
@@ -133,14 +132,14 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
           case '\\':
             return false;
 
-          case ';':
           case '#':
+          case ';':
+            prev_state = state;
             state = comment;
             continue;
         }
 
       case section:
-
         switch(*pos)
         {
           default:
@@ -156,8 +155,6 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
           case '\\':
             return false;
 
-
-          case '#':
           case ';':
             prev_state = state;
             state = comment;
@@ -223,7 +220,6 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
             continue;
 
           case ';':
-          case '#':
             prev_state = state;
             state = comment;
             continue;
@@ -241,17 +237,16 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
             continue;
 
           case '"':
-            prev_state = state;
+            prev_state = value;
             state = quote;
             continue;
 
           case ',':
-            node->newChild()->value = use_string(str);
+            node->newChild();//->value = use_string(str);
             state = value;
             continue;
 
           case ';':
-          case '#':
             prev_state = state;
             state = comment;
             continue;
@@ -279,7 +274,6 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
             continue;
 
           case ';':
-          case '#':
             prev_state = state;
             state = comment;
             continue;
@@ -290,6 +284,32 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
         }
 
       case quote:
+        // TODO: enable escaped characters
+        switch(*pos)
+        {
+          case '"':
+            state = prev_state;
+            continue;
+          case '\\':
+            switch(*++pos)
+            {
+              case 'a' : str.push_back('\a'); continue;
+              case 'b' : str.push_back('\b'); continue;
+              case 'f' : str.push_back('\f'); continue;
+              case 'n' : str.push_back('\n'); continue;
+              case 'r' : str.push_back('\r'); continue;
+              case 't' : str.push_back('\t'); continue;
+              case 'v' : str.push_back('\v'); continue;
+              case '"' : str.push_back('"' ); continue;
+              case '\\': str.push_back('\\'); continue;
+              default: // unrecognized escape sequence!
+                return false;
+            }
+          default:
+            str.push_back(*pos);
+            continue;
+        }
+        continue;
 
       case comment:
         switch(*pos)
