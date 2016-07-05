@@ -31,6 +31,7 @@ Process::Process(void) noexcept
     m_stdout(posix::error_response),
     m_stderr(posix::error_response)
 {
+  m_arguments.reserve(256);
 }
 
 Process::~Process(void) noexcept
@@ -60,9 +61,23 @@ bool Process::setExecutable(const std::string& executable) noexcept
 {
   struct stat statbuf;
   if(::stat(executable.c_str(), &statbuf) == posix::success_response)
+  {
+    if(m_executable.empty())
+      m_arguments.insert(m_arguments.begin(), executable);
+    else
+      m_arguments.front() = executable;
     m_executable = executable;
+  }
   return errno == posix::success_response;
 }
+
+void Process::setArguments(const std::vector<std::string>& arguments) noexcept
+{
+  m_arguments = arguments;
+  if(!m_executable.empty())
+    m_arguments.insert(m_arguments.begin(), m_executable);
+}
+
 
 static inline bool validUID(uid_t id) noexcept
   { return posix::getpwuid(id) != nullptr; }
@@ -122,7 +137,6 @@ bool Process::start(void) noexcept
   if(m_executable.empty())
     return false;
 
-  m_arguments.insert(m_arguments.begin(), m_executable);
   CStringArray argv(m_arguments);
   CStringArray envv(m_environment, [](const std::pair<std::string, std::string>& p) { return p.first + '=' + p.second; });
 

@@ -43,7 +43,7 @@ public:
   Process(void) noexcept;
  ~Process(void) noexcept;
 
-  void setArguments(const std::vector<std::string>& arguments) noexcept { m_arguments = arguments; }
+  void setArguments(const std::vector<std::string>& arguments) noexcept;
   void setEnvironment(const std::unordered_map<std::string, std::string>& environment) noexcept { m_environment = environment; }
   void setEnvironmentVariable(const std::string& name, const std::string& value) noexcept { m_environment.emplace(name, value); }
 
