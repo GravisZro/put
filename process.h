@@ -45,7 +45,7 @@ public:
 
   void setArguments(const std::vector<std::string>& arguments) noexcept;
   void setEnvironment(const std::unordered_map<std::string, std::string>& environment) noexcept { m_environment = environment; }
-  void setEnvironmentVariable(const std::string& name, const std::string& value) noexcept { m_environment.emplace(name, value); }
+  void setEnvironmentVariable(const std::string& name, const std::string& value) noexcept { m_environment[name] = value; }
 
   bool setWorkingDirectory(const std::string& dir) noexcept;
   bool setExecutable(const std::string& executable) noexcept;
