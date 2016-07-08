@@ -16,15 +16,16 @@
 // PDTK
 #include "cxxutils/cstringarray.h"
 
+#define quote(x) #x
 #define assertE(expr) \
   { \
-    auto rval = expr; \
-    if(!rval) \
+    if(!(expr)) \
     { \
-      std::perror("Error"); \
-      __assert_fail (#expr, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+      std::fprintf(stderr, "Error!\nfile: %s\nline: %d\nexpression: %s\nmessage: %s\n", __FILE__, __LINE__, quote(expr), std::strerror(errno)); \
+      ::abort(); \
     } \
   }
+
 
 Process::Process(void) noexcept
   : m_state(NotStarted),
@@ -116,19 +117,14 @@ bool Process::setEffectiveGroupID(gid_t id) noexcept
   return true;
 }
 
-#ifndef PRIO_MIN
-#warning PRIO_MIN is not defined.  Using -20 for value.
-#define PRIO_MIN -20
-#endif
-#ifndef PRIO_MAX
-#warning PRIO_MAX is not defined.  Using 20 for value.
-#define PRIO_MAX 20
-#endif
-
 bool Process::setPriority(int nval) noexcept
 {
+#if defined(PRIO_MIN) && defined(PRIO_MAX)
   if(nval < PRIO_MIN || nval > PRIO_MAX)
     return false;
+#else
+#warning PRIO_MIN or PRIO_MAX is not defined.  safegaurd in Process::setPriority() is disabled.
+#endif
   m_priority = nval;
   return true;
 }
@@ -168,9 +164,10 @@ bool Process::start(void) noexcept
     assertE(posix::close(pipe_stderr[0]));
     assertE(posix::close(pipe_stderr[1]));
 
+    if(m_priority != INT_MAX) // only if m_priority has been set
+      assertE(::setpriority(PRIO_PROCESS, getpid(), m_priority) != posix::success_response); // set priority
     for(auto& limit : m_limits)
       assertE(::setrlimit(limit.first, &limit.second) != posix::success_response);
-
     if(m_uid)
       assertE(::setuid(m_uid) == posix::success_response);
     if(m_gid)
@@ -190,15 +187,6 @@ bool Process::start(void) noexcept
 
   if(!posix::close(pipe_stdout[1]) ||
      !posix::close(pipe_stderr[1]))
-  {
-    m_error = UnknownError;
-    Object::enqueue_copy(error, m_error, static_cast<std::errc>(errno));
-    return false;
-  }
-
-  if(m_priority >= PRIO_MIN && // only if m_priority has been set
-     m_priority <= PRIO_MAX &&
-     ::setpriority(PRIO_PROCESS, m_pid, m_priority) != posix::success_response) // set priority
   {
     m_error = UnknownError;
     Object::enqueue_copy(error, m_error, static_cast<std::errc>(errno));
