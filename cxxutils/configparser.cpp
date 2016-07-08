@@ -74,6 +74,14 @@ std::shared_ptr<node_t> ConfigParser::lookupNode(std::string path, NodeAction fu
   return node;
 }
 
+//#include <cstdlib>
+constexpr
+bool bailout(void)
+{
+//  ::abort();
+  return false;
+}
+
 bool ConfigParser::parse(const std::string& strdata) noexcept
 {
   enum state_e
@@ -82,8 +90,8 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
     section,       // found section
     name,          // found name
     value,         // found value
-    quote,
-    comment,
+    quote,         // found opening double quotation mark
+    comment,       // found semicolon outside of quotation
   };
 
   const char* data = strdata.data();
@@ -96,6 +104,7 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
 
   state_e state = searching;
   state_e prev_state = state;
+
 
   for(const char* pos = data; pos < end; ++pos)
   {
@@ -129,7 +138,7 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
           case '"':
           case ',':
           case '\\':
-            return false;
+            return bailout();
 
           case '#':
           case ';':
@@ -152,7 +161,7 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
           case '"':
           case ',':
           case '\\':
-            return false;
+            return bailout();
 
           case ';':
             prev_state = state;
@@ -161,19 +170,19 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
 
           case '/':
             if(str.empty())
-              return false;
+              return bailout();
             node = section_node = section_node->getChild(str); // goto subsection
             continue;
 
 
           case ']':
             if(str.empty())
-              return false;
+              return bailout();
             node = section_node = section_node->getChild(str);
             state = searching;
 
             if(!node->value.empty()) // value name / section name conflict
-              return false;
+              return bailout();
 
             if(!node->values.empty()) // if section already exists
             {
@@ -194,15 +203,15 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
           default:
             if(!std::isspace(*pos))
               str.push_back(*pos);
-          case '\n':
             continue;
 
+          case '\n':
           case '[':
           case ']':
           case '"':
           case ',':
           case '\\':
-            return false;
+            return bailout();
 
           case '=':
             node = node->getChild(str);
@@ -215,7 +224,7 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
             else if(node == section_node) // root forward slash
               node = *this;
             else // double foward slash
-              return false;
+              return bailout();
             continue;
 
           case ';':
@@ -228,16 +237,16 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
         switch(*pos)
         {
           default:
-            if(!std::isspace(*pos))
+            if(!std::isspace(*pos) || !std::isspace(str.back())) // if not a space or string doesnt end with a space
               str.push_back(*pos);
             continue;
 
           case '=':
-            return false;
+            return bailout();
 
           case '"':
-            if(!str.empty())
-              return false;
+            if(!str.empty()) // if quote is in the middle of a value rather than the start of it...
+              return bailout();
             prev_state = state;
             state = quote;
             continue;
@@ -245,9 +254,9 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
           case '\n':
             if(!str.empty())
             {
-              if(!node->values.empty())
-                node->newChild();
-              node->value = use_string(str);
+              if(!node->values.empty()) // if part of a list
+                node = node->newChild(); // make new list entry
+              node->value = use_string(str); // store value to current node
             }
             state = searching;
             continue;
@@ -263,7 +272,6 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
         }
 
       case quote:
-        // TODO: enable escaped characters
         switch(*pos)
         {
           case '"':
@@ -282,13 +290,12 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
               case '"' : str.push_back('"' ); continue;
               case '\\': str.push_back('\\'); continue;
               default: // unrecognized escape sequence!
-                return false;
+                return bailout();
             }
           default:
             str.push_back(*pos);
             continue;
         }
-        continue;
 
       case comment:
         switch(*pos)
