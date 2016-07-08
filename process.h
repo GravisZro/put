@@ -3,6 +3,7 @@
 
 // POSIX
 #include <sys/types.h>
+#include <sys/resource.h>
 #include <signal.h>
 
 // STL
@@ -40,19 +41,31 @@ public:
     UnknownError,   // An unknown error occurred. This is the default return value of error().
   };
 
+  enum Resource : int
+  {
+    CoreDumpSize    = RLIMIT_CORE,    // Limit on size of core file.
+    CPUTime         = RLIMIT_CPU,     // Limit on CPU time per process.
+    DataSegmentSize = RLIMIT_DATA,    // Limit on data segment size.
+    FileSize        = RLIMIT_FSIZE,   // Limit on file size.
+    FilesOpen       = RLIMIT_NOFILE,  // Limit on number of open files.
+    StackSize       = RLIMIT_STACK,   // Limit on stack size.
+    VirtualMemory   = RLIMIT_AS,      // Limit on address space size.
+  };
+
   Process(void) noexcept;
  ~Process(void) noexcept;
 
   void setArguments(const std::vector<std::string>& arguments) noexcept;
   void setEnvironment(const std::unordered_map<std::string, std::string>& environment) noexcept { m_environment = environment; }
   void setEnvironmentVariable(const std::string& name, const std::string& value) noexcept { m_environment[name] = value; }
+  void setResourceLimit(Resource which, rlim_t limit) noexcept { m_limits[which] = rlimit{RLIM_SAVED_CUR, limit}; }
 
   bool setWorkingDirectory(const std::string& dir) noexcept;
   bool setExecutable(const std::string& executable) noexcept;
-  bool setUID(uid_t id) noexcept;
-  bool setGID(gid_t id) noexcept;
-  bool setEUID(uid_t id) noexcept;
-  bool setEGID(gid_t id) noexcept;
+  bool setUserID(uid_t id) noexcept;
+  bool setGroupID(gid_t id) noexcept;
+  bool setEffectiveUserID(uid_t id) noexcept;
+  bool setEffectiveGroupID(gid_t id) noexcept;
   bool setPriority(int nval) noexcept;
 
   pid_t id   (void) const noexcept { return m_pid; }
@@ -67,6 +80,7 @@ public:
   void quit      (void) const noexcept { sendSignal(posix::signal::Quit     ); }
   void terminate (void) const noexcept { sendSignal(posix::signal::Terminate); }
   void kill      (void) const noexcept { sendSignal(posix::signal::Kill     ); }
+
 
   signal<> started;
   signal<Error, std::errc> error;
@@ -85,6 +99,7 @@ private:
   uid_t m_euid;
   gid_t m_egid;
   int m_priority;
+  std::unordered_map<Resource, rlimit> m_limits;
   posix::fd_t m_stdout;
   posix::fd_t m_stderr;
 };

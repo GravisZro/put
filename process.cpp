@@ -16,9 +16,15 @@
 // PDTK
 #include "cxxutils/cstringarray.h"
 
-#define assertE(condition) \
-  if(!(condition)) { std::perror("Error"); } \
-  assert(condition);
+#define assertE(expr) \
+  { \
+    auto rval = expr; \
+    if(!rval) \
+    { \
+      std::perror("Error"); \
+      __assert_fail (#expr, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+    } \
+  }
 
 Process::Process(void) noexcept
   : m_state(NotStarted),
@@ -78,49 +84,44 @@ void Process::setArguments(const std::vector<std::string>& arguments) noexcept
     m_arguments.insert(m_arguments.begin(), m_executable);
 }
 
-
-static inline bool validUID(uid_t id) noexcept
-  { return posix::getpwuid(id) != nullptr; }
-
-static inline bool validGID(gid_t id) noexcept
-  { return posix::getgrgid(id) != nullptr; }
-
-bool Process::setUID(uid_t id) noexcept
+bool Process::setUserID(uid_t id) noexcept
 {
-  bool valid = validUID(id);
-  if(valid)
-    m_uid = id;
-  return valid;
+  if(posix::getpwuid(id) == nullptr)
+    return false;
+  m_uid = id;
+  return true;
 }
 
-bool Process::setGID(gid_t id) noexcept
+bool Process::setGroupID(gid_t id) noexcept
 {
-  bool valid = validGID(id);
-  if(valid)
-    m_gid = id;
-  return valid;
+  if(posix::getgrgid(id) == nullptr)
+    return false;
+  m_gid = id;
+  return true;
 }
 
-bool Process::setEUID(uid_t id) noexcept
+bool Process::setEffectiveUserID(uid_t id) noexcept
 {
-  bool valid = validUID(id);
-  if(valid)
-    m_euid = id;
-  return valid;
+  if(posix::getpwuid(id) == nullptr)
+    return false;
+  m_euid = id;
+  return true;
 }
 
-bool Process::setEGID(gid_t id) noexcept
+bool Process::setEffectiveGroupID(gid_t id) noexcept
 {
-  bool valid = validGID(id);
-  if(valid)
-    m_egid = id;
-  return valid;
+  if(posix::getgrgid(id) == nullptr)
+    return false;
+  m_egid = id;
+  return true;
 }
 
 #ifndef PRIO_MIN
+#warning PRIO_MIN is not defined.  Using -20 for value.
 #define PRIO_MIN -20
 #endif
 #ifndef PRIO_MAX
+#warning PRIO_MAX is not defined.  Using 20 for value.
 #define PRIO_MAX 20
 #endif
 
@@ -166,6 +167,9 @@ bool Process::start(void) noexcept
     assertE(posix::close(pipe_stdout[1]));
     assertE(posix::close(pipe_stderr[0]));
     assertE(posix::close(pipe_stderr[1]));
+
+    for(auto& limit : m_limits)
+      assertE(::setrlimit(limit.first, &limit.second) != posix::success_response);
 
     if(m_uid)
       assertE(::setuid(m_uid) == posix::success_response);
