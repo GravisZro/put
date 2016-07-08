@@ -58,7 +58,7 @@ std::shared_ptr<node_t> ConfigParser::lookupNode(std::string path, NodeAction fu
   for(auto& letter : path)
   {
     if(node == nullptr)
-      break;
+      return nullptr;
     if(letter == '/')
     {
       if(str.empty())
@@ -79,12 +79,11 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
   enum state_e
   {
     searching = 0, // new line
-    section   = 1, // found section
-    name      = 2, // found name
-    equals    = 3, // found '=' sign
-    value     = 4, // found value
-    quote     = 5,
-    comment   = 6,
+    section,       // found section
+    name,          // found name
+    value,         // found value
+    quote,
+    comment,
   };
 
   const char* data = strdata.data();
@@ -207,7 +206,7 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
 
           case '=':
             node = node->getChild(str);
-            state = equals;
+            state = value;
             continue;
 
           case '/':
@@ -225,42 +224,22 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
             continue;
         }
 
-      case equals:
-        switch(*pos)
-        {
-          default:
-            if(!std::isspace(*pos))
-            {
-              state = value;
-              --pos;
-            }
-            continue;
-
-          case '"':
-            prev_state = value;
-            state = quote;
-            continue;
-
-          case ',':
-            node->newChild();//->value = use_string(str);
-            state = value;
-            continue;
-
-          case ';':
-            prev_state = state;
-            state = comment;
-            continue;
-
-          case '=':
-            return false;
-        }
-
       case value:
         switch(*pos)
         {
           default:
             if(!std::isspace(*pos))
               str.push_back(*pos);
+            continue;
+
+          case '=':
+            return false;
+
+          case '"':
+            if(!str.empty())
+              return false;
+            prev_state = state;
+            state = quote;
             continue;
 
           case '\n':
