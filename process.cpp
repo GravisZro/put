@@ -157,12 +157,13 @@ bool Process::start(void) noexcept
   if(m_pid == posix::success_response) // if inside forked process
   {
     // asserts will make it known where it failed via stderr
-    assertE(posix::dup2(pipe_stdout[1], STDOUT_FILENO));
-    assertE(posix::dup2(pipe_stderr[1], STDERR_FILENO));
-    assertE(posix::close(pipe_stdout[0]));
-    assertE(posix::close(pipe_stdout[1]));
+    assertE(posix::close(pipe_stdout[0])); // close non-forked side
     assertE(posix::close(pipe_stderr[0]));
+    assertE(posix::dup2(pipe_stdout[1], STDOUT_FILENO)); // move pipe to stdout fd
+    assertE(posix::dup2(pipe_stderr[1], STDERR_FILENO)); // move pipe to stderr fd
+    assertE(posix::close(pipe_stdout[1])); // close former forked-side
     assertE(posix::close(pipe_stderr[1]));
+
 
     if(m_priority != INT_MAX) // only if m_priority has been set
       assertE(::setpriority(PRIO_PROCESS, getpid(), m_priority) != posix::success_response); // set priority
