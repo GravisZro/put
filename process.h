@@ -22,23 +22,23 @@
 class Process : public Object
 {
 public:
-  enum State
+  enum class State
   {
     NotStarted = 0, // has not been started
     Starting,       // starting, but not yet been invoked
     Running,        // running and is ready
     Finished,       // finshed running and exited
+    Error,          // an error has occurred
   };
 
-  enum Error
+  enum class Error
   {
-    NoError = 0,
+    Unknown = 0,    // An unknown error occurred. This is the default return value of error().
     FailedToStart,  // failed to start. Either the invoked program is missing, or you may have insufficient permissions to invoke the program.
     Crashed,        // crashed some time after starting successfully.
     Timedout,       // The last waitFor...() function timed out.
-    WriteError,     // An error occurred when attempting to write to the process.
-    ReadError,      // An error occurred when attempting to read from the process.
-    UnknownError,   // An unknown error occurred. This is the default return value of error().
+    Write,          // An error occurred when attempting to write to the process.
+    Read,           // An error occurred when attempting to read from the process.
   };
 
   enum Resource : int

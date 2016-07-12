@@ -28,7 +28,8 @@
 
 
 Process::Process(void) noexcept
-  : m_state(NotStarted),
+  : m_state(State::NotStarted),
+    m_error(Error::Unknown),
     m_pid (0),
     m_uid (0),
     m_gid (0),
@@ -43,7 +44,10 @@ Process::Process(void) noexcept
 
 Process::~Process(void) noexcept
 {
-  m_state = NotStarted;
+  if(m_state == State::Running)
+    kill();
+
+  m_state = State::NotStarted;
   m_pid  = 0;
   m_uid  = 0;
   m_gid  = 0;
@@ -133,7 +137,8 @@ bool Process::start(void) noexcept
 {
   if(m_executable.empty())
   {
-    m_error = FailedToStart;
+    m_state = State::Error;
+    m_error = Error::FailedToStart;
     Object::enqueue_copy(error, m_error, std::errc::no_such_file_or_directory);
     return false;
   }
@@ -144,19 +149,17 @@ bool Process::start(void) noexcept
   posix::fd_t pipe_stdout[2];
   posix::fd_t pipe_stderr[2];
 
-  m_state = NotStarted;
-  m_error = NoError;
-
   if(::pipe(pipe_stdout) == posix::error_response ||
      ::pipe(pipe_stderr) == posix::error_response ||
      (m_pid = ::fork()) <= posix::error_response)
   {
-    m_error = FailedToStart;
+    m_state = State::Error;
+    m_error = Error::FailedToStart;
     Object::enqueue_copy(error, m_error, static_cast<std::errc>(errno));
     return false;
   }
 
-  m_state = Starting;
+  m_state = State::Starting;
 
   if(m_pid == posix::success_response) // if inside forked process
   {
@@ -195,12 +198,12 @@ bool Process::start(void) noexcept
   if(!posix::close(pipe_stdout[1]) ||
      !posix::close(pipe_stderr[1])) // close forked side (unused)
   {
-    m_error = UnknownError;
+    m_state = State::Error;
     Object::enqueue_copy(error, m_error, static_cast<std::errc>(errno));
     return false;
   }
 
-  m_state = Running;
+  m_state = State::Running;
   return true;
 }
 
