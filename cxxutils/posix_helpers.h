@@ -188,6 +188,21 @@ namespace posix
 
   static inline ssize_t read(fd_t fd, void* buffer, size_t length) noexcept
     { return ignore_interruption(::read, fd, buffer, length); }
+
+/*
+  // POSIX wrappers
+  static inline FILE* fopen(const char* filename, const char* mode) noexcept
+    { return ignore_interruption(::fopen, filename, mode); }
+
+  static inline bool fclose(FILE* stream) noexcept
+    { return ignore_interruption(::fclose, stream); }
+
+  static inline bool fgets(char* s, int n, FILE* stream) noexcept
+    { return ignore_interruption(::fgets, s, n, stream); }
+
+  static inline int fgetc(FILE* stream) noexcept
+    { return ignore_interruption(::fgetc, stream); }
+*/
 }
 
 #endif // POSIX_HELPERS_H
