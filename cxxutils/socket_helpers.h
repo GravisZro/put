@@ -1,7 +1,7 @@
 #ifndef SOCKET_HELPERS_H
 #define SOCKET_HELPERS_H
 
-// STL
+// C++
 #include <cstring>
 
 // POSIX

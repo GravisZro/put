@@ -6,7 +6,7 @@
 #include <sys/resource.h>
 #include <sys/stat.h>
 
-// STL
+// C++
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
@@ -14,7 +14,7 @@
 #include <climits>
 
 // PDTK
-#include "cxxutils/cstringarray.h"
+#include <cxxutils/cstringarray.h>
 
 #define quote(x) #x
 #define assertE(expr) \
@@ -132,7 +132,11 @@ bool Process::setPriority(int nval) noexcept
 bool Process::start(void) noexcept
 {
   if(m_executable.empty())
+  {
+    m_error = FailedToStart;
+    Object::enqueue_copy(error, m_error, std::errc::no_such_file_or_directory);
     return false;
+  }
 
   CStringArray argv(m_arguments);
   CStringArray envv(m_environment, [](const std::pair<std::string, std::string>& p) { return p.first + '=' + p.second; });
@@ -157,12 +161,14 @@ bool Process::start(void) noexcept
   if(m_pid == posix::success_response) // if inside forked process
   {
     // asserts will make it known where it failed via stderr
-    assertE(posix::close(pipe_stdout[0])); // close non-forked side
-    assertE(posix::close(pipe_stderr[0]));
-    assertE(posix::dup2(pipe_stdout[1], STDOUT_FILENO)); // move pipe to stdout fd
-    assertE(posix::dup2(pipe_stderr[1], STDERR_FILENO)); // move pipe to stderr fd
-    assertE(posix::close(pipe_stdout[1])); // close former forked-side
+    assertE(posix::dup2(pipe_stderr[1], STDERR_FILENO)); // redirect stderr to interprocess pipe
+    assertE(posix::dup2(pipe_stdout[1], STDOUT_FILENO)); // redirect stdout to interprocess pipe
+
+    assertE(posix::close(pipe_stdout[1])); // close former interprocess pipe
     assertE(posix::close(pipe_stderr[1]));
+
+    assertE(posix::close(pipe_stdout[0])); // close non-forked side (unused)
+    assertE(posix::close(pipe_stderr[0]));
 
 
     if(m_priority != INT_MAX) // only if m_priority has been set
@@ -180,14 +186,14 @@ bool Process::start(void) noexcept
 
     assertE(::execve(argv[0], argv, envv) == posix::success_response);
     std::perror("execve() implemenation error! This area should be unreachable!");
-    assert(false);
+    ::abort();
   }
 
-  m_stdout = pipe_stdout[0];
+  m_stdout = pipe_stdout[0]; // copy open pipes
   m_stderr = pipe_stderr[0];
 
   if(!posix::close(pipe_stdout[1]) ||
-     !posix::close(pipe_stderr[1]))
+     !posix::close(pipe_stderr[1])) // close forked side (unused)
   {
     m_error = UnknownError;
     Object::enqueue_copy(error, m_error, static_cast<std::errc>(errno));

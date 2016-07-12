@@ -5,7 +5,7 @@
 // Linux
 #include <sys/epoll.h>
 
-// STL
+// C++
 #include <cassert>
 
 // POSIX

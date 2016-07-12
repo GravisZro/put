@@ -16,8 +16,8 @@
 #include <unordered_map>
 
 // PDTK
-#include "object.h"
-#include "cxxutils/posix_helpers.h"
+#include <object.h>
+#include <cxxutils/posix_helpers.h>
 
 class Process : public Object
 {
@@ -67,6 +67,10 @@ public:
   bool setEffectiveUserID(uid_t id) noexcept;
   bool setEffectiveGroupID(gid_t id) noexcept;
   bool setPriority(int nval) noexcept;
+
+
+  posix::fd_t getStdOut(void) const noexcept { return m_stdout; }
+  posix::fd_t getStdErr(void) const noexcept { return m_stderr; }
 
   pid_t id   (void) const noexcept { return m_pid; }
   State state(void) const noexcept { return m_state; }

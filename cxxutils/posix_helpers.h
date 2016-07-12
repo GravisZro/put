@@ -1,9 +1,11 @@
 #ifndef POSIX_HELPERS_H
 #define POSIX_HELPERS_H
 
+// C++
+#include <cerrno>
+
 // STL
 #include <string>
-#include <cerrno>
 #include <set>
 
 // POSIX

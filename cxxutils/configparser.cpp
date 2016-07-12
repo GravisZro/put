@@ -1,6 +1,6 @@
 #include "configparser.h"
 
-// STL
+// C++
 #include <cctype>
 
 static inline std::string use_string(std::string& str) noexcept

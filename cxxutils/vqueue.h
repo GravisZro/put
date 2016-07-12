@@ -1,11 +1,12 @@
 #ifndef VQUEUE_H
 #define VQUEUE_H
 
-// STL
+// C++
 #include <cstdint>
 #include <cassert>
 #include <cstring>
 #include <cwchar>
+// STL
 #include <memory>
 #include <vector>
 #include <string>

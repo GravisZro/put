@@ -1,7 +1,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#include "application.h"
+#include <application.h>
 #include <thread>
 #include <functional>
 
