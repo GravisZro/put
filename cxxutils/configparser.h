@@ -14,9 +14,9 @@ struct node_t
   node_t(void) noexcept;
   node_t(std::string& val) noexcept; // val string is erased
 
-  bool is_array(void) noexcept;
+  bool is_array(void) const noexcept;
   std::shared_ptr<node_t> newChild(void) noexcept;
-  std::shared_ptr<node_t> findChild(std::string& index) noexcept; // index string is erased
+  std::shared_ptr<node_t> findChild(std::string& index) const noexcept; // index string is erased
   std::shared_ptr<node_t> getChild (std::string& index) noexcept; // index string is erased
 };
 

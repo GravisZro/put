@@ -16,7 +16,7 @@ static inline std::string use_string(std::string& str) noexcept
 node_t::node_t(void) noexcept { }
 node_t::node_t(std::string& val) noexcept : value(use_string(val)) { }
 
-bool node_t::is_array(void) noexcept
+bool node_t::is_array(void) const noexcept
 {
   for(auto& val : values)
     for(auto& character : val.first)
@@ -29,7 +29,7 @@ bool node_t::is_array(void) noexcept
 std::shared_ptr<node_t> node_t::newChild(void) noexcept
 { return values.emplace(std::to_string(values.size()), std::make_shared<node_t>()).first->second; }
 
-std::shared_ptr<node_t> node_t::findChild(std::string& index) noexcept
+std::shared_ptr<node_t> node_t::findChild(std::string& index) const noexcept
 {
   auto val = values.find(use_string(index)); // find index if it exists
   return val == values.end() ? nullptr : val->second;
