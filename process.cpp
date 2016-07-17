@@ -16,19 +16,23 @@
 // PDTK
 #include <cxxutils/cstringarray.h>
 
-#define quote(x) #x
-#define assertE(expr) \
+#define ATTN(type) std::fprintf(stdout, "ATTN: %s\n", type)
+#define ABORT_ERROR(type, ...) \
+  { \
+    std::fprintf(stderr, "ERROR: %s\nfile: %s\nline: %d\n", type, __FILE__, __LINE__); \
+    std::fprintf(stderr, __VA_ARGS__);  \
+    ::abort(); \
+  }
+
+#define ASSERT_ERROR(expr) \
   { \
     if(!(expr)) \
-    { \
-      std::fprintf(stderr, "Error!\nfile: %s\nline: %d\nexpression: %s\nmessage: %s\n", __FILE__, __LINE__, quote(expr), std::strerror(errno)); \
-      ::abort(); \
-    } \
+      ABORT_ERROR("ABORTED", "expression: %s\nerrno: %d\nmessage: %s\n", #expr, errno, std::strerror(errno)); \
   }
 
 
 Process::Process(void) noexcept
-  : m_state(State::NotStarted),
+  : m_state(State::Invalid),
     m_error(Error::Unknown),
     m_pid (0),
     m_uid (0),
@@ -45,9 +49,9 @@ Process::Process(void) noexcept
 Process::~Process(void) noexcept
 {
   if(m_state == State::Running)
-    kill();
+    sendSignal(posix::signal::Kill);
 
-  m_state = State::NotStarted;
+  m_state = State::Invalid;
   m_pid  = 0;
   m_uid  = 0;
   m_gid  = 0;
@@ -78,6 +82,7 @@ bool Process::setExecutable(const std::string& executable) noexcept
     else
       m_arguments.front() = executable;
     m_executable = executable;
+    m_state = State::Defined;
   }
   return errno == posix::success_response;
 }
@@ -127,21 +132,23 @@ bool Process::setPriority(int nval) noexcept
   if(nval < PRIO_MIN || nval > PRIO_MAX)
     return false;
 #else
-#warning PRIO_MIN or PRIO_MAX is not defined.  safegaurd in Process::setPriority() is disabled.
+#warning PRIO_MIN or PRIO_MAX is not defined.  The safegaurd in Process::setPriority() is disabled.
 #endif
   m_priority = nval;
   return true;
 }
 
+bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
+{
+  if(m_pid)
+    return posix::signal::send(m_pid, id, value);
+  return false;
+}
+
 bool Process::start(void) noexcept
 {
-  if(m_executable.empty())
-  {
-    m_state = State::Error;
-    m_error = Error::FailedToStart;
-    Object::enqueue_copy(error, m_error, std::errc::no_such_file_or_directory);
+  if(m_state == State::Invalid)
     return false;
-  }
 
   CStringArray argv(m_arguments);
   CStringArray envv(m_environment, [](const std::pair<std::string, std::string>& p) { return p.first + '=' + p.second; });
@@ -153,63 +160,55 @@ bool Process::start(void) noexcept
      ::pipe(pipe_stderr) == posix::error_response ||
      (m_pid = ::fork()) <= posix::error_response)
   {
-    m_state = State::Error;
     m_error = Error::FailedToStart;
     Object::enqueue_copy(error, m_error, static_cast<std::errc>(errno));
     return false;
   }
 
-  m_state = State::Starting;
+  m_state = State::Loading;
 
   if(m_pid == posix::success_response) // if inside forked process
   {
     // asserts will make it known where it failed via stderr
-    assertE(posix::dup2(pipe_stderr[1], STDERR_FILENO)); // redirect stderr to interprocess pipe
-    assertE(posix::dup2(pipe_stdout[1], STDOUT_FILENO)); // redirect stdout to interprocess pipe
+    ASSERT_ERROR(posix::dup2(pipe_stderr[1], STDERR_FILENO)); // redirect stderr to interprocess pipe
+    ASSERT_ERROR(posix::dup2(pipe_stdout[1], STDOUT_FILENO)); // redirect stdout to interprocess pipe
 
-    assertE(posix::close(pipe_stdout[1])); // close former interprocess pipe
-    assertE(posix::close(pipe_stderr[1]));
+    ASSERT_ERROR(posix::close(pipe_stdout[1])); // close former interprocess pipe
+    ASSERT_ERROR(posix::close(pipe_stderr[1]));
 
-    assertE(posix::close(pipe_stdout[0])); // close non-forked side (unused)
-    assertE(posix::close(pipe_stderr[0]));
+    ASSERT_ERROR(posix::close(pipe_stdout[0])); // close non-forked side (unused)
+    ASSERT_ERROR(posix::close(pipe_stderr[0]));
 
+    ATTN("SETTINGS");
 
     if(m_priority != INT_MAX) // only if m_priority has been set
-      assertE(::setpriority(PRIO_PROCESS, getpid(), m_priority) != posix::success_response); // set priority
+      ASSERT_ERROR(::setpriority(PRIO_PROCESS, getpid(), m_priority) != posix::success_response); // set priority
     for(auto& limit : m_limits)
-      assertE(::setrlimit(limit.first, &limit.second) != posix::success_response);
+      ASSERT_ERROR(::setrlimit(limit.first, &limit.second) != posix::success_response);
     if(m_uid)
-      assertE(::setuid(m_uid) == posix::success_response);
+      ASSERT_ERROR(::setuid(m_uid) == posix::success_response);
     if(m_gid)
-      assertE(::setgid(m_gid) == posix::success_response);
+      ASSERT_ERROR(::setgid(m_gid) == posix::success_response);
     if(m_euid)
-      assertE(::seteuid(m_euid) == posix::success_response);
+      ASSERT_ERROR(::seteuid(m_euid) == posix::success_response);
     if(m_egid)
-      assertE(::setegid(m_egid) == posix::success_response);
+      ASSERT_ERROR(::setegid(m_egid) == posix::success_response);
 
-    assertE(::execve(argv[0], argv, envv) == posix::success_response);
-    std::perror("execve() implemenation error! This area should be unreachable!");
-    ::abort();
+    ATTN("LOADING");
+    ASSERT_ERROR(::execve(argv[0], argv, envv) == posix::success_response);
+    ABORT_ERROR("DANGER", "message: execve() implemenation error! This area should be unreachable!");
   }
 
   m_stdout = pipe_stdout[0]; // copy open pipes
   m_stderr = pipe_stderr[0];
-
-  if(!posix::close(pipe_stdout[1]) ||
-     !posix::close(pipe_stderr[1])) // close forked side (unused)
-  {
-    m_state = State::Error;
-    Object::enqueue_copy(error, m_error, static_cast<std::errc>(errno));
-    return false;
-  }
-
   m_state = State::Running;
-  return true;
-}
 
-bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
-{
-  if(m_pid)
-    return posix::signal::send(m_pid, id, value);
-  return false;
+
+
+  // close forked side (unused) of pipe
+  posix::close(pipe_stdout[1]); // ok if these fail
+  posix::close(pipe_stderr[1]);
+
+  //Object::enqueue(started);
+  return true;
 }

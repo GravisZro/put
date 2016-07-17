@@ -24,11 +24,13 @@ class Process : public Object
 public:
   enum class State
   {
-    NotStarted = 0, // has not been started
-    Starting,       // starting, but not yet been invoked
-    Running,        // running and is ready
-    Finished,       // finshed running and exited
-    Error,          // an error has occurred
+    Invalid = 0,  // no valid executable name has been set
+    Defined,      // executable defined but has not been started
+    Loading,      // starting, but not yet been invoked
+    Running,      // running and is ready
+    Waiting,      // running but asleep
+    Died,         // it ran but then died before completion
+    Finished,     // finshed running and exited
   };
 
   enum class Error
@@ -74,22 +76,22 @@ public:
 
   pid_t id   (void) const noexcept { return m_pid; }
   State state(void) const noexcept { return m_state; }
+//  Error error(void) const noexcept { return m_error; }
 
   bool start     (void) noexcept;
   bool sendSignal(posix::signal::EId id, int value = 0) const noexcept;
-
+/*
   void stop      (void) const noexcept { sendSignal(posix::signal::Stop     ); }
   void resume    (void) const noexcept { sendSignal(posix::signal::Resume   ); }
 
   void quit      (void) const noexcept { sendSignal(posix::signal::Quit     ); }
   void terminate (void) const noexcept { sendSignal(posix::signal::Terminate); }
   void kill      (void) const noexcept { sendSignal(posix::signal::Kill     ); }
-
+*/
 
   signal<> started;
   signal<Error, std::errc> error;
   signal<int> finished;
-
 private:
   std::string m_executable;
   std::vector<std::string> m_arguments;
