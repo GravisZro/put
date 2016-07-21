@@ -157,8 +157,8 @@ private:
 // === serializer backends ===
 private:
   // dummy functions
-  static void serialize(void) { }
-  static void deserialize(void) { }
+  static inline void serialize(void) { }
+  static inline void deserialize(void) { }
 
 // sized array
   template<typename T>
