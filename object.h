@@ -43,7 +43,7 @@ public:
     if(sig.func != nullptr) // ensure that invalid signals are not enqueued
     {
       std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::m_signal_queue); // multithread protection
-      Application::m_signal_queue.emplace(std::bind(sig.func, sig.obj, args...));
+      Application::m_signal_queue.emplace(std::bind(sig.func, sig.obj, std::forward<ArgTypes>(args)...));
       Application::m_step_exec.notify_one(); // inform execution stepper
       return true;
     }
