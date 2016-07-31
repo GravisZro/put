@@ -3,6 +3,9 @@
 // C++
 #include <cctype>
 
+// STL
+#include <map>
+
 static inline std::string use_string(std::string& str) noexcept
 {
   std::string copy;
@@ -13,21 +16,15 @@ static inline std::string use_string(std::string& str) noexcept
   return copy;
 }
 
-node_t::node_t(void) noexcept { }
-node_t::node_t(std::string& val) noexcept : value(use_string(val)) { }
+node_t::node_t(void) noexcept : type(type_e::invalid) { }
+node_t::node_t(std::string& val) noexcept : type(type_e::value), value(use_string(val)) { }
 
-bool node_t::is_array(void) const noexcept
+std::shared_ptr<node_t> node_t::newChild(type_e t) noexcept
 {
-  for(auto& val : values)
-    for(auto& character : val.first)
-      if(!std::isdigit(character))
-        return false;
-  return true;
+  auto& node = values.emplace(std::to_string(values.size()), std::make_shared<node_t>()).first->second;
+  node->type = t;
+  return node;
 }
-
-
-std::shared_ptr<node_t> node_t::newChild(void) noexcept
-{ return values.emplace(std::to_string(values.size()), std::make_shared<node_t>()).first->second; }
 
 std::shared_ptr<node_t> node_t::findChild(std::string& index) const noexcept
 {
@@ -36,21 +33,20 @@ std::shared_ptr<node_t> node_t::findChild(std::string& index) const noexcept
 }
 
 std::shared_ptr<node_t> node_t::getChild(std::string& index) noexcept
-{ return values.emplace(use_string(index), std::make_shared<node_t>()).first->second; } // insert if index does _not_ exist
+  { return values.emplace(use_string(index), std::make_shared<node_t>()).first->second; } // insert if index does _not_ exist
 
 
-ConfigParser::ConfigParser(void) noexcept
+root_node_t::root_node_t(void) noexcept
   : std::shared_ptr<node_t>(std::make_shared<node_t>())
-{
-}
+  { (*this)->type = node_t::type_e::section; }
 
-std::shared_ptr<node_t> ConfigParser::findNode(std::string path) noexcept
-{ return lookupNode(path, [](std::shared_ptr<node_t>& node, std::string& str) noexcept { return node->findChild(str); }); }
+std::shared_ptr<node_t> root_node_t::findNode(std::string path) noexcept
+  { return lookupNode(path, [](std::shared_ptr<node_t>& node, std::string& str) noexcept { return node->findChild(str); }); }
 
-std::shared_ptr<node_t> ConfigParser::getNode(std::string path) noexcept
-{ return lookupNode(path, [](std::shared_ptr<node_t>& node, std::string& str) noexcept { return node->getChild(str); }); }
+std::shared_ptr<node_t> root_node_t::getNode(std::string path) noexcept
+  { return lookupNode(path, [](std::shared_ptr<node_t>& node, std::string& str) noexcept { return node->getChild(str); }); }
 
-std::shared_ptr<node_t> ConfigParser::lookupNode(std::string path, NodeAction func) noexcept
+std::shared_ptr<node_t> root_node_t::lookupNode(std::string path, NodeAction func) noexcept
 {
   std::shared_ptr<node_t> node = *this;
   std::string str;
@@ -82,9 +78,9 @@ bool bailout(void)
   return false;
 }
 
-bool ConfigParser::parse(const std::string& strdata) noexcept
+bool ConfigManip::read(const std::string& data) noexcept
 {
-  enum state_e
+  enum class state_e
   {
     searching = 0, // new line
     section,       // found section
@@ -94,19 +90,19 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
     comment,       // found semicolon outside of quotation
   };
 
-  const char* data = strdata.data();
-  const char* end = data + strdata.size();
+  const char* begin = data.data();
+  const char* end = begin + data.size();
 
   std::shared_ptr<node_t> node = nullptr;
   std::shared_ptr<node_t> section_node = nullptr;
   std::string str;
-  str.reserve(4096);
+  str.reserve(4096); // values _exceeding_ 4096 bytes will likely incur a reallocation speed penalty
 
-  state_e state = searching;
+  state_e state = state_e::searching;
   state_e prev_state = state;
 
 
-  for(const char* pos = data; pos < end; ++pos)
+  for(const char* pos = begin; pos < end; ++pos)
   {
     if(pos[0] == '\\' && pos[1] == '\n') // line continuation feature; applicable _ANYWHERE_
     {
@@ -116,21 +112,21 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
 
     switch(state)
     {
-      case searching:
+      case state_e::searching:
         switch(*pos)
         {
           default:
             if(!std::isspace(*pos))
             {
               node = section_node;
-              state = name;
+              state = state_e::name;
               --pos; // moots increment
             }
             continue;
 
           case '[':
             node = section_node = *this;
-            state = section;
+            state = state_e::section;
             continue;
 
           case ']':
@@ -143,11 +139,11 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
           case '#':
           case ';':
             prev_state = state;
-            state = comment;
+            state = state_e::comment;
             continue;
         }
 
-      case section:
+      case state_e::section:
         switch(*pos)
         {
           default:
@@ -165,7 +161,7 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
 
           case ';':
             prev_state = state;
-            state = comment;
+            state = state_e::comment;
             continue;
 
           case '/':
@@ -179,25 +175,34 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
             if(str.empty())
               return bailout();
             node = section_node = section_node->getChild(str);
-            state = searching;
+            state = state_e::searching;
 
-            if(!node->value.empty()) // value name / section name conflict
-              return bailout();
-
-            if(!node->values.empty()) // if section already exists
+            switch(node->type)
             {
-              if(!node->is_array()) // if not already a multi-section
+              case node_t::type_e::section:
               {
                 std::unordered_map<std::string, std::shared_ptr<node_t>> vals = node->values;
                 node->values.clear();
-                node->newChild()->values = vals;
+                node->newChild(node_t::type_e::section)->values = vals;
+                node->type = node_t::type_e::multisection;
+                node = node->newChild(node_t::type_e::section);
+                continue;
               }
-              node = node->newChild();
+
+              case node_t::type_e::multisection:
+                node = node->newChild(node_t::type_e::section);
+                continue;
+
+              case node_t::type_e::invalid:
+                node->type = node_t::type_e::section;
+                continue;
+
+              default: // value name / section name conflict
+                return bailout();
             }
-            continue;
         }
 
-      case name:
+      case state_e::name:
         switch(*pos)
         {
           default:
@@ -215,7 +220,7 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
 
           case '=':
             node = node->getChild(str);
-            state = value;
+            state = state_e::value;
             continue;
 
           case '/':
@@ -229,15 +234,17 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
 
           case ';':
             prev_state = state;
-            state = comment;
+            state = state_e::comment;
             continue;
         }
 
-      case value:
+      case state_e::value:
         switch(*pos)
         {
           default:
-            if(!std::isspace(*pos) || !std::isspace(str.back())) // if not a space or string doesnt end with a space
+            if(!std::isspace(*pos) ||
+               (!str.empty() &&
+                !std::isspace(str.back()))) // if not a space or string doesnt end with a space
               str.push_back(*pos);
             continue;
 
@@ -248,30 +255,33 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
             if(!str.empty()) // if quote is in the middle of a value rather than the start of it...
               return bailout();
             prev_state = state;
-            state = quote;
+            state = state_e::quote;
             continue;
 
           case '\n':
             if(!str.empty())
             {
-              if(!node->values.empty()) // if part of a list
-                node = node->newChild(); // make new list entry
+              if(node->type == node_t::type_e::array) // if part of a list
+                node = node->newChild(node_t::type_e::value); // make new list entry
+              else
+                node->type = node_t::type_e::value;
               node->value = use_string(str); // store value to current node
             }
-            state = searching;
+            state = state_e::searching;
             continue;
 
           case ';':
             prev_state = state;
-            state = comment;
+            state = state_e::comment;
             continue;
 
           case ',':
-            node->newChild()->value = use_string(str);
+            node->type = node_t::type_e::array;
+            node->newChild(node_t::type_e::value)->value = use_string(str);
             continue;
         }
 
-      case quote:
+      case state_e::quote:
         switch(*pos)
         {
           case '"':
@@ -297,7 +307,7 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
             continue;
         }
 
-      case comment:
+      case state_e::comment:
         switch(*pos)
         {
           case '\n':
@@ -306,6 +316,61 @@ bool ConfigParser::parse(const std::string& strdata) noexcept
           default:
             continue;
         }
+    }
+  }
+  return true;
+}
+
+bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::multimap<std::string, std::string>& sections) noexcept
+{
+  auto section = sections.lower_bound(section_name);
+  if(section == sections.end())
+    section = sections.insert(section, std::make_pair(section_name, std::string()));
+
+  for(const std::pair<std::string, std::shared_ptr<node_t>>& entry : node->values)
+  {
+    switch(entry.second->type)
+    {
+      case node_t::type_e::value:
+        section->second += entry.first + '=' + entry.second->value + '\n';
+        break;
+
+      case node_t::type_e::array:
+        section->second += '\n' + entry.first + '=';
+        for(auto& valnode : entry.second->values)
+          section->second += valnode.second->value + ','; // concatinate into a list
+        section->second.pop_back(); // remove final ','
+        section->second += '\n'; // add endline
+        break;
+
+      case node_t::type_e::multisection:
+        if(!section->second.empty())
+          sections.insert(section, std::make_pair(section_name, std::string()));
+      case node_t::type_e::section:
+        write_node(entry.second, section_name + '/' + entry.first, sections);
+        break;
+
+      default:
+        return false;
+    }
+  }
+  return true;
+}
+
+bool ConfigManip::write(std::string& data) const noexcept
+{
+  std::shared_ptr<node_t> node = *this;
+  std::multimap<std::string, std::string> sections;
+  if(!write_node(*this, "", sections))
+    return false;
+  for(const std::pair<std::string, std::string>& section : sections)
+  {
+    if(!section.second.empty())
+    {
+      if(!section.first.empty() &&
+         !section.first.substr(1).empty())
+        data += '[' + section.first.substr(1) + "]\n";
+      data += section.second + '\n';
     }
   }
   return true;
