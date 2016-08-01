@@ -1,4 +1,4 @@
-#include "configparser.h"
+#include "configmanip.h"
 
 // C++
 #include <cctype>
