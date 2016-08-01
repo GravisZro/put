@@ -367,8 +367,7 @@ bool ConfigManip::write(std::string& data) const noexcept
   {
     if(!section.second.empty())
     {
-      if(!section.first.empty() &&
-         !section.first.substr(1).empty())
+      if(section.first.size() > 1 && section.first.front() == '/')
         data += '[' + section.first.substr(1) + "]\n";
       data += section.second + '\n';
     }
