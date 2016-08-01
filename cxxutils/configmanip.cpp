@@ -185,12 +185,12 @@ bool ConfigManip::read(const std::string& data) noexcept
                 node->values.clear();
                 node->newChild(node_t::type_e::section)->values = vals;
                 node->type = node_t::type_e::multisection;
-                node = node->newChild(node_t::type_e::section);
+                node = section_node = node->newChild(node_t::type_e::section);
                 continue;
               }
 
               case node_t::type_e::multisection:
-                node = node->newChild(node_t::type_e::section);
+                node = section_node = node->newChild(node_t::type_e::section);
                 continue;
 
               case node_t::type_e::invalid:
