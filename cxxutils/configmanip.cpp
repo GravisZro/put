@@ -350,7 +350,7 @@ bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::mul
       case node_t::type_e::multisection:
       case node_t::type_e::section:
         assert(write_node(entry.second,
-                          sections.emplace(section_name + '/' + entry.first, "")->first,
+                          sections.insert(section, std::make_pair(section_name + '/' + entry.first, ""))->first,
                           sections)); // create section and write to it
         break;
 
@@ -363,8 +363,7 @@ bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::mul
 
 bool ConfigManip::write(std::string& data) const noexcept
 {
-  std::multimap<std::string, std::string> sections;
-  sections.emplace("", ""); // create global section
+  std::multimap<std::string, std::string> sections = {{"",""}}; // include empty global section
 
   if(!write_node(*this, "", sections))
     return false;
