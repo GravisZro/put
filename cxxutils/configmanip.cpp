@@ -323,7 +323,7 @@ bool ConfigManip::read(const std::string& data) noexcept
 
 
 
-bool write_global_node(std::shared_ptr<node_t> node, std::string section_name, std::multimap<std::string, std::string>& sections) noexcept
+bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::multimap<std::string, std::string>& sections) noexcept
 {
   auto section = sections.lower_bound(section_name);
 
@@ -348,7 +348,7 @@ bool write_global_node(std::shared_ptr<node_t> node, std::string section_name, s
       {
         std::string subsection = section_name + '/' + entry.first;
         sections.insert(section, std::make_pair(subsection, std::string())); // create section
-        write_global_node(entry.second, subsection, sections);
+        write_node(entry.second, subsection, sections);
         break;
       }
 
@@ -364,7 +364,7 @@ bool ConfigManip::write(std::string& data) const noexcept
   std::multimap<std::string, std::string> sections;
   sections.insert(std::make_pair(std::string(), std::string())); // create global section
 
-  if(!write_global_node(*this, "", sections))
+  if(!write_node(*this, "", sections))
     return false;
   for(const std::pair<std::string, std::string>& section : sections)
   {
