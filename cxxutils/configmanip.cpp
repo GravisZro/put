@@ -70,11 +70,11 @@ std::shared_ptr<node_t> root_node_t::lookupNode(std::string path, NodeAction fun
   return node;
 }
 
-//#include <cstdlib>
-constexpr
+#include <cstdlib>
+//constexpr
 bool bailout(void)
 {
-//  ::abort();
+  ::abort();
   return false;
 }
 
@@ -321,11 +321,11 @@ bool ConfigManip::read(const std::string& data) noexcept
   return true;
 }
 
-bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::multimap<std::string, std::string>& sections) noexcept
+
+
+bool write_global_node(std::shared_ptr<node_t> node, std::string section_name, std::multimap<std::string, std::string>& sections) noexcept
 {
   auto section = sections.lower_bound(section_name);
-  if(section == sections.end())
-    section = sections.insert(section, std::make_pair(section_name, std::string()));
 
   for(const std::pair<std::string, std::shared_ptr<node_t>>& entry : node->values)
   {
@@ -344,11 +344,13 @@ bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::mul
         break;
 
       case node_t::type_e::multisection:
-        if(!section->second.empty())
-          sections.insert(section, std::make_pair(section_name, std::string()));
       case node_t::type_e::section:
-        write_node(entry.second, section_name + '/' + entry.first, sections);
+      {
+        std::string subsection = section_name + '/' + entry.first;
+        sections.insert(section, std::make_pair(subsection, std::string())); // create section
+        write_global_node(entry.second, subsection, sections);
         break;
+      }
 
       default:
         return false;
@@ -359,9 +361,10 @@ bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::mul
 
 bool ConfigManip::write(std::string& data) const noexcept
 {
-  std::shared_ptr<node_t> node = *this;
   std::multimap<std::string, std::string> sections;
-  if(!write_node(*this, "", sections))
+  sections.insert(std::make_pair(std::string(), std::string())); // create global section
+
+  if(!write_global_node(*this, "", sections))
     return false;
   for(const std::pair<std::string, std::string>& section : sections)
   {
