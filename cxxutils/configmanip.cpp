@@ -325,7 +325,6 @@ bool ConfigManip::read(const std::string& data) noexcept
   return true;
 }
 
-
 #include <cassert>
 bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::multimap<std::string, std::string>& sections) noexcept
 {
@@ -350,12 +349,10 @@ bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::mul
 
       case node_t::type_e::multisection:
       case node_t::type_e::section:
-      {
-        std::string subsection = section_name + '/' + entry.first;
-        sections.insert(section, std::make_pair(subsection, std::string())); // create section
-        assert(write_node(entry.second, subsection, sections));
+        assert(write_node(entry.second,
+                          sections.emplace(section_name + '/' + entry.first, "")->first,
+                          sections)); // create section and write to it
         break;
-      }
 
       default:
         return false;
@@ -367,7 +364,7 @@ bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::mul
 bool ConfigManip::write(std::string& data) const noexcept
 {
   std::multimap<std::string, std::string> sections;
-  sections.insert(std::make_pair(std::string(), std::string())); // create global section
+  sections.emplace("", ""); // create global section
 
   if(!write_node(*this, "", sections))
     return false;
