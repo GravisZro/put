@@ -21,8 +21,8 @@ struct node_t
   std::string value;
   std::unordered_map<std::string, std::shared_ptr<node_t>> values;
 
-  node_t(void) noexcept;
-  node_t(std::string& val) noexcept; // val string is erased
+  node_t(type_e t = type_e::invalid) noexcept;
+  node_t(std::string& v) noexcept; // val string is erased
 
   std::shared_ptr<node_t> newChild(type_e t) noexcept;
   std::shared_ptr<node_t> findChild(std::string& index) const noexcept; // index string is erased
