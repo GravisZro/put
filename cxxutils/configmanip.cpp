@@ -16,15 +16,11 @@ static inline std::string use_string(std::string& str) noexcept
   return copy;
 }
 
-node_t::node_t(void) noexcept : type(type_e::invalid) { }
-node_t::node_t(std::string& val) noexcept : type(type_e::value), value(use_string(val)) { }
+node_t::node_t(type_e t) noexcept : type(t) { }
+node_t::node_t(std::string& v) noexcept : type(type_e::value), value(use_string(v)) { }
 
 std::shared_ptr<node_t> node_t::newChild(type_e t) noexcept
-{
-  auto& node = values.emplace(std::to_string(values.size()), std::make_shared<node_t>()).first->second;
-  node->type = t;
-  return node;
-}
+  { return values.emplace(std::to_string(values.size()), std::make_shared<node_t>(t)).first->second; }
 
 std::shared_ptr<node_t> node_t::findChild(std::string& index) const noexcept
 {
@@ -325,11 +321,12 @@ bool ConfigManip::read(const std::string& data) noexcept
   return true;
 }
 
-#include <cassert>
+
 bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::multimap<std::string, std::string>& sections) noexcept
 {
   auto section = sections.lower_bound(section_name);
-  assert(section != sections.end());
+  if(section == sections.end())
+    return bailout();
 
   for(const std::pair<std::string, std::shared_ptr<node_t>>& entry : node->values)
   {
@@ -349,13 +346,14 @@ bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::mul
 
       case node_t::type_e::multisection:
       case node_t::type_e::section:
-        assert(write_node(entry.second,
-                          sections.insert(section, std::make_pair(section_name + '/' + entry.first, ""))->first,
-                          sections)); // create section and write to it
+        if(!write_node(entry.second,
+                       sections.insert(section, std::make_pair(section_name + '/' + entry.first, ""))->first,
+                       sections)) // create section and write to it
+          return bailout();
         break;
 
       default:
-        return false;
+        return bailout();
     }
   }
   return true;
