@@ -20,11 +20,10 @@ enum class EDomain : sa_family_t
 // POSIX required
   inet      = AF_INET,      //  Internet domain sockets for use with IPv4 addresses.
   inet6     = AF_INET6,     //  Internet domain sockets for use with IPv6 addresses.
-  unix      = AF_UNIX,      //  UNIX domain sockets.
+  local     = AF_UNIX,      //  UNIX domain sockets.
   unspec    = AF_UNSPEC,    //  Unspecified.
 
 // optional
-  local     = AF_LOCAL,     //  alias for unix
   ipx       = AF_IPX,       //  IPX - Novell protocols
   netlink   = AF_NETLINK,   //  Kernel user interface device     netlink(7)
   x25       = AF_X25,       //  ITU-T X.25 / ISO-8208 protocol   x25(7)

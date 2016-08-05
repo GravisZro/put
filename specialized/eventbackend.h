@@ -13,7 +13,8 @@
 // PDTK
 #include <cxxutils/posix_helpers.h>
 
-enum EventFlags : uint32_t
+
+enum EventFlags_e : uint32_t
 {
   Invalid     = 0x0000,
   Error       = 0x0001, // FD encountered an error (output only)

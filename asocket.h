@@ -29,7 +29,7 @@ class AsyncSocket : public Object,
                     protected EventBackend
 {
 public:
-  AsyncSocket(EDomain   domain    = EDomain::unix,
+  AsyncSocket(EDomain   domain    = EDomain::local,
               EType     type      = EType::seqpacket,
               EProtocol protocol  = EProtocol::unspec,
               int       flags     = 0) noexcept;
