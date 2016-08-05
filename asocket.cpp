@@ -20,7 +20,7 @@
 
 static_assert(sizeof(uint8_t) == sizeof(char), "size mismatch!");
 
-
+// NOTE: this is not an enumeration so that each value can be referenced
 namespace LocalCommand
 {
   static const uint64_t write  = 1;
