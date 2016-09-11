@@ -254,6 +254,7 @@ bool ConfigManip::read(const std::string& data) noexcept
           case '"':
             if(!str.empty()) // if quote is in the middle of a value rather than the start of it...
               return bailout();
+            node->type = node_t::type_e::string; // redefine node as being a string type
             prev_state = state;
             state = state_e::quote;
             continue;
@@ -263,7 +264,7 @@ bool ConfigManip::read(const std::string& data) noexcept
             {
               if(node->type == node_t::type_e::array) // if part of a list
                 node = node->newChild(node_t::type_e::value); // make new list entry
-              else
+              else if(node->type != node_t::type_e::string)
                 node->type = node_t::type_e::value;
               node->value = use_string(str); // store value to current node
             }
@@ -336,6 +337,10 @@ bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::mul
         section->second += entry.first + '=' + entry.second->value + '\n';
         break;
 
+      case node_t::type_e::string:
+        section->second += entry.first + '=' + '"' + entry.second->value + '"' + '\n';
+        break;
+
       case node_t::type_e::array:
         section->second += '\n' + entry.first + '=';
         for(auto& valnode : entry.second->values)
@@ -363,11 +368,12 @@ bool ConfigManip::write(std::string& data) const noexcept
 {
   std::multimap<std::string, std::string> sections = {{"",""}}; // include empty global section
 
-  if(!write_node(*this, "", sections))
+  if(!write_node(*this, "", sections)) // fills variable "sections" with data
     return false;
+
   for(const std::pair<std::string, std::string>& section : sections)
   {
-    if(!section.second.empty())
+    if(!section.second.empty()) // ignore empty sections
     {
       if(section.first.size() > 1 && section.first.front() == '/')
         data += '[' + section.first.substr(1) + "]\n";

@@ -12,6 +12,7 @@ struct node_t
   {
     invalid,
     value,
+    string,
     array,
     section,
     multisection,
