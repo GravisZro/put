@@ -68,7 +68,7 @@ bool AsyncSocket::bind(const char *socket_path, int socket_backlog) noexcept
 
   assert(std::strlen(socket_path) < sizeof(sockaddr_un::sun_path));
   m_selfaddr = socket_path;
-  m_selfaddr = EDomain::unix;
+  m_selfaddr = EDomain::local;
   return m_bound = posix::bind(m_socket, m_selfaddr, m_selfaddr.size()) &&
                    posix::listen(m_socket, socket_backlog) &&
                    async_spawn();
@@ -84,7 +84,7 @@ bool AsyncSocket::connect(const char *socket_path) noexcept
   proccred_t peercred;
 
   peeraddr = socket_path;
-  peeraddr = EDomain::unix;
+  peeraddr = EDomain::local;
   m_selfaddr = EDomain::unspec;
 
   return posix::connect(m_socket, peeraddr, peeraddr.size()) &&
