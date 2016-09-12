@@ -84,37 +84,34 @@ namespace posix
   {
     enum EId : int
     {
-      Hangup                  = SIGHUP,
-      Interrupt               = SIGINT,
-      Quit                    = SIGQUIT,
-      IllegalInstruction      = SIGILL,
-      TraceTrap               = SIGTRAP,
-      Abort                   = SIGABRT,
-      BusError                = SIGBUS,
-      FloatingPointException  = SIGFPE,
-      Kill                    = SIGKILL,
-      UserSignal1             = SIGUSR1,
-      SegmentationViolation   = SIGSEGV,
-      UserSignal2             = SIGUSR2,
-      BrokenPipe              = SIGPIPE,
-      Timer                   = SIGALRM,
-      Terminate               = SIGTERM,
-      StackFault              = SIGSTKFLT,
-      ChildStatusChanged      = SIGCHLD,
-      Resume                  = SIGCONT,
-      Stop                    = SIGSTOP,
-      KeyboardStop            = SIGTSTP,
-      TTYRead                 = SIGTTIN,
-      TTYWrite                = SIGTTOU,
-      Urgent                  = SIGURG,
-      LimitExceededCPU        = SIGXCPU,
-      LimitExceededFile       = SIGXFSZ,
-      VirtualTimer            = SIGVTALRM,
-      ProfilingTimer          = SIGPROF,
-      WindowSizeUpdate        = SIGWINCH,
-      Poll                    = SIGPOLL,
-      PowerFailure            = SIGPWR,
-      BadSystemCall           = SIGSYS,
+      Abort                   = SIGABRT,    // Process abort signal.
+      Timer                   = SIGALRM,    // Alarm clock.
+      MemoryBusError          = SIGBUS,     // Access to an undefined portion of a memory object.
+      ChildStatusChanged      = SIGCHLD,    // Child process terminated, stopped, or continued.
+      Resume                  = SIGCONT,    // Continue executing, if stopped.
+      FloatingPointException  = SIGFPE,     // Erroneous arithmetic operation.
+      Hangup                  = SIGHUP,     // Hangup.
+      IllegalInstruction      = SIGILL,     // Illegal instruction.
+      Interrupt               = SIGINT,     // Terminal interrupt signal.
+      Kill                    = SIGKILL,    // Kill (cannot be caught or ignored).
+      BrokenPipe              = SIGPIPE,    // Write on a pipe with no one to read it.
+      Quit                    = SIGQUIT,    // Terminal quit signal.
+      SegmentationViolation   = SIGSEGV,    // Invalid memory reference.
+      Stop                    = SIGSTOP,    // Stop executing (cannot be caught or ignored).
+      Terminate               = SIGTERM,    // Termination signal.
+      KeyboardStop            = SIGTSTP,    // Terminal stop signal.
+      TTYRead                 = SIGTTIN,    // Background process attempting read.
+      TTYWrite                = SIGTTOU,    // Background process attempting write.
+      UserSignal1             = SIGUSR1,    // User-defined signal 1.
+      UserSignal2             = SIGUSR2,    // User-defined signal 2.
+      Poll                    = SIGPOLL,    // Pollable event.
+      ProfilingTimer          = SIGPROF,    // Profiling timer expired.
+      BadSystemCall           = SIGSYS,     // Bad system call.
+      TraceTrap               = SIGTRAP,    // Trace/breakpoint trap.
+      Urgent                  = SIGURG,     // High bandwidth data is available at a socket.
+      VirtualTimer            = SIGVTALRM,  // Virtual timer expired.
+      LimitExceededCPU        = SIGXCPU,    // CPU time limit exceeded.
+      LimitExceededFile       = SIGXFSZ,    // File size limit exceeded.
     };
 
     enum ECode : int
@@ -154,8 +151,8 @@ namespace posix
 
       // SIGCHLD
       ChildHasExited                    = CLD_EXITED,
-      ChildWasKilled                    = CLD_KILLED,
-      ChildTerminatedAbnormally         = CLD_DUMPED,
+      ChildTerminated                   = CLD_KILLED,
+      ChildTerminatedAndDumped          = CLD_DUMPED,
       TracedChildHasTrapped             = CLD_TRAPPED,
       ChildHasStopped                   = CLD_STOPPED,
       StoppedChildHasContinued          = CLD_CONTINUED,
