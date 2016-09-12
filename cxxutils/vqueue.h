@@ -16,7 +16,7 @@
 class vqueue
 {
 public:
-  inline vqueue(uint16_t length = 0xFFFF) noexcept : m_ok(true) { allocate(length); }
+  vqueue(uint16_t length = 0xFFFF) noexcept : m_ok(true) { allocate(length); }
   vqueue(const vqueue& that) noexcept { operator=(that); }
 
   vqueue& operator=(const vqueue& other) noexcept
@@ -79,7 +79,7 @@ public:
   }
 
   template<typename T>
-  inline bool push(const T& d) noexcept
+  bool push(const T& d) noexcept
   {
     if(dataEnd<T>() + 1 > end<T>())
       return m_ok = false;
