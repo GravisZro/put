@@ -117,4 +117,6 @@ bool EventBackend::invoke(int timeout) noexcept
 
 #error no code yet for your operating system. :(
 
+#else
+#error Unsupported platform! >:(
 #endif
