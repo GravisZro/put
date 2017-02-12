@@ -30,7 +30,7 @@ public:
   {
     sig.obj = obj;
     sig.func = [slot](ProtoObject* p, ArgTypes... args) noexcept
-      { if(p == p->self) (static_cast<ObjType*>(p)->*slot)(args...); };
+      { if(p == p->self) (static_cast<ObjType*>(p)->*slot)(args...); }; // if protoobject is valid, call slot
   }
 
   template<typename RType, typename... ArgTypes>
