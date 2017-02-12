@@ -88,21 +88,18 @@ public:
     return true;
   }
 
-  template<typename T = char>
-  bool pop(void) noexcept
-  {
-    if(data<T>() + 1 > dataEnd<T>())
-      return m_ok = false;
-    m_virt_begin += sizeof(T);
-    if(m_virt_begin == m_virt_end) // if buffer is empty
-      m_virt_begin = m_virt_end = m_data.get(); // move back to start of buffer
-    return true;
-  }
-
   bool     empty (void) const noexcept { return dataEnd() == data   (); }
   uint16_t size  (void) const noexcept { return dataEnd() -  data   (); }
   uint16_t used  (void) const noexcept { return data   () -  begin  (); }
   uint16_t unused(void) const noexcept { return end    () -  dataEnd(); }
+
+
+  void reset(void) noexcept
+  {
+    m_virt_end = m_virt_begin = m_data.get();
+    clearError();
+  }
+
 
   bool resize(uint16_t sz) noexcept
   {
@@ -148,6 +145,17 @@ public:
   const uint16_t& capacity(void) const { return m_capacity; }
 
 private:
+  template<typename T = char>
+  bool pop(void) noexcept
+  {
+    if(data<T>() + 1 > dataEnd<T>())
+      return m_ok = false;
+    m_virt_begin += sizeof(T);
+    if(m_virt_begin == m_virt_end) // if buffer is empty
+      m_virt_begin = m_virt_end = m_data.get(); // move back to start of buffer
+    return true;
+  }
+
   std::shared_ptr<char> m_data;
   char* m_virt_begin;
   char* m_virt_end;
