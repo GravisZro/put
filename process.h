@@ -17,20 +17,26 @@
 
 // PDTK
 #include <object.h>
+#include <cxxutils/vqueue.h>
 #include <cxxutils/posix_helpers.h>
+#include <cxxutils/pipedfork.h>
+#include <specialized/procstat.h>
+#include <specialized/eventbackend.h>
 
-class Process : public Object
+class Process : public Object,
+                protected PipedFork,
+                protected EventBackend
 {
 public:
   enum class State
   {
-    Invalid = 0,  // no valid executable name has been set
-    Defined,      // executable defined but has not been started
-    Loading,      // starting, but not yet been invoked
-    Running,      // running and is ready
-    Waiting,      // running but asleep
-    Died,         // it ran but then died before completion
-    Finished,     // finshed running and exited
+    Invalid = 0,  // process doesn't exist
+    Initializing, // process exists but executable has not yet been loaded
+    Running,      // process is running and active
+    Waiting,      // process is running but asleep
+    Stopped,      // process was running but execution has been stopped before completion
+    Zombie,       // process has become a zombie process
+//    Failed,       // executable failed to load
   };
 
   enum class Error
@@ -57,10 +63,10 @@ public:
   Process(void) noexcept;
  ~Process(void) noexcept;
 
-  void setArguments(const std::vector<std::string>& arguments) noexcept;
-  void setEnvironment(const std::unordered_map<std::string, std::string>& environment) noexcept { m_environment = environment; }
-  void setEnvironmentVariable(const std::string& name, const std::string& value) noexcept { m_environment[name] = value; }
-  void setResourceLimit(Resource which, rlim_t limit) noexcept { m_limits[which] = rlimit{RLIM_SAVED_CUR, limit}; }
+  bool setArguments(const std::vector<std::string>& arguments) noexcept;
+  bool setEnvironment(const std::unordered_map<std::string, std::string>& environment) noexcept;
+  bool setEnvironmentVariable(const std::string& name, const std::string& value) noexcept;
+  bool setResourceLimit(Resource which, rlim_t limit) noexcept;
 
   bool setWorkingDirectory(const std::string& dir) noexcept;
   bool setExecutable(const std::string& executable) noexcept;
@@ -70,44 +76,29 @@ public:
   bool setEffectiveGroupID(gid_t id) noexcept;
   bool setPriority(int nval) noexcept;
 
-
-  posix::fd_t getStdOut(void) const noexcept { return m_stdout; }
-  posix::fd_t getStdErr(void) const noexcept { return m_stderr; }
-
-  pid_t id   (void) const noexcept { return m_pid; }
-  State state(void) const noexcept { return m_state; }
+  State state(void) noexcept;
 //  Error error(void) const noexcept { return m_error; }
 
   bool start     (void) noexcept;
   bool sendSignal(posix::signal::EId id, int value = 0) const noexcept;
-/*
+
   void stop      (void) const noexcept { sendSignal(posix::signal::Stop     ); }
   void resume    (void) const noexcept { sendSignal(posix::signal::Resume   ); }
 
   void quit      (void) const noexcept { sendSignal(posix::signal::Quit     ); }
   void terminate (void) const noexcept { sendSignal(posix::signal::Terminate); }
   void kill      (void) const noexcept { sendSignal(posix::signal::Kill     ); }
-*/
 
   signal<> started;
-  signal<Error, std::errc> error;
+//  signal<Error, std::errc> error;
   signal<int> finished;
+
 private:
-  std::string m_executable;
-  std::vector<std::string> m_arguments;
-  std::string m_workingdir;
-  std::unordered_map<std::string, std::string> m_environment;
+  bool write_then_read(void) noexcept;
+  vqueue m_iobuf;
+
   State m_state;
-  Error m_error;
-  pid_t m_pid;
-  uid_t m_uid;
-  gid_t m_gid;
-  uid_t m_euid;
-  gid_t m_egid;
-  int m_priority;
-  std::unordered_map<Resource, rlimit> m_limits;
-  posix::fd_t m_stdout;
-  posix::fd_t m_stderr;
+  //Error m_error;
 };
 
 #endif // PROCESS_H

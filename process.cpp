@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 // C++
 #include <cassert>
@@ -12,38 +13,251 @@
 #include <cstdio>
 #include <cstdlib>
 #include <climits>
+#include <cstring>
 
 // PDTK
 #include <cxxutils/cstringarray.h>
 
-#define ATTN(type) std::fprintf(stdout, "ATTN: %s\n", type)
-#define ABORT_ERROR(type, ...) \
-  { \
-    std::fprintf(stderr, "ERROR: %s\nfile: %s\nline: %d\n", type, __FILE__, __LINE__); \
-    std::fprintf(stderr, __VA_ARGS__);  \
-    ::abort(); \
+namespace static_secrets
+{
+  static std::unordered_map<pid_t, std::unique_ptr<Process>> process_map;
+
+  static void reaper(int sig)
+  {
+    (void)sig;
+    int saved_errno = errno;
+    pid_t pid = posix::error_response;
+    while((pid = ::waitpid((pid_t)(-1), 0, WNOHANG)) != posix::error_response)
+    {
+      auto process_map_iter = process_map.find(pid);
+      if(process_map_iter != process_map.end())
+      {
+        Object::enqueue(process_map_iter->second->finished, errno);
+        //process_map.erase(process_map_iter);
+      }
+    }
+    errno = saved_errno;
   }
 
-#define ASSERT_ERROR(expr) \
-  { \
-    if(!(expr)) \
-      ABORT_ERROR("ABORTED", "expression: %s\nerrno: %d\nmessage: %s\n", #expr, errno, std::strerror(errno)); \
-  }
+  static void init_once(void) noexcept
+  {
+    static bool ok = true;
+    if(ok)
+    {
+      ok = false;
+      struct sigaction actions;
+      actions.sa_handler = &reaper;
+      ::sigemptyset(&actions.sa_mask);
+      actions.sa_flags = SA_RESTART | SA_NOCLDSTOP;
 
+      if(::sigaction(SIGCHLD, &actions, 0) == posix::error_response)
+      {
+        ::perror(0);
+        ::exit(1);
+      }
+    }
+  }
+}
+
+enum command : uint8_t
+{
+  invoke = 0,
+  executable,
+  arguments,
+  environment,
+  environmentvar,
+  workingdir,
+  priority,
+  uid,
+  gid,
+  euid,
+  egid,
+  resource
+};
+
+static inline vqueue& operator << (vqueue& vq, command cmd) noexcept
+  { return vq << static_cast<uint8_t>(cmd); }
+
+static inline int get_errno(int value)
+  { return value == posix::success_response ? posix::success_response : errno; }
 
 Process::Process(void) noexcept
-  : m_state(State::Invalid),
-    m_error(Error::Unknown),
-    m_pid (0),
-    m_uid (0),
-    m_gid (0),
-    m_euid(0),
-    m_egid(0),
-    m_priority(INT_MAX),
-    m_stdout(posix::error_response),
-    m_stderr(posix::error_response)
+  : m_state(State::Invalid)
 {
-  m_arguments.reserve(256);
+  if(PipedFork::isChildProcess())
+  {
+    // asserts will make it known where it failed via stderr
+
+    EventBackend::watch(m_read, EventFlags_e::Read);
+    EventBackend::watch(m_write, EventFlags_e::Read);
+
+    std::string exefile;
+    std::string workingdir;
+    std::vector<std::string> arguments;
+//    std::unordered_map<std::string, std::string> environment;
+    std::unordered_map<Resource, rlimit> limits;
+
+    arguments.reserve(256);
+//    environment.reserve(256);
+    limits.reserve(8);
+
+    uint8_t cmd;
+
+    for(;;)
+    {
+      if(EventBackend::invoke())
+      {
+        for(const auto& pos : EventBackend::results())
+        {
+          if(pos.first == m_read && (pos.second & EventFlags_e::Read))
+          {
+            if(!PipedFork::read(m_iobuf))
+              ::exit(ENOMEM);
+            if(m_iobuf.empty() || (m_iobuf >> cmd).hadError())
+            {
+              m_iobuf.reset();
+              m_iobuf << EINVAL;
+              if(PipedFork::write(m_iobuf))
+                continue;
+              ::exit(ENOTRECOVERABLE);
+            }
+
+            switch(cmd)
+            {
+              case command::invoke:
+              {
+//                environment["PATH"] = "/bin:/usr/bin:/usr/local/bin";
+
+                if(!exefile.empty())
+                  arguments.insert(arguments.begin(), exefile);
+
+                CStringArray argv(arguments);
+//                CStringArray envv(environment, [](const std::pair<std::string, std::string>& p) { return p.first + '=' + p.second; });
+
+                ::execv(argv[0], argv);
+//                ::execve(argv[0], argv, envv);
+
+                ::exit(errno);
+                //m_iobuf << get_errno(::execve(argv[0], argv, envv));
+              }
+
+              case command::executable:
+              {
+                struct stat statbuf;
+                m_iobuf >> exefile;
+                if(::stat(exefile.c_str(), &statbuf) == posix::error_response)
+                  m_iobuf << errno;
+                else if(statbuf.st_mode ^ S_IFREG)
+                  m_iobuf << static_cast<int>(std::errc::permission_denied);
+                else if(statbuf.st_mode ^ S_IEXEC)
+                  m_iobuf << static_cast<int>(std::errc::permission_denied);
+                else
+                  m_iobuf << posix::success_response;
+                break;
+              }
+              case command::arguments:
+              {
+                arguments.clear();
+                std::string arg;
+                while(!(m_iobuf >> arg).hadError())
+                  arguments.push_back(arg);
+                m_iobuf << (arguments.empty() ? posix::error_response : posix::success_response);
+                break;
+              }
+              case command::environment:
+//                environment.clear();
+              case command::environmentvar:
+              {
+                int rval = posix::success_response;
+                std::string key, value;
+                while(!(m_iobuf >> key  ).hadError() &&
+                      !(m_iobuf >> value).hadError() &&
+                      rval == posix::success_response)
+                  rval = ::setenv(key.data(), value.data(), 1);
+                m_iobuf << get_errno(rval);
+                break;
+              }
+              case command::workingdir:
+              {
+                struct stat statbuf;
+                m_iobuf >> workingdir;
+
+                if(::stat(workingdir.c_str(), &statbuf) == posix::error_response)
+                  m_iobuf << errno;
+                else if(statbuf.st_mode ^ S_IFDIR)
+                  m_iobuf << static_cast<int>(std::errc::permission_denied);
+                else if(statbuf.st_mode ^ S_IEXEC)
+                  m_iobuf << static_cast<int>(std::errc::permission_denied);
+                else
+                  m_iobuf << posix::success_response;
+                break;
+              }
+              case command::priority:
+              {
+                int priority;
+                m_iobuf >> priority;
+                m_iobuf << get_errno(::setpriority(PRIO_PROCESS, getpid(), priority)); // set priority
+                break;
+              }
+              case command::uid:
+              {
+                uid_t uid;
+                m_iobuf >> uid;
+                m_iobuf << get_errno(::setuid(uid));
+                break;
+              }
+              case command::gid:
+              {
+                gid_t gid;
+                m_iobuf >> gid;
+                m_iobuf << get_errno(::setgid(gid));
+                break;
+              }
+              case command::euid:
+              {
+                uid_t euid;
+                m_iobuf >> euid;
+                m_iobuf << get_errno(::seteuid(euid));
+                break;
+              }
+              case command::egid:
+              {
+                gid_t egid;
+                m_iobuf >> egid;
+                m_iobuf << get_errno(::setegid(egid));
+                break;
+              }
+              case command::resource:
+              {
+                static_assert(sizeof(Resource) == sizeof(int), "size error");
+                Resource id;
+                rlimit val;
+                m_iobuf >> *reinterpret_cast<int*>(&id);
+                m_iobuf >> val.rlim_cur;
+                m_iobuf >> val.rlim_max;
+                m_iobuf << get_errno(::setrlimit(id, &val));
+                break;
+              }
+              default:
+                break;
+            }
+            if(PipedFork::write(m_iobuf))
+              m_iobuf.reset();
+          }
+          else
+          {
+            // ?!
+          }
+        }
+      }
+    }
+  }
+  else
+  {
+    static_secrets::init_once();
+    static_secrets::process_map.emplace(PipedFork::id(), this);
+    m_state = State::Initializing;
+  }
 }
 
 Process::~Process(void) noexcept
@@ -52,78 +266,102 @@ Process::~Process(void) noexcept
     sendSignal(posix::signal::Kill);
 
   m_state = State::Invalid;
-  m_pid  = 0;
-  m_uid  = 0;
-  m_gid  = 0;
-  m_euid = 0;
-  m_egid = 0;
+}
 
-  if(m_stdout != posix::error_response)
-    posix::close(m_stdout);
-  if(m_stderr != posix::error_response)
-    posix::close(m_stderr);
+bool Process::write_then_read(void) noexcept
+{
+  if(!m_iobuf.empty() ||
+     !PipedFork::write(m_iobuf) ||
+     !PipedFork::read(m_iobuf) ||
+     (m_iobuf >> errno).hadError())
+    return false;
+  return errno == posix::success_response;
+}
+
+bool Process::setArguments(const std::vector<std::string>& arguments) noexcept
+{
+  m_iobuf.reset();
+  m_iobuf << command::arguments;
+  for(const std::string& arg : arguments)
+    m_iobuf << arg;
+  return write_then_read();
+}
+
+bool Process::setEnvironment(const std::unordered_map<std::string, std::string>& environment) noexcept
+{
+  m_iobuf.reset();
+  m_iobuf << command::environment;
+  for(const std::pair<std::string, std::string>& p : environment)
+    m_iobuf << p.first << p.second;
+  return write_then_read();
+}
+
+bool Process::setEnvironmentVariable(const std::string& name, const std::string& value) noexcept
+{
+  m_iobuf.reset();
+  m_iobuf << command::environment << name << value;
+  return write_then_read();
+}
+
+bool Process::setResourceLimit(Process::Resource which, rlim_t limit) noexcept
+{
+  m_iobuf.reset();
+  m_iobuf << command::resource << static_cast<int>(which) << static_cast<rlim_t>(RLIM_SAVED_CUR) << limit;
+  return write_then_read();
 }
 
 bool Process::setWorkingDirectory(const std::string& dir) noexcept
 {
-  struct stat statbuf;
-  if(::stat(dir.c_str(), &statbuf) == posix::success_response)
-    m_workingdir = dir;
-  return errno == posix::success_response;
+  m_iobuf.reset();
+  m_iobuf << command::workingdir << dir;
+  return write_then_read();
 }
 
 bool Process::setExecutable(const std::string& executable) noexcept
 {
-  struct stat statbuf;
-  if(::stat(executable.c_str(), &statbuf) == posix::success_response)
-  {
-    if(m_executable.empty())
-      m_arguments.insert(m_arguments.begin(), executable);
-    else
-      m_arguments.front() = executable;
-    m_executable = executable;
-    m_state = State::Defined;
-  }
-  return errno == posix::success_response;
-}
-
-void Process::setArguments(const std::vector<std::string>& arguments) noexcept
-{
-  m_arguments = arguments;
-  if(!m_executable.empty())
-    m_arguments.insert(m_arguments.begin(), m_executable);
+  m_iobuf.reset();
+  m_iobuf << command::executable << executable;
+  return write_then_read();
 }
 
 bool Process::setUserID(uid_t id) noexcept
 {
   if(posix::getpwuid(id) == nullptr)
     return false;
-  m_uid = id;
-  return true;
+
+  m_iobuf.reset();
+  m_iobuf << command::uid << id;
+  return write_then_read();
 }
 
 bool Process::setGroupID(gid_t id) noexcept
 {
   if(posix::getgrgid(id) == nullptr)
     return false;
-  m_gid = id;
-  return true;
+
+  m_iobuf.reset();
+  m_iobuf << command::gid << id;
+  return write_then_read();
 }
 
 bool Process::setEffectiveUserID(uid_t id) noexcept
 {
   if(posix::getpwuid(id) == nullptr)
     return false;
-  m_euid = id;
-  return true;
+
+  m_iobuf.reset();
+  m_iobuf << command::euid << id;
+  return write_then_read();
 }
 
 bool Process::setEffectiveGroupID(gid_t id) noexcept
 {
   if(posix::getgrgid(id) == nullptr)
     return false;
-  m_egid = id;
-  return true;
+
+  m_iobuf.reset();
+  m_iobuf << command::egid << id;
+  return write_then_read();
 }
 
 bool Process::setPriority(int nval) noexcept
@@ -134,81 +372,76 @@ bool Process::setPriority(int nval) noexcept
 #else
 #warning PRIO_MIN or PRIO_MAX is not defined.  The safegaurd in Process::setPriority() is disabled.
 #endif
-  m_priority = nval;
-  return true;
+
+  m_iobuf.reset();
+  m_iobuf << command::priority << nval;
+  return write_then_read();
 }
 
 bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
 {
-  if(m_pid)
-    return posix::signal::send(m_pid, id, value);
-  return false;
+  return posix::signal::send(PipedFork::id(), id, value);
 }
-
+#include <iostream>
 bool Process::start(void) noexcept
 {
-  if(m_state == State::Invalid)
+  if(m_state != State::Initializing)
     return false;
 
-  CStringArray argv(m_arguments);
-  CStringArray envv(m_environment, [](const std::pair<std::string, std::string>& p) { return p.first + '=' + p.second; });
+  m_iobuf.reset();
+  m_iobuf << command::invoke;
 
-  posix::fd_t pipe_stdout[2];
-  posix::fd_t pipe_stderr[2];
+  std::cout << "pid  : " << PipedFork::id() << std::endl;
+  std::cout << "read : " << m_read << std::endl;
+  std::cout << "write: " << m_write << std::endl;
+  std::cout << "size : " << m_iobuf.size() << std::endl;
 
-  if(::pipe(pipe_stdout) == posix::error_response ||
-     ::pipe(pipe_stderr) == posix::error_response ||
-     (m_pid = ::fork()) <= posix::error_response)
+  if(!PipedFork::write(m_iobuf))
   {
-    m_error = Error::FailedToStart;
-    Object::enqueue_copy(error, m_error, static_cast<std::errc>(errno));
+    assert(false);
     return false;
   }
 
-  m_state = State::Loading;
-
-  if(m_pid == posix::success_response) // if inside forked process
+  if(::usleep(100) == posix::error_response)
   {
-    // asserts will make it known where it failed via stderr
-    ASSERT_ERROR(posix::dup2(pipe_stderr[1], STDERR_FILENO)); // redirect stderr to interprocess pipe
-    ASSERT_ERROR(posix::dup2(pipe_stdout[1], STDOUT_FILENO)); // redirect stdout to interprocess pipe
-
-    ASSERT_ERROR(posix::close(pipe_stdout[1])); // close former interprocess pipe
-    ASSERT_ERROR(posix::close(pipe_stderr[1]));
-
-    ASSERT_ERROR(posix::close(pipe_stdout[0])); // close non-forked side (unused)
-    ASSERT_ERROR(posix::close(pipe_stderr[0]));
-
-    ATTN("SETTINGS");
-
-    if(m_priority != INT_MAX) // only if m_priority has been set
-      ASSERT_ERROR(::setpriority(PRIO_PROCESS, getpid(), m_priority) != posix::success_response); // set priority
-    for(auto& limit : m_limits)
-      ASSERT_ERROR(::setrlimit(limit.first, &limit.second) != posix::success_response);
-    if(m_uid)
-      ASSERT_ERROR(::setuid(m_uid) == posix::success_response);
-    if(m_gid)
-      ASSERT_ERROR(::setgid(m_gid) == posix::success_response);
-    if(m_euid)
-      ASSERT_ERROR(::seteuid(m_euid) == posix::success_response);
-    if(m_egid)
-      ASSERT_ERROR(::setegid(m_egid) == posix::success_response);
-
-    ATTN("LOADING");
-    ASSERT_ERROR(::execve(argv[0], argv, envv) == posix::success_response);
-    ABORT_ERROR("DANGER", "message: execve() implemenation error! This area should be unreachable!");
+    assert(false);
+    return false;
   }
 
-  m_stdout = pipe_stdout[0]; // copy open pipes
-  m_stderr = pipe_stderr[0];
+  process_state_t data;
+  if(!::procstat(PipedFork::id(), data))
+  {
+    m_state = State::Invalid;
+    assert(false);
+    return false;
+  }
+
   m_state = State::Running;
 
+  Object::enqueue(Process::started);
+  return errno == posix::success_response;
+}
 
+Process::State Process::state(void) noexcept
+{
+  process_state_t data;
+  if(!::procstat(PipedFork::id(), data)) // check if running
+  {
+    m_state = State::Invalid;
+    return m_state;
+  }
+  else if(m_state != State::Initializing)
+  {
+    switch (data.state)
+    {
+      case WaitingInterruptable:
+      case WaitingUninterruptable:
+                    m_state = State::Waiting; break;
+      case Zombie : m_state = State::Zombie ; break;
+      case Stopped: m_state = State::Stopped; break;
+      default:break;
+    }
+  }
 
-  // close forked side (unused) of pipe
-  posix::close(pipe_stdout[1]); // ok if these fail
-  posix::close(pipe_stderr[1]);
-
-  //Object::enqueue(started);
-  return true;
+  return m_state;
 }
