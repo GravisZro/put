@@ -14,6 +14,7 @@
 #include <initializer_list>
 #include <vector>
 #include <unordered_map>
+#include <iostream>
 
 // PDTK
 #include <object.h>
@@ -22,6 +23,11 @@
 #include <cxxutils/pipedfork.h>
 #include <specialized/procstat.h>
 #include <specialized/eventbackend.h>
+
+namespace static_secrets
+{
+  void reaper(int sig);
+}
 
 class Process : public Object,
                 protected PipedFork,
@@ -36,20 +42,22 @@ public:
     Waiting,      // process is running but asleep
     Stopped,      // process was running but execution has been stopped before completion
     Zombie,       // process has become a zombie process
-//    Failed,       // executable failed to load
+    Finished,     // process executed and exited
   };
 
   enum class Error
   {
-    Unknown = 0,    // An unknown error occurred. This is the default return value of error().
-    FailedToStart,  // failed to start. Either the invoked program is missing, or you may have insufficient permissions to invoke the program.
-    Crashed,        // crashed some time after starting successfully.
+    None = 0,       // No error has occurred. This is the default return value of error().
+    Unknown,        // An unknown error occurred.
+    FailedToStart,  // process failed to start. Either the invoked program is missing, or you may have insufficient permissions to invoke the program.
+    Crashed,        // process crashed some time after starting successfully.
+    Killed,         // process was killed some time after starting successfully.
     Timedout,       // The last waitFor...() function timed out.
     Write,          // An error occurred when attempting to write to the process.
     Read,           // An error occurred when attempting to read from the process.
   };
 
-  enum Resource : int
+  enum class Resource : int
   {
     CoreDumpSize    = RLIMIT_CORE,    // Limit on size of core file.
     CPUTime         = RLIMIT_CPU,     // Limit on CPU time per process.
@@ -59,6 +67,7 @@ public:
     StackSize       = RLIMIT_STACK,   // Limit on stack size.
     VirtualMemory   = RLIMIT_AS,      // Limit on address space size.
   };
+  static_assert(sizeof(Resource) == sizeof(int), "size error");
 
   Process(void) noexcept;
  ~Process(void) noexcept;
@@ -77,7 +86,7 @@ public:
   bool setPriority(int nval) noexcept;
 
   State state(void) noexcept;
-//  Error error(void) const noexcept { return m_error; }
+  Error error(void) const noexcept { return m_error; }
 
   bool start     (void) noexcept;
   bool sendSignal(posix::signal::EId id, int value = 0) const noexcept;
@@ -90,15 +99,17 @@ public:
   void kill      (void) const noexcept { sendSignal(posix::signal::Kill     ); }
 
   signal<> started;
-//  signal<Error, std::errc> error;
   signal<int> finished;
 
 private:
   bool write_then_read(void) noexcept;
+  static std::condition_variable m_step_exec;
   vqueue m_iobuf;
 
   State m_state;
-  //Error m_error;
+  Error m_error;
+
+  friend void static_secrets::reaper(int sig);
 };
 
 #endif // PROCESS_H

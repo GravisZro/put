@@ -38,28 +38,28 @@ public:
 
 // === serializer frontends ===
   template<typename T>
-  constexpr vqueue& operator << (const T& arg) noexcept
+  vqueue& operator << (const T& arg) noexcept
   {
     serialize(arg);
     return *this;
   }
 
   template<typename T>
-  constexpr vqueue& operator >> (T& arg) noexcept
+  vqueue& operator >> (T& arg) noexcept
   {
     deserialize(arg);
     return *this;
   }
 
   template<typename T, typename... ArgTypes>
-  constexpr void serialize(const T& arg, ArgTypes&... args) noexcept
+  void serialize(const T& arg, ArgTypes&... args) noexcept
   {
     serialize(arg);
     serialize(args...);
   }
 
   template<typename T, typename... ArgTypes>
-  constexpr void deserialize(T& arg, ArgTypes&... args) noexcept
+  void deserialize(T& arg, ArgTypes&... args) noexcept
   {
     deserialize(arg);
     deserialize(args...);
@@ -78,16 +78,6 @@ public:
     return m_data.get() != nullptr;
   }
 
-  template<typename T>
-  bool push(const T& d) noexcept
-  {
-    if(dataEnd<T>() + 1 > end<T>())
-      return m_ok = false;
-    back<T>() = d;
-    m_virt_end += sizeof(T);
-    return true;
-  }
-
   bool     empty (void) const noexcept { return dataEnd() == data   (); }
   uint16_t size  (void) const noexcept { return dataEnd() -  data   (); }
   uint16_t used  (void) const noexcept { return data   () -  begin  (); }
@@ -100,11 +90,11 @@ public:
     clearError();
   }
 
-
-  bool resize(uint16_t sz) noexcept
+  bool resize(uint16_t sz) noexcept // causing this to fail would be exceptionally difficult
   {
     m_virt_begin = m_data.get();
     m_virt_end   = m_data.get() + sz;
+    m_ok &= m_virt_end <= end();
     return m_virt_end <= end();
   }
 
@@ -145,11 +135,21 @@ public:
   const uint16_t& capacity(void) const { return m_capacity; }
 
 private:
-  template<typename T = char>
-  bool pop(void) noexcept
+  template<typename T>
+  bool push(const T& d) noexcept
   {
-    if(data<T>() + 1 > dataEnd<T>())
-      return m_ok = false;
+    if(dataEnd() + sizeof(T) > end()) // check if this would overflow buffer
+      return m_ok = false; // avoid buffer overflow!
+    back<T>() = d;
+    m_virt_end += sizeof(T);
+    return true;
+  }
+
+  template<typename T>
+  bool pull(void) noexcept
+  {
+    if(data() + sizeof(T) > dataEnd()) // check if this would underflow buffer
+      return m_ok = false; // avoid buffer underflow!
     m_virt_begin += sizeof(T);
     if(m_virt_begin == m_virt_end) // if buffer is empty
       m_virt_begin = m_virt_end = m_data.get(); // move back to start of buffer
@@ -165,8 +165,8 @@ private:
 // === serializer backends ===
 private:
   // dummy functions
-  static inline void serialize(void) { }
-  static inline void deserialize(void) { }
+  static void serialize(void) noexcept { }
+  static void deserialize(void) noexcept { }
 
 // sized array
   template<typename T>
@@ -174,33 +174,36 @@ private:
   {
     if(push<uint16_t>(sizeof(T)) &&
        push<uint16_t>(length))
-      for(size_t i = 0; m_ok && i < length; push(arg[i]), ++i);
+      for(size_t i = 0; m_ok && i < length; ++i)
+        push(arg[i]);
   }
 
   template<typename T>
   void deserialize_arr(T* arg, uint16_t length) noexcept
   {
     if(front<uint16_t>() == sizeof(T) &&  // size matches
-       pop  <uint16_t>() &&               // no buffer underflow
+       pull  <uint16_t>() &&               // no buffer underflow
        front<uint16_t>() == length &&     // length matches
-       pop  <uint16_t>())                 // no buffer underflow
-
-      for(size_t i = 0; m_ok && i < length; pop<T>(), ++i)
+       pull  <uint16_t>())                 // no buffer underflow
+      for(size_t i = 0; m_ok && i < length; ++i)
+      {
         arg[i] = front<T>();
+        pull<T>();
+      }
     else
       m_ok = false;
   }
 
 // simple types
   template<typename T>
-  constexpr void serialize(const T& arg) noexcept
+  void serialize(const T& arg) noexcept
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "compound or pointer type");
     serialize_arr<T>(&arg, 1);
   }
 
   template<typename T>
-  constexpr void deserialize(T& arg) noexcept
+  void deserialize(T& arg) noexcept
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "compound or pointer type");
     deserialize_arr<T>(&arg, 1);
@@ -208,17 +211,17 @@ private:
 
 // vector of simple types
   template<typename T>
-  constexpr void serialize(const std::vector<T>& arg) noexcept
+  void serialize(const std::vector<T>& arg) noexcept
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "vector of compound or pointer type");
     serialize_arr(arg.data(), arg.size());
   }
 
   template<typename T>
-  constexpr void deserialize(std::vector<T>& arg) noexcept
+  void deserialize(std::vector<T>& arg) noexcept
   {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "vector of compound or pointer type");
-    arg.resize(front<uint16_t>());
+    arg.resize(data<uint16_t>()[1]);
     deserialize_arr(arg.data(), arg.size());
   }
 
@@ -231,16 +234,15 @@ private:
 
 // string
   template<typename T>
-  constexpr void serialize(const std::basic_string<T>& arg) noexcept
+  void serialize(const std::basic_string<T>& arg) noexcept
     { serialize_arr(arg.data(), arg.size()); }
 
   template<typename T>
-  constexpr void deserialize(std::basic_string<T>& arg) noexcept
+  void deserialize(std::basic_string<T>& arg) noexcept
   {
-    arg.resize(front<uint16_t>());
-    deserialize_arr(const_cast<T*>(arg.data()), arg.size()); // not guaranteed to work per the STL spec but will never fail catastrophically.
+    arg.resize(data<uint16_t>()[1]);
+    deserialize_arr(const_cast<T*>(arg.data()), arg.size()); // not guaranteed to work per the STL spec but should never fail catastrophically.
   }
 };
 
 #endif // VQUEUE_H
-

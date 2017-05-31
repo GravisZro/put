@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <ostream>
+
 class CStringArray
 {
 public:
@@ -28,5 +30,6 @@ private:
   std::vector<std::string> m_datav;
   std::vector<const char*> m_datapv;
 };
+
 
 #endif // CSTRINGARRAY_H

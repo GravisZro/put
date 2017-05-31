@@ -5,6 +5,9 @@
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/vqueue.h>
 
+// POSIX
+#include <poll.h>
+
 class PipedFork
 {
   enum {
@@ -77,8 +80,29 @@ public:
 
   bool isChildProcess(void) const noexcept { return !m_pid; }
 
+  bool readStdOut(vqueue& vq) { return read(m_stdout, vq); }
+  bool readStdErr(vqueue& vq) { return read(m_stderr, vq); }
+
   bool read (vqueue& vq) { return read (m_read , vq); }
   bool write(vqueue& vq) { return write(m_write, vq); }
+
+  bool waitReadStdOut(int timeout)
+  {
+    pollfd fds = { m_stdout, POLLIN, 0 };
+    return posix::ignore_interruption(::poll, &fds, nfds_t(1), timeout) == 1;
+  }
+
+  bool waitRead(int timeout)
+  {
+    pollfd fds = { m_read, POLLIN, 0 };
+    return posix::ignore_interruption(::poll, &fds, nfds_t(1), timeout) == 1;
+  }
+
+  bool waitWrite(int timeout)
+  {
+    pollfd fds = { m_write, POLLOUT, 0 };
+    return posix::ignore_interruption(::poll, &fds, nfds_t(1), timeout) == 1;
+  }
 
 protected:
   bool redirect(posix::fd_t replacement, posix::fd_t original)
@@ -89,9 +113,10 @@ protected:
 
   bool read(posix::fd_t fd, vqueue& vq)
   {
-    ssize_t sz = posix::read(fd, vq.data(), vq.capacity());
+    volatile ssize_t sz = posix::read(fd, vq.data(), vq.capacity());
     return sz > 0 && vq.resize(sz);
   }
+
   posix::fd_t m_read;
   posix::fd_t m_write;
 

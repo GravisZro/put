@@ -30,7 +30,15 @@ public:
   {
     sig.obj = obj;
     sig.func = [slot](ProtoObject* p, ArgTypes... args) noexcept
-      { if(p == p->self) (static_cast<ObjType*>(p)->*slot)(args...); }; // if protoobject is valid, call slot
+      { if(p == p->self) (static_cast<ObjType*>(p)->*slot)(args...); }; // if ProtoObject is valid (not deleted), call slot
+  }
+
+  template<class ObjType, typename RType, typename... ArgTypes>
+  static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, RType(*slot)(ObjType*, ArgTypes...)) noexcept
+  {
+    sig.obj = obj;
+    sig.func = [slot](ProtoObject* p, ArgTypes... args) noexcept
+      { if(p == p->self) slot(static_cast<ObjType*>(p), args...); }; // if ProtoObject is valid (not deleted), call slot
   }
 
   template<typename RType, typename... ArgTypes>
