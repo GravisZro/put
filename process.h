@@ -18,7 +18,7 @@
 
 // PDTK
 #include <object.h>
-#include <cxxutils/vqueue.h>
+#include <cxxutils/vfifo.h>
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/pipedfork.h>
 #include <specialized/procstat.h>
@@ -30,7 +30,7 @@ namespace static_secrets
 }
 
 class Process : public Object,
-                protected PipedFork,
+                public PipedFork,
                 protected EventBackend
 {
 public:
@@ -104,7 +104,7 @@ public:
 private:
   bool write_then_read(void) noexcept;
   static std::condition_variable m_step_exec;
-  vqueue m_iobuf;
+  vfifo m_iobuf;
 
   State m_state;
   Error m_error;

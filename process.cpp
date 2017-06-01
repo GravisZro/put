@@ -78,7 +78,7 @@ enum class command : uint8_t
   resource
 };
 
-static inline vqueue& operator << (vqueue& vq, command cmd) noexcept
+static inline vfifo& operator << (vfifo& vq, command cmd) noexcept
 { return vq << static_cast<uint8_t>(cmd); }
 
 static inline int get_errno(int value)

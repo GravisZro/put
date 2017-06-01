@@ -14,14 +14,14 @@
 // PDTK
 #include <object.h>
 #include <cxxutils/socket_helpers.h>
-#include <cxxutils/vqueue.h>
+#include <cxxutils/vfifo.h>
 #include <specialized/getpeercred.h>
 #include <specialized/eventbackend.h>
 
 struct message_t
 {
   posix::fd_t socket;
-  vqueue      buffer;
+  vfifo      buffer;
   posix::fd_t fd_buffer;
 };
 
@@ -82,7 +82,7 @@ public:
   template<typename... Args>
   SingleSocket(Args... args) noexcept : AsyncSocket(args...), m_fd(posix::invalid_descriptor) { init(); }
 
-  bool write(vqueue buffer, posix::fd_t fd_buffer = posix::invalid_descriptor) noexcept
+  bool write(vfifo buffer, posix::fd_t fd_buffer = posix::invalid_descriptor) noexcept
     { assert(m_fd != posix::invalid_descriptor);
       return AsyncSocket::write({ m_fd, buffer, fd_buffer }); }
 

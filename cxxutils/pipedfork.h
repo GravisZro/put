@@ -3,7 +3,7 @@
 
 // PDTK
 #include <cxxutils/posix_helpers.h>
-#include <cxxutils/vqueue.h>
+#include <cxxutils/vfifo.h>
 
 // POSIX
 #include <poll.h>
@@ -80,11 +80,11 @@ public:
 
   bool isChildProcess(void) const noexcept { return !m_pid; }
 
-  bool readStdOut(vqueue& vq) { return read(m_stdout, vq); }
-  bool readStdErr(vqueue& vq) { return read(m_stderr, vq); }
+  bool readStdOut(vfifo& vq) { return read(m_stdout, vq); }
+  bool readStdErr(vfifo& vq) { return read(m_stderr, vq); }
 
-  bool read (vqueue& vq) { return read (m_read , vq); }
-  bool write(vqueue& vq) { return write(m_write, vq); }
+  bool read (vfifo& vq) { return read (m_read , vq); }
+  bool write(vfifo& vq) { return write(m_write, vq); }
 
   bool waitReadStdOut(int timeout)
   {
@@ -108,10 +108,10 @@ protected:
   bool redirect(posix::fd_t replacement, posix::fd_t original)
     { return posix::dup2(replacement, original) && posix::close(replacement); }
 
-  bool write(posix::fd_t fd, vqueue& vq)
+  bool write(posix::fd_t fd, vfifo& vq)
     { return !vq.empty() && posix::write(fd, vq.begin(), vq.size()) == vq.size(); }
 
-  bool read(posix::fd_t fd, vqueue& vq)
+  bool read(posix::fd_t fd, vfifo& vq)
   {
     volatile ssize_t sz = posix::read(fd, vq.data(), vq.capacity());
     return sz > 0 && vq.resize(sz);

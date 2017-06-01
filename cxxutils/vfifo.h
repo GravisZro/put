@@ -13,17 +13,17 @@
 #include <string>
 
 // virtual queue class
-class vqueue
+class vfifo
 {
 public:
-  vqueue(uint16_t length = 0xFFFF) noexcept : m_ok(true) { allocate(length); }
-  vqueue(const vqueue& that) noexcept { operator=(that); }
+  vfifo(uint16_t length = 0xFFFF) noexcept : m_ok(true) { allocate(length); }
+  vfifo(const vfifo& that) noexcept { operator=(that); }
 
-  vqueue& operator=(const vqueue& other) noexcept
+  vfifo& operator=(const vfifo& other) noexcept
   {
     if (this != &other)
     {
-      m_data       = const_cast<vqueue&>(other).m_data;
+      m_data       = const_cast<vfifo&>(other).m_data;
       m_virt_begin = other.m_virt_begin;
       m_virt_end   = other.m_virt_end;
       m_capacity   = other.m_capacity;
@@ -38,14 +38,14 @@ public:
 
 // === serializer frontends ===
   template<typename T>
-  vqueue& operator << (const T& arg) noexcept
+  vfifo& operator << (const T& arg) noexcept
   {
     serialize(arg);
     return *this;
   }
 
   template<typename T>
-  vqueue& operator >> (T& arg) noexcept
+  vfifo& operator >> (T& arg) noexcept
   {
     deserialize(arg);
     return *this;
