@@ -21,46 +21,44 @@
 // for debug
 #include <iostream>
 
-namespace static_secrets
+static std::unordered_map<pid_t, Process*> process_map; // do not try to own Process memory
+
+void Process::init_once(void) noexcept
 {
-  static std::unordered_map<pid_t, Process*> process_map; // do not try to own Process memory
-
-  void reaper(int sig)
+  static bool ok = true;
+  if(ok)
   {
-    assert(sig == SIGCHLD); // there should only be one way to get here, so be sure there is no funny business
-    pid_t pid = posix::error_response; // set value just in case
-    int status = 0;
-    while((pid = ::waitpid(pid_t(-1), &status, WNOHANG)) != posix::error_response) // get the next dead process (if there is one)... while the currently reaped process was valid
-    {
-      auto process_map_iter = process_map.find(pid); // find dead process
-      if(process_map_iter != process_map.end()) // if the dead process exists...
-      {
-        Object::enqueue(process_map_iter->second->finished, status); // emit finished signal with errno code
-        process_map_iter->second->m_state = Process::State::Finished;
-        process_map.erase(process_map_iter); // remove finished process from the process map
-      }
-    }
-  }
+    ok = false;
+    struct sigaction actions;
+    actions.sa_handler = &reaper;
+    ::sigemptyset(&actions.sa_mask);
+    actions.sa_flags = SA_RESTART | SA_NOCLDSTOP;
 
-  static void init_once(void) noexcept
-  {
-    static bool ok = true;
-    if(ok)
+    if(::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response)
     {
-      ok = false;
-      struct sigaction actions;
-      actions.sa_handler = &reaper;
-      ::sigemptyset(&actions.sa_mask);
-      actions.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-
-      if(::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response)
-      {
-        ::perror("An \"impossible\" situation has occurred.");
-        ::exit(1);
-      }
+      ::perror("An 'impossible' situation has occurred.");
+      ::exit(1);
     }
   }
 }
+
+void Process::reaper(int sig) noexcept
+{
+  assert(sig == SIGCHLD); // there should only be one way to get here, so be sure there is no funny business
+  pid_t pid = posix::error_response; // set value just in case
+  int status = 0;
+  while((pid = ::waitpid(pid_t(-1), &status, WNOHANG)) != posix::error_response) // get the next dead process (if there is one)... while the currently reaped process was valid
+  {
+    auto process_map_iter = process_map.find(pid); // find dead process
+    if(process_map_iter != process_map.end()) // if the dead process exists...
+    {
+      Object::enqueue(process_map_iter->second->finished, status); // emit finished signal with errno code
+      process_map_iter->second->m_state = Process::State::Finished;
+      process_map.erase(process_map_iter); // remove finished process from the process map
+    }
+  }
+}
+
 
 enum class command : uint8_t
 {
@@ -256,8 +254,8 @@ Process::Process(void) noexcept
   }
   else // if this is initilizing the parent process
   {
-    static_secrets::init_once(); // only executes for the first instance of a Process type
-    static_secrets::process_map.emplace(PipedFork::id(), this); // add self to process map
+    init_once(); // only executes for the first instance of a Process type
+    process_map.emplace(PipedFork::id(), this); // add self to process map
     m_state = State::Initializing;
   }
 }

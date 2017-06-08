@@ -24,11 +24,6 @@
 #include <specialized/procstat.h>
 #include <specialized/eventbackend.h>
 
-namespace static_secrets
-{
-  void reaper(int sig);
-}
-
 class Process : public Object,
                 public PipedFork,
                 protected EventBackend
@@ -108,7 +103,8 @@ private:
   State m_state;
   Error m_error;
 
-  friend void static_secrets::reaper(int sig);
+  static void reaper(int sig) noexcept;
+  static void init_once(void) noexcept;
 };
 
 #endif // PROCESS_H
