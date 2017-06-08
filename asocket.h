@@ -21,7 +21,7 @@
 struct message_t
 {
   posix::fd_t socket;
-  vfifo      buffer;
+  vfifo       buffer;
   posix::fd_t fd_buffer;
 };
 
@@ -60,7 +60,7 @@ private:
   bool is_connected(posix::fd_t socket) noexcept
   {
     return has_socket() &&
-        queue().find(socket) != queue().end();
+        queue.find(socket) != queue.end();
   }
 
 private:

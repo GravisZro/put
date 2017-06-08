@@ -1,41 +1,94 @@
 #include "application.h"
 
+// POSIX
+#include <stropts.h>
+
 // STL
 #include <atomic>
+#include <cassert>
+#include <algorithm>
 
 // PDTK
 #include <object.h>
+#include <specialized/eventbackend.h>
 
-
+// atomic vars are to avoid race conditions
 static std::atomic_int  s_return_value (0);
 static std::atomic_bool s_run (true);
+static posix::fd_t s_pipeio[2] = { posix::invalid_descriptor };
 
-std::condition_variable     Application::m_step_exec;
-lockable<std::queue<vfunc>> Application::m_signal_queue;
+lockable<std::queue<vfunc>> Application::ms_signal_queue;
+std::unordered_multimap<posix::fd_t, std::pair<EventFlags_t, vfdfunc>> Application::ms_fd_signals;
 
-Application::Application (void) noexcept { }
-Application::~Application(void) noexcept { }
+enum {
+  Read = 0,
+  Write = 1,
+};
 
-int Application::exec(void) noexcept
+Application::Application (void) noexcept
 {
-  static std::queue<vfunc> exec_queue;
-  static std::mutex exec_mutex;
+  if(s_pipeio[Read] == posix::invalid_descriptor)
+  {
+    assert(::pipe(s_pipeio) != posix::error_response);
+    EventBackend::init();
+    EventBackend::watch(s_pipeio[Read], EventFlags::Readable);
+  }
+}
+
+Application::~Application(void) noexcept
+{
+  EventBackend::destroy();
+}
+
+void Application::step(void) noexcept
+{
+  static uint8_t dummydata = 0;
+  posix::write(s_pipeio[Write], &dummydata, 1);
+}
+
+int Application::exec(void) noexcept // non-static function to ensure an instance of Application exists
+{
   while(s_run)
   {
-    std::unique_lock<std::mutex> lk(exec_mutex); // auto lock/unlock
-    m_step_exec.wait(lk, []() noexcept { return !m_signal_queue.empty(); } ); // wait for notify_one() call and non-empty queue
-
-    m_signal_queue.lock();
-    exec_queue.swap(m_signal_queue);
-    m_signal_queue.unlock();
-
-    while(s_run && !exec_queue.empty())
+    EventBackend::getevents();
+    for(auto pos : EventBackend::results)
     {
-      exec_queue.front()();
-      exec_queue.pop();
+      if(pos.first == s_pipeio[Read])
+      {
+        while(::ioctl(pos.first, I_FLUSH, FLUSHRW) == posix::error_response && // not interested in the data
+              errno == std::errc::interrupted); // ignore interruptions
+        run();
+      }
+      else
+      {
+        auto entries = ms_fd_signals.equal_range(pos.first);
+        for_each(entries.first, entries.second,
+          [pos](auto& entry)
+        {
+          if(entry.second.first & pos.second)
+            entry.second.second(pos.first, pos.second);
+        });
+      }
     }
   }
-  return s_return_value;
+  return s_return_value; // quit() has been called, return value specified
+}
+
+void Application::run(void) noexcept
+{
+  static std::queue<vfunc> exec_queue;
+  if(s_run && exec_queue.empty()) // while application is running and not currently executing
+  {
+    ms_signal_queue.lock(); // get exclusive access
+    exec_queue.swap(ms_signal_queue); // swap the queues to prevent race conditions and the need for constant locking/unlocking
+    ms_signal_queue.unlock(); // access is no longer needed
+
+    while(s_run && !exec_queue.empty()) // if haven't quit and still have signals to execute
+    {
+      exec_queue.front()(); // execute current signal
+      exec_queue.pop(); // discard current signal
+    }
+  }
 }
 
 void Application::quit(int return_value) noexcept

@@ -103,7 +103,6 @@ public:
 
 private:
   bool write_then_read(void) noexcept;
-  static std::condition_variable m_step_exec;
   vfifo m_iobuf;
 
   State m_state;

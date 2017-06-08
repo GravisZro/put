@@ -92,8 +92,8 @@ Process::Process(void) noexcept
   {
     // asserts will make it known where it failed via stderr
 
-    EventBackend::watch(m_read, EventFlags_e::Read);
-    EventBackend::watch(m_write, EventFlags_e::Read);
+    EventBackend::watch(m_read, EventFlags::Readable);
+    //EventBackend::watch(m_write, EventFlags::Readable);
 
     std::string exefile;
     std::string workingdir;
@@ -105,11 +105,11 @@ Process::Process(void) noexcept
 
     for(;;) // loop forever
     {
-      if(EventBackend::invoke()) // wait for new data indefinitely
+      if(EventBackend::getevents()) // wait for new data indefinitely
       {
-        for(const auto& pos : EventBackend::results())
+        for(const auto& pos : EventBackend::results)
         {
-          assert(pos.first == m_read && (pos.second & EventFlags_e::Read));
+          assert(pos.first == m_read && (pos.second & EventFlags::Readable));
           assert(!m_iobuf.hadError());
           if(!PipedFork::read(m_iobuf)) // unable to read
             ::exit(errno); // why read() failed
