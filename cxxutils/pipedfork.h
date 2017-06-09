@@ -8,6 +8,14 @@
 // POSIX
 #include <poll.h>
 
+// ADVANCED REALTIME POSIX
+//#include <spawn.h>
+
+#ifdef POSIX_SPAWN_RESETIDS
+# define HAVE_SPAWN_H
+#endif
+
+
 class PipedFork
 {
   enum {
@@ -30,7 +38,11 @@ public:
        ::pipe(ipc_cipo) == posix::error_response ||
        ::pipe(out) == posix::error_response ||
        ::pipe(err) == posix::error_response ||
+#ifdef HAVE_SPAWN_H
+#error TODO: implement version using posix_spawn()
+#else
        (m_pid = ::fork()) <= posix::error_response)
+#endif
     {
       assert(false);
     }
@@ -80,38 +92,31 @@ public:
 
   bool isChildProcess(void) const noexcept { return !m_pid; }
 
-  bool readStdOut(vfifo& vq) { return read(m_stdout, vq); }
-  bool readStdErr(vfifo& vq) { return read(m_stderr, vq); }
+  bool readStdOut(vfifo& vq) noexcept { return read(m_stdout, vq); }
+  bool readStdErr(vfifo& vq) noexcept { return read(m_stderr, vq); }
 
-  bool read (vfifo& vq) { return read (m_read , vq); }
-  bool write(vfifo& vq) { return write(m_write, vq); }
+  bool read (vfifo& vq) noexcept { return read (m_read , vq); }
+  bool write(vfifo& vq) noexcept { return write(m_write, vq); }
 
-  bool waitReadStdOut(int timeout)
-  {
-    pollfd fds = { m_stdout, POLLIN, 0 };
-    return posix::ignore_interruption(::poll, &fds, nfds_t(1), timeout) == 1;
-  }
-
-  bool waitRead(int timeout)
-  {
-    pollfd fds = { m_read, POLLIN, 0 };
-    return posix::ignore_interruption(::poll, &fds, nfds_t(1), timeout) == 1;
-  }
-
-  bool waitWrite(int timeout)
-  {
-    pollfd fds = { m_write, POLLOUT, 0 };
-    return posix::ignore_interruption(::poll, &fds, nfds_t(1), timeout) == 1;
-  }
+  bool waitReadStdOut(int timeout) const noexcept { return waitFDEvent(m_stdout, POLLIN , timeout); }
+  bool waitReadStdErr(int timeout) const noexcept { return waitFDEvent(m_stderr, POLLIN , timeout); }
+  bool waitRead      (int timeout) const noexcept { return waitFDEvent(m_read  , POLLIN , timeout); }
+  bool waitWrite     (int timeout) const noexcept { return waitFDEvent(m_write , POLLOUT, timeout); }
 
 protected:
-  bool redirect(posix::fd_t replacement, posix::fd_t original)
+  bool waitFDEvent(posix::fd_t fd, int16_t event, int timeout) const noexcept
+  {
+    pollfd fds = { fd, event, 0 };
+    return posix::ignore_interruption(::poll, &fds, nfds_t(1), timeout) == 1;
+  }
+
+  bool redirect(posix::fd_t replacement, posix::fd_t original) const noexcept
     { return posix::dup2(replacement, original) && posix::close(replacement); }
 
-  bool write(posix::fd_t fd, vfifo& vq)
+  bool write(posix::fd_t fd, vfifo& vq) const noexcept
     { return !vq.empty() && posix::write(fd, vq.begin(), vq.size()) == vq.size(); }
 
-  bool read(posix::fd_t fd, vfifo& vq)
+  bool read(posix::fd_t fd, vfifo& vq) const noexcept
   {
     volatile ssize_t sz = posix::read(fd, vq.data(), vq.capacity());
     return sz > 0 && vq.resize(sz);
