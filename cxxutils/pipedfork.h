@@ -8,14 +8,6 @@
 // POSIX
 #include <poll.h>
 
-// ADVANCED REALTIME POSIX
-//#include <spawn.h>
-
-#ifdef POSIX_SPAWN_RESETIDS
-# define HAVE_SPAWN_H
-#endif
-
-
 class PipedFork
 {
   enum {
@@ -38,11 +30,7 @@ public:
        ::pipe(ipc_cipo) == posix::error_response ||
        ::pipe(out) == posix::error_response ||
        ::pipe(err) == posix::error_response ||
-#ifdef HAVE_SPAWN_H
-#error TODO: implement version using posix_spawn()
-#else
        (m_pid = ::fork()) <= posix::error_response)
-#endif
     {
       assert(false);
     }
