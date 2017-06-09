@@ -29,7 +29,6 @@ public:
 
 private:
   static void step(void) noexcept;
-  static void run(void) noexcept;
   static lockable<std::queue<vfunc>> ms_signal_queue;
   static std::unordered_multimap<posix::fd_t, std::pair<EventFlags_t, vfdfunc>> ms_fd_signals;
   friend class Object;

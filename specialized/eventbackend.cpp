@@ -16,7 +16,7 @@
 
 #define MAX_EVENTS 32000
 
-
+// FD flags
 inline EventFlags_t from_native_fdflags(const uint32_t flags) noexcept
 {
   EventFlags_t rval;
@@ -28,6 +28,17 @@ inline EventFlags_t from_native_fdflags(const uint32_t flags) noexcept
   return rval;
 }
 
+constexpr uint32_t to_native_fdflags(const EventFlags_t& flags)
+{
+  return
+      (flags.Error        ? uint32_t(EPOLLERR) : 0) |
+      (flags.Disconnected ? uint32_t(EPOLLHUP) : 0) |
+      (flags.Readable     ? uint32_t(EPOLLIN ) : 0) |
+      (flags.Writeable    ? uint32_t(EPOLLOUT) : 0) |
+      (flags.EdgeTrigger  ? uint32_t(EPOLLET ) : 0) ;
+}
+
+// file/directory flags
 inline EventFlags_t from_native_fileflags(const uint32_t flags) noexcept
 {
   EventFlags_t rval;
@@ -47,15 +58,6 @@ constexpr uint32_t to_native_fileflags(const EventFlags_t& flags)
       (flags.Moved        ? uint32_t(IN_MOVE_SELF) : 0) ; // Watched file/directory was itself moved.
 }
 
-constexpr uint32_t to_native_fdflags(const EventFlags_t& flags)
-{
-  return
-      (flags.Error        ? uint32_t(EPOLLERR) : 0) |
-      (flags.Disconnected ? uint32_t(EPOLLHUP) : 0) |
-      (flags.Readable     ? uint32_t(EPOLLIN ) : 0) |
-      (flags.Writeable    ? uint32_t(EPOLLOUT) : 0) |
-      (flags.EdgeTrigger  ? uint32_t(EPOLLET ) : 0) ;
-}
 
 struct platform_dependant
 {
@@ -155,13 +157,8 @@ bool EventBackend::remove(posix::fd_t fd) noexcept
   return errno == posix::success_response;
 }
 
-enum {
-  Read = 0,
-  Write = 1,
-};
+#define INOTIFY_EVENT_SIZE   (sizeof(inotify_event) + NAME_MAX + 1)
 
-#define INOTIFY_EVENT_SIZE   (sizeof(struct inotify_event) + NAME_MAX + 1)
-#include <iostream>
 bool EventBackend::getevents(int timeout) noexcept
 {
   platform->num_events = epoll_wait(platform->m_pollfd, platform->output, MAX_EVENTS, timeout); // wait for new results
@@ -170,30 +167,20 @@ bool EventBackend::getevents(int timeout) noexcept
   if(platform->num_events == posix::error_response) // if error/timeout occurred
     return false; //fail
 
-  union {
-    uint8_t inotifiy_buffer_data[INOTIFY_EVENT_SIZE];
-    struct inotify_event inotifiy_buffer;
-  };
+  uint8_t inotifiy_buffer_data[INOTIFY_EVENT_SIZE * 16]; // queue has a minimum of size of 16 inotify events
 
-  const struct epoll_event* end = platform->output + platform->num_events;
-  for(struct epoll_event* pos = platform->output; pos != end; ++pos) // iterate through results
+  const epoll_event* end = platform->output + platform->num_events;
+  for(epoll_event* pos = platform->output; pos != end; ++pos) // iterate through results
   {
-    if(platform->fsnotify.fds.count(pos->data.fd)) // if a filesystem event
+    if(platform->fsnotify.fds.count(pos->data.fd)) // if an inotify event FD
     {
-      ssize_t bcount = posix::read(pos->data.fd, &inotifiy_buffer, sizeof(INOTIFY_EVENT_SIZE));
-      std::cout << "inotify size: " << (sizeof(struct inotify_event) + inotifiy_buffer.len) << std::endl;
-      std::cout << "inotify bytes: " << bcount << std::endl;
-      results.emplace(posix::fd_t(pos->data.fd), from_native_fileflags(inotifiy_buffer.mask)); // save result (in non-native format)
-
-/*
-      uint8_t* inend = inotifiy_buffer_data + posix::read(pos->data.fd, &inotifiy_buffer, sizeof(INOTIFY_EVENT_SIZE));
       union {
         uint8_t* inpos;
-        struct inotify_event* incur;
+        inotify_event* incur;
       };
-      for(inpos = inotifiy_buffer_data; inpos < inend; inpos += sizeof(struct inotify_event) + incur->len)
-        m_results.emplace(pos->data.fd, from_native_fileflags(inotifiy_buffer.mask)); // save result (in non-native format)
-*/
+      uint8_t* inend = inotifiy_buffer_data + posix::read(pos->data.fd, inotifiy_buffer_data, sizeof(inotifiy_buffer_data)); // read data and locate it's end
+      for(inpos = inotifiy_buffer_data; inpos < inend; inpos += sizeof(inotify_event) + incur->len) // iterate through the inotify events
+        results.emplace(static_cast<posix::fd_t>(pos->data.fd), from_native_fileflags(incur->mask)); // save result (in non-native format)
     }
     else // normal file descriptor event
       results.emplace(posix::fd_t(pos->data.fd), from_native_fdflags(pos->events)); // save result (in non-native format)

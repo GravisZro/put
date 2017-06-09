@@ -14,8 +14,8 @@
 
 // atomic vars are to avoid race conditions
 static std::atomic_int  s_return_value (0);
-static std::atomic_bool s_run (true);
-static posix::fd_t s_pipeio[2] = { posix::invalid_descriptor };
+static std::atomic_bool s_run (true); // quit signal
+static posix::fd_t s_pipeio[2] = { posix::invalid_descriptor }; //  execution stepper pipe
 
 lockable<std::queue<vfunc>> Application::ms_signal_queue;
 std::unordered_multimap<posix::fd_t, std::pair<EventFlags_t, vfdfunc>> Application::ms_fd_signals;
@@ -27,75 +27,78 @@ enum {
 
 Application::Application (void) noexcept
 {
-  if(s_pipeio[Read] == posix::invalid_descriptor)
+  if(s_pipeio[Read] == posix::invalid_descriptor) // if execution stepper pipe  hasn't been initialized yet
   {
-    assert(::pipe(s_pipeio) != posix::error_response);
-    EventBackend::init();
-    EventBackend::watch(s_pipeio[Read], EventFlags::Readable);
+    assert(::pipe(s_pipeio) != posix::error_response); // create execution stepper pipe input/output
+    EventBackend::init(); // initialize event backend
+    EventBackend::watch(s_pipeio[Read], EventFlags::Readable); // watch for when execution stepper pipe has content to read
   }
 }
 
 Application::~Application(void) noexcept
 {
-  EventBackend::destroy();
+  if(s_pipeio[Read] != posix::invalid_descriptor)
+  {
+    EventBackend::destroy(); // shutdown event backend
+    ::close(s_pipeio[Read ]);
+    ::close(s_pipeio[Write]);
+    s_pipeio[Read ] = posix::invalid_descriptor;
+    s_pipeio[Write] = posix::invalid_descriptor;
+  }
 }
 
 void Application::step(void) noexcept
 {
-  static uint8_t dummydata = 0;
-  posix::write(s_pipeio[Write], &dummydata, 1);
+  static uint8_t dummydata = 0; // dummy content
+  posix::write(s_pipeio[Write], &dummydata, 1); // triggers run() to execute
 }
 
 int Application::exec(void) noexcept // non-static function to ensure an instance of Application exists
 {
-  while(s_run)
+  while(s_run) // while not quitting
   {
-    EventBackend::getevents();
-    for(auto pos : EventBackend::results)
+    EventBackend::getevents(); // get event queue
+    for(auto pos : EventBackend::results) // process queued events
     {
       if(pos.first == s_pipeio[Read]) // if this was object enqueue FD
       {
         while(::ioctl(pos.first, I_FLUSH, FLUSHRW) == posix::error_response && // discard the data (it's merely a trigger)
               errno == std::errc::interrupted); // don't be interrupted while flushing the FD channel
-        run(); // execute queue of object signal calls
-      }
-      else
-      {
-        auto entries = ms_fd_signals.equal_range(pos.first); // get all then entries for that FD
-        for_each(entries.first, entries.second, // for each FD
-          [pos](auto& fdsigpair)
+        // execute queue of object signal calls
+        static std::queue<vfunc> exec_queue;
+        if(exec_queue.empty()) // if not currently executing (recursive or multithread exec() calls?)
         {
-          if(fdsigpair.second.first & pos.second) // test to see if the current FD signal pair matches the triggering EventFlag
-            fdsigpair.second.second(pos.first, pos.second); // call the fuction with the FD and triggering EventFlag
-        });
+          ms_signal_queue.lock(); // get exclusive access
+          exec_queue.swap(ms_signal_queue); // swap the queues to prevent race conditions and the need for constant locking/unlocking
+          ms_signal_queue.unlock(); // access is no longer needed
+
+          while(!exec_queue.empty()) // while still have object signals to execute
+          {
+            exec_queue.front()(); // execute current object signal/callback
+            exec_queue.pop(); // discard current object signal
+          }
+        }
+      }
+      else // if this was a watched FD
+      {
+        auto entries = ms_fd_signals.equal_range(pos.first); // get all the callback entries for that FD
+        for_each(entries.first, entries.second, // for each FD
+          [pos](auto& fdsigpair) // executed for each FD signal pair
+          {
+            if(fdsigpair.second.first & pos.second) // test to see if the current FD signal pair matches the triggering EventFlag
+              fdsigpair.second.second(pos.first, pos.second); // call the fuction with the FD and triggering EventFlag
+          });
       }
     }
   }
   return s_return_value; // quit() has been called, return value specified
 }
 
-void Application::run(void) noexcept
+void Application::quit(int return_value) noexcept // soft application exit (allows event queues to complete)
 {
-  static std::queue<vfunc> exec_queue;
-  if(s_run && exec_queue.empty()) // while application is running and not currently executing
+  if(s_run) // if not already quitting
   {
-    ms_signal_queue.lock(); // get exclusive access
-    exec_queue.swap(ms_signal_queue); // swap the queues to prevent race conditions and the need for constant locking/unlocking
-    ms_signal_queue.unlock(); // access is no longer needed
-
-    while(s_run && !exec_queue.empty()) // if haven't quit and still have object signals to execute
-    {
-      exec_queue.front()(); // execute current object signal
-      exec_queue.pop(); // discard current object signal
-    }
-  }
-}
-
-void Application::quit(int return_value) noexcept
-{
-  if(s_run)
-  {
-    s_return_value = return_value;
-    s_run = false;
+    s_return_value = return_value; // set application return value
+    s_run = false; // indicate program must quit
   }
 }
