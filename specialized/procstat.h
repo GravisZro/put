@@ -7,8 +7,6 @@
 // POSIX
 #include <sys/types.h>
 
-struct process_state_t;
-
 enum ExecutionState : char
 {
   Running = 'R',                // actively executing
