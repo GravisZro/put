@@ -26,6 +26,12 @@ enum class EventFlags : uint32_t
   WriteEvent    = 0x0040, // File/directory was written to
   AttributeMod  = 0x0080, // File/directory metadata was modified
   Moved         = 0x0100, // File/directory was moved
+  ExecEvent     = 0x0200, // Process called exec*()
+  ExitEvent     = 0x0400, // Process exited
+  ForkEvent     = 0x0800, // Process forked
+  UIDEvent      = 0x1000, // Process changed its User ID
+  GIDEvent      = 0x2000, // Process changed its Group ID
+  SIDEvent      = 0x4000, // Process changed its Session ID
 };
 static_assert(sizeof(EventFlags) == sizeof(uint32_t), "EventFlags: bad size");
 
@@ -33,22 +39,32 @@ constexpr uint32_t operator |(EventFlags a, EventFlags b)
   { return static_cast<uint32_t>(a) | static_cast<uint32_t>(b); }
 constexpr uint32_t operator &(EventFlags a, EventFlags b)
   { return static_cast<uint32_t>(a) & static_cast<uint32_t>(b); }
+constexpr uint32_t operator >=(EventFlags a, EventFlags b)
+  { return static_cast<uint32_t>(a) >= static_cast<uint32_t>(b); }
 
 struct EventFlags_t
 {
+  // FD events
   uint32_t Error        : 1;
   uint32_t Disconnected : 1;
   uint32_t Readable     : 1;
   uint32_t Writeable    : 1;
   uint32_t EdgeTrigger  : 1;
+  // FS events
   uint32_t ReadEvent    : 1;
   uint32_t WriteEvent   : 1;
   uint32_t AttributeMod : 1;
   uint32_t Moved        : 1;
+  // Proc events
+  uint32_t ExecEvent    : 1;
+  uint32_t ExitEvent    : 1;
+  uint32_t ForkEvent    : 1;
+  uint32_t UIDEvent     : 1;
+  uint32_t GIDEvent     : 1;
+  uint32_t SIDEvent     : 1;
 
   EventFlags_t(EventFlags flags = EventFlags::Invalid) noexcept { *reinterpret_cast<EventFlags*>(this) = flags; }
   operator EventFlags(void) const noexcept { return *reinterpret_cast<const EventFlags*>(this); }
-  //EventFlags_t& operator =(const EventFlags_t other) { *reinterpret_cast<EventFlags*>(this) = other; return *this; }
 };
 static_assert(sizeof(EventFlags_t) == sizeof(EventFlags), "EventFlags_t: bad size");
 
@@ -58,15 +74,15 @@ struct EventBackend // TODO: convert to namespace
   static void init(void) noexcept;
   static void destroy(void) noexcept;
 
-  static posix::fd_t watch(const char* path, EventFlags_t events) noexcept; // returns file descriptor upon success or < 0 upon failure
-  static bool watch(posix::fd_t fd, EventFlags_t events) noexcept; // sets which events to montior in the watch queue
+  static posix::fd_t watch(const char* path, EventFlags_t flags) noexcept; // add file events to montior
+  static posix::fd_t watch(int target, EventFlags_t flags) noexcept; // add FD or process events to montior
 
   static bool remove(posix::fd_t fd) noexcept; // remove from watch queue
 
   static bool getevents(int timeout = -1) noexcept;
 
   static std::multimap<posix::fd_t, EventFlags_t> queue; // watch queue
-  static std::multimap<posix::fd_t, EventFlags_t> results;
+  static std::multimap<posix::fd_t, EventFlags_t> results; // results from getevents()
 
   static struct platform_dependant* platform;
 };

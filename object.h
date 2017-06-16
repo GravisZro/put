@@ -34,7 +34,7 @@ public:
       { if(p == p->self) (static_cast<ObjType*>(p)->*slot)(args...); })); // if ProtoObject is valid (not deleted), call slot
   }
 
-  // connect to a function that accept the object pointer as an argument
+  // connect to a function that accept the object pointer as the first argument
   template<class ObjType, typename RType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, RType(*slot)(ObjType*, ArgTypes...)) noexcept
   {
@@ -62,7 +62,7 @@ public:
   static inline void connect(posix::fd_t fd, EventFlags_t flags, RType(*slot)(posix::fd_t, EventFlags_t)) noexcept
   {
     Application::ms_fd_signals.emplace(std::make_pair(fd, std::make_pair(flags,
-      [slot](posix::fd_t fd, EventFlags_t flags) noexcept { slot(fd, flags); })));
+      [slot](posix::fd_t fd, EventFlags_t _flags) noexcept { slot(fd, _flags); })));
   }
 
 

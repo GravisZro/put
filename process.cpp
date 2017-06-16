@@ -16,6 +16,8 @@
 #include <cstring>
 
 // PDTK
+#include <specialized/procstat.h>
+#include <specialized/eventbackend.h>
 #include <cxxutils/cstringarray.h>
 
 // for debug

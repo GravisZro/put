@@ -58,7 +58,7 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
   while(s_run) // while not quitting
   {
     EventBackend::getevents(); // get event queue
-    for(auto pos : EventBackend::results) // process queued events
+    for(const std::pair<posix::fd_t, EventFlags_t> pos : EventBackend::results) // process queued events
     {
       if(pos.first == s_pipeio[Read]) // if this was object enqueue FD
       {
@@ -83,11 +83,8 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
       {
         auto entries = ms_fd_signals.equal_range(pos.first); // get all the callback entries for that FD
         for_each(entries.first, entries.second, // for each FD
-          [pos](auto& fdsigpair) // executed for each FD signal pair
-          {
-            if(fdsigpair.second.first & pos.second) // test to see if the current FD signal pair matches the triggering EventFlag
-              fdsigpair.second.second(pos.first, pos.second); // call the fuction with the FD and triggering EventFlag
-          });
+          [pos](const std::pair<posix::fd_t, std::pair<EventFlags_t, vfdfunc>>& pair) // executed for each FD signal pair
+            { pair.second.second(pos.first, pos.second); }); // call the fuction with the FD and triggering EventFlag
       }
     }
   }

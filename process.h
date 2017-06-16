@@ -21,12 +21,9 @@
 #include <cxxutils/vfifo.h>
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/pipedfork.h>
-#include <specialized/procstat.h>
-#include <specialized/eventbackend.h>
 
 class Process : public Object,
-                public PipedFork,
-                protected EventBackend
+                public PipedFork
 {
 public:
   enum class State

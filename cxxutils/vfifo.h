@@ -70,7 +70,7 @@ public:
   bool allocate(uint16_t length = 0xFFFF) noexcept
   {
     m_data.reset(new char[length]);
-    memset(m_data.get(), 0, length);
+    std::memset(m_data.get(), 0, length);
 
     m_capacity = length;
     resize(0);
