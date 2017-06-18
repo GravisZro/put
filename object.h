@@ -50,20 +50,29 @@ public:
 
   // connect a file descriptor event to an object member function
   template<class ObjType, typename RType>
-  static inline void connect(posix::fd_t fd, EventFlags_t flags, ObjType* obj, RType(ObjType::*slot)(posix::fd_t, EventFlags_t)) noexcept
+  static inline void connect(posix::fd_t fd, EventFlags_t flags, ObjType* obj, RType(ObjType::*slot)(posix::fd_t, EventData_t)) noexcept
   {
     Application::ms_fd_signals.emplace(std::make_pair(fd, std::make_pair(flags,
-      [obj, slot](posix::fd_t _fd, EventFlags_t _flags) noexcept
-        { if(obj == obj->self) (obj->*slot)(_fd, _flags); }))); // if ProtoObject is valid (not deleted), call slot
+      [obj, slot](posix::fd_t _fd, EventData_t data) noexcept
+        { if(obj == obj->self) (obj->*slot)(_fd, data); }))); // if ProtoObject is valid (not deleted), call slot
   }
+
+  template<class ObjType, typename RType>
+  static inline void connect(posix::fd_t fd, ObjType* obj, RType(ObjType::*slot)(posix::fd_t, EventData_t)) noexcept
+    { connect(fd, EventFlags::Readable, obj, slot); }
+
 
   // connect a file descriptor event to a function
   template<typename RType>
-  static inline void connect(posix::fd_t fd, EventFlags_t flags, RType(*slot)(posix::fd_t, EventFlags_t)) noexcept
+  static inline void connect(posix::fd_t fd, EventFlags_t flags, RType(*slot)(posix::fd_t, EventData_t)) noexcept
   {
     Application::ms_fd_signals.emplace(std::make_pair(fd, std::make_pair(flags,
-      [slot](posix::fd_t fd, EventFlags_t _flags) noexcept { slot(fd, _flags); })));
+      [slot](posix::fd_t fd, EventData_t data) noexcept { slot(fd, data); })));
   }
+
+  template<typename RType>
+  static inline void connect(posix::fd_t fd, RType(*slot)(posix::fd_t, EventData_t)) noexcept
+    { connect(fd, EventFlags::Readable, slot); }
 
 
   // enqueue a call to the functions connected to the signal
