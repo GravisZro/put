@@ -23,15 +23,15 @@
 #define MAX_EVENTS 2048
 
 // FD flags
-inline EventFlags_t from_native_fdflags(const uint32_t flags) noexcept
+inline EventData_t from_native_fdflags(const uint32_t flags) noexcept
 {
-  EventFlags_t rval;
-  rval.Error        = flags & EPOLLERR ? 1 : 0;
-  rval.Disconnected = flags & EPOLLHUP ? 1 : 0;
-  rval.Readable     = flags & EPOLLIN  ? 1 : 0;
-  rval.Writeable    = flags & EPOLLOUT ? 1 : 0;
-  rval.EdgeTrigger  = flags & EPOLLET  ? 1 : 0;
-  return rval;
+  EventData_t data;
+  data.flags.Error        = flags & EPOLLERR ? 1 : 0;
+  data.flags.Disconnected = flags & EPOLLHUP ? 1 : 0;
+  data.flags.Readable     = flags & EPOLLIN  ? 1 : 0;
+  data.flags.Writeable    = flags & EPOLLOUT ? 1 : 0;
+  data.flags.EdgeTrigger  = flags & EPOLLET  ? 1 : 0;
+  return data;
 }
 
 constexpr uint32_t to_native_fdflags(const EventFlags_t& flags)
@@ -45,14 +45,14 @@ constexpr uint32_t to_native_fdflags(const EventFlags_t& flags)
 }
 
 // file/directory flags
-inline EventFlags_t from_native_fileflags(const uint32_t flags) noexcept
+inline EventData_t from_native_fileflags(const uint32_t flags) noexcept
 {
-  EventFlags_t rval;
-  rval.ReadEvent    = flags & IN_ACCESS    ? 1 : 0;
-  rval.WriteEvent   = flags & IN_MODIFY    ? 1 : 0;
-  rval.AttributeMod = flags & IN_ATTRIB    ? 1 : 0;
-  rval.Moved        = flags & IN_MOVE_SELF ? 1 : 0;
-  return rval;
+  EventData_t data;
+  data.flags.ReadEvent    = flags & IN_ACCESS    ? 1 : 0;
+  data.flags.WriteEvent   = flags & IN_MODIFY    ? 1 : 0;
+  data.flags.AttributeMod = flags & IN_ATTRIB    ? 1 : 0;
+  data.flags.Moved        = flags & IN_MOVE_SELF ? 1 : 0;
+  return data;
 }
 
 constexpr uint32_t to_native_fileflags(const EventFlags_t& flags)
@@ -188,7 +188,7 @@ struct platform_dependant
       sa_nl.nl_pid = getpid();
       int binderr = ::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl));
       if(binderr == posix::error_response)
-        perror("Process Events Connector requires root access");
+        perror("Process Events Connector requires root level access");
       else
       {
         struct alignas(NLMSG_ALIGNTO) // 32-bit alignment
@@ -212,7 +212,7 @@ struct platform_dependant
         procconn.operation = PROC_CN_MCAST_LISTEN;
 
         if(::send(fd, &procconn, sizeof(procconn), 0) == posix::error_response)
-          perror("Failed to enable Process Events Connector notifications.");
+          perror("Failed to enable Process Events Connector notifications");
       }
     }
 
@@ -245,7 +245,7 @@ struct platform_dependant
 };
 
 std::multimap<posix::fd_t, EventFlags_t> EventBackend::queue; // watch queue
-std::multimap<posix::fd_t, EventFlags_t> EventBackend::results;
+std::multimap<posix::fd_t, EventData_t> EventBackend::results;
 
 struct platform_dependant* EventBackend::platform = nullptr;
 
@@ -351,10 +351,15 @@ bool EventBackend::getevents(int timeout) noexcept
         EventFlags_t flags = from_native_procflags(procnote.event.what);
         auto entries = platform->procnotify.events.equal_range(procnote.event.event_data.id.process_pid); // get all the entries for that PID
         for_each(entries.first, entries.second, // for each matching PID entry
-          [flags](const std::pair<pid_t, proc_fd>& pair)
+          [procnote, flags](const std::pair<pid_t, proc_fd>& pair)
           {
             if(pair.second.read_flags() & flags) // test to see if the current process matches the triggering EventFlag
-              results.emplace(pair.second, flags);
+              results.emplace(pair.second,
+                EventData_t(flags,
+                 procnote.event.event_data.exit.process_pid,
+                 procnote.event.event_data.exit.process_tgid,
+                 procnote.event.event_data.exit.exit_code,
+                 procnote.event.event_data.exit.exit_signal));
           });
       }
     }

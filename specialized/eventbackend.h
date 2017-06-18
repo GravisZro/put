@@ -68,6 +68,47 @@ struct EventFlags_t
 };
 static_assert(sizeof(EventFlags_t) == sizeof(EventFlags), "EventFlags_t: bad size");
 
+struct EventData_t
+{
+  EventFlags_t flags;
+  pid_t pid;  // process id
+  pid_t tgid; // thread group id
+  union
+  {
+    struct
+    {
+      uint32_t event_op1;
+      uint32_t event_op2;
+    };
+
+    struct
+    {
+      uint32_t exit_code;
+      uint32_t exit_signal;
+    };
+
+    struct
+    {
+      pid_t child_pid;
+      pid_t child_tgid;
+    };
+
+    struct
+    {
+      uint32_t gid;
+      uint32_t egid;
+    };
+
+    struct
+    {
+      uint32_t uid;
+      uint32_t euid;
+    };
+  };
+
+  EventData_t(EventFlags_t _flags = EventFlags::Invalid, uint32_t _pid = 0, uint32_t _tgid = 0, uint32_t op1 = 0, uint32_t op2 = 0)
+    : flags(_flags), pid(_pid), tgid(_tgid), event_op1(op1), event_op2(op2) { }
+};
 
 struct EventBackend // TODO: convert to namespace
 {
@@ -82,7 +123,7 @@ struct EventBackend // TODO: convert to namespace
   static bool getevents(int timeout = -1) noexcept;
 
   static std::multimap<posix::fd_t, EventFlags_t> queue; // watch queue
-  static std::multimap<posix::fd_t, EventFlags_t> results; // results from getevents()
+  static std::multimap<posix::fd_t, EventData_t> results; // results from getevents()
 
   static struct platform_dependant* platform;
 };
