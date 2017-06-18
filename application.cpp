@@ -58,7 +58,7 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
   while(s_run) // while not quitting
   {
     EventBackend::getevents(); // get event queue
-    for(const std::pair<posix::fd_t, EventFlags_t> pos : EventBackend::results) // process queued events
+    for(const std::pair<posix::fd_t, EventData_t> pos : EventBackend::results) // process queued events
     {
       if(pos.first == s_pipeio[Read]) // if this was object enqueue FD
       {

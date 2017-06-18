@@ -15,7 +15,7 @@ template<typename T>
 struct lockable : T, std::mutex
   { template<typename... ArgTypes> constexpr lockable(ArgTypes... args) noexcept : T(args...) { } };
 using vfunc = std::function<void()>;
-using vfdfunc = std::function<void(posix::fd_t, EventFlags_t)>;
+using vfdfunc = std::function<void(posix::fd_t, EventData_t)>;
 
 class Application
 {
