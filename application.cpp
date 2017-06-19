@@ -83,7 +83,7 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
       {
         auto entries = ms_fd_signals.equal_range(pos.first); // get all the callback entries for that FD
         for_each(entries.first, entries.second, // for each FD
-          [pos](const std::pair<posix::fd_t, std::pair<EventFlags_t, vfdfunc>>& pair) // executed for each FD signal pair
+          [&pos](const std::pair<posix::fd_t, std::pair<EventFlags_t, vfdfunc>>& pair) // executed for each FD signal pair
             { pair.second.second(pos.first, pos.second); }); // call the fuction with the FD and triggering EventFlag
       }
     }

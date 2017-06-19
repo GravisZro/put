@@ -20,9 +20,6 @@
 #include <specialized/eventbackend.h>
 #include <cxxutils/cstringarray.h>
 
-// for debug
-#include <iostream>
-
 enum class command : uint8_t
 {
   invoke = 0,
@@ -46,8 +43,8 @@ Process::Process(void) noexcept
   : m_state(State::Initializing),
     m_error(Error::None)
 {
-  Object::connect(EventBackend::watch(processId(), EventFlags::ExitEvent), finished);
   Object::connect(EventBackend::watch(processId(), EventFlags::ExecEvent), started);
+  Object::connect(EventBackend::watch(processId(), EventFlags::ExitEvent), finished);
 }
 
 Process::~Process(void) noexcept

@@ -351,7 +351,7 @@ bool EventBackend::getevents(int timeout) noexcept
         EventFlags_t flags = from_native_procflags(procnote.event.what);
         auto entries = platform->procnotify.events.equal_range(procnote.event.event_data.id.process_pid); // get all the entries for that PID
         for_each(entries.first, entries.second, // for each matching PID entry
-          [procnote, flags](const std::pair<pid_t, proc_fd>& pair)
+          [&procnote, flags](const std::pair<pid_t, proc_fd>& pair)
           {
             if(pair.second.read_flags() & flags) // test to see if the current process matches the triggering EventFlag
               results.emplace(pair.second,
