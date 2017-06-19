@@ -61,6 +61,25 @@ public:
   static inline void connect(posix::fd_t fd, ObjType* obj, RType(ObjType::*slot)(posix::fd_t, EventData_t)) noexcept
     { connect(fd, EventFlags::Readable, obj, slot); }
 
+  // connect an file descriptor event to a signal
+  static inline void connect(posix::fd_t fd, EventFlags_t flags, signal<posix::fd_t, EventData_t>& sig) noexcept
+  {
+    Application::ms_fd_signals.emplace(std::make_pair(fd, std::make_pair(flags,
+      [sig](posix::fd_t _fd, EventData_t _data) noexcept
+      {
+        if(!sig.empty()) // ensure that invalid signals are not enqueued
+        {
+          std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::ms_signal_queue); // multithread protection
+          for(auto sigpair : sig) // iterate through all connected slots
+            Application::ms_signal_queue.emplace(std::bind(sigpair.second, sigpair.first, _fd, _data));
+          Application::step(); // inform execution stepper
+        }
+      })));
+  }
+
+  static inline void connect(posix::fd_t fd, signal<posix::fd_t, EventData_t>& sig) noexcept
+    { connect(fd, EventFlags::Readable, sig); }
+
 
   // connect a file descriptor event to a function
   template<typename RType>
@@ -94,6 +113,20 @@ public:
   template<typename... ArgTypes>
   static inline bool enqueue_copy(signal<ArgTypes...>& sig, ArgTypes... args) noexcept
     { return enqueue(sig, args...);}
+
+  template<typename... ArgTypes>
+  static inline bool enqueue_signal(signal<ArgTypes...>& sig, ArgTypes&... args) noexcept
+  {
+    if(!sig.empty()) // ensure that invalid signals are not enqueued
+    {
+      std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::ms_signal_queue); // multithread protection
+      for(auto sigpair : sig) // iterate through all connected slots
+        Application::ms_signal_queue.emplace(std::bind(sigpair.second, sigpair.first, args...));
+      Application::step(); // inform execution stepper
+      return true;
+    }
+    return false;
+  }
 };
 
 #endif // OBJECT_H
