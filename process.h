@@ -20,10 +20,10 @@
 #include <object.h>
 #include <cxxutils/vfifo.h>
 #include <cxxutils/posix_helpers.h>
-#include <cxxutils/pipedfork.h>
+#include <cxxutils/pipedspawn.h>
 
 class Process : public Object,
-                public PipedFork
+                public PipedSpawn
 {
 public:
   enum class State
@@ -80,7 +80,7 @@ public:
   State state(void) noexcept;
   Error error(void) const noexcept { return m_error; }
 
-  bool start     (void) noexcept;
+  bool invoke    (void) noexcept;
   bool sendSignal(posix::signal::EId id, int value = 0) const noexcept;
 
   void stop      (void) const noexcept { sendSignal(posix::signal::Stop     ); }
@@ -90,18 +90,16 @@ public:
   void terminate (void) const noexcept { sendSignal(posix::signal::Terminate); }
   void kill      (void) const noexcept { sendSignal(posix::signal::Kill     ); }
 
-  signal<> started;
-  signal<int> finished;
-
+  signal<posix::fd_t, EventData_t> stdoutMessage;
+  signal<posix::fd_t, EventData_t> stderrMessage;
+  signal<posix::fd_t, EventData_t> started;
+  signal<posix::fd_t, EventData_t> finished;
 private:
   bool write_then_read(void) noexcept;
   vfifo m_iobuf;
 
   State m_state;
   Error m_error;
-
-  static void reaper(int sig) noexcept;
-  static void init_once(void) noexcept;
 };
 
 #endif // PROCESS_H
