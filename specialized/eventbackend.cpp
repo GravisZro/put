@@ -90,7 +90,7 @@ constexpr uint32_t to_native_procflags(const EventFlags_t& flags)
 
 struct proc_fd
 {
-  uint32_t msb : 1;
+  uint32_t isProcess : 1;
   uint32_t flags_upper : 2;
   uint32_t flags_lower : 13;
   uint32_t pid : 16;
@@ -99,7 +99,7 @@ struct proc_fd
     { *reinterpret_cast<uint32_t*>(this) = val; }
 
   proc_fd(const uint32_t _pid, const EventFlags_t& flags) noexcept
-    : msb(1), pid(_pid)
+    : isProcess(1), pid(_pid)
     { write_flags(flags); }
 
   EventFlags_t read_flags(void) const noexcept
@@ -233,8 +233,13 @@ struct platform_dependant
 
     bool remove(posix::fd_t _fd) noexcept
     {
-      if(!events.erase(proc_fd(_fd).pid))
+      auto entries = events.equal_range(proc_fd(_fd).pid); // get all the entries for that PID
+      if(entries.first == entries.second)
         return false;
+
+      for(auto pos = entries.first; pos != entries.second; ++pos)
+        if(pos->second == fd)
+          events.erase(pos);
 
       // add filter removal code here
 
@@ -244,8 +249,8 @@ struct platform_dependant
 
 };
 
-std::multimap<posix::fd_t, EventFlags_t> EventBackend::queue; // watch queue
-std::multimap<posix::fd_t, EventData_t> EventBackend::results;
+std::unordered_multimap<posix::fd_t, EventFlags_t> EventBackend::queue; // watch queue
+std::unordered_multimap<posix::fd_t, EventData_t> EventBackend::results; // results from getevents()
 
 struct platform_dependant* EventBackend::platform = nullptr;
 
@@ -277,40 +282,36 @@ posix::fd_t EventBackend::watch(const char* path, EventFlags_t flags) noexcept
 
 posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
 {
-  posix::fd_t fd = 0;
   if(flags >= EventFlags::ExecEvent)
-  {
-    fd = platform->procnotify.watch(target, flags);
-    flags = EventFlags::Readable;
-  }
-  else
-    fd = target;
-
+    return platform->procnotify.watch(target, flags);
   struct epoll_event native_event;
-  native_event.data.fd = fd;
+  native_event.data.fd = target;
   native_event.events = to_native_fdflags(flags); // be sure to convert to native events
-  auto iter = queue.find(fd); // search queue for FD
+  auto iter = queue.find(target); // search queue for FD
   if(iter != queue.end()) // entry exists for FD
   {
-    if(epoll_ctl(platform->pollnotify.fd, EPOLL_CTL_MOD, fd, &native_event) == posix::success_response || // try to modify FD first
-       (errno == ENOENT && epoll_ctl(platform->pollnotify.fd, EPOLL_CTL_ADD, fd, &native_event) == posix::success_response)) // error: FD not added, so try adding
+    if(epoll_ctl(platform->pollnotify.fd, EPOLL_CTL_MOD, target, &native_event) == posix::success_response || // try to modify FD first
+       (errno == ENOENT && epoll_ctl(platform->pollnotify.fd, EPOLL_CTL_ADD, target, &native_event) == posix::success_response)) // error: FD not added, so try adding
     {
       iter->second = flags; // set value of existing entry
       posix::success();
     }
   }
-  else if(epoll_ctl(platform->pollnotify.fd, EPOLL_CTL_ADD, fd, &native_event) == posix::success_response || // try adding FD first
-          (errno == EEXIST && epoll_ctl(platform->pollnotify.fd, EPOLL_CTL_MOD, fd, &native_event) == posix::success_response)) // error: FD already added, so try modifying
+  else if(epoll_ctl(platform->pollnotify.fd, EPOLL_CTL_ADD, target, &native_event) == posix::success_response || // try adding FD first
+          (errno == EEXIST && epoll_ctl(platform->pollnotify.fd, EPOLL_CTL_MOD, target, &native_event) == posix::success_response)) // error: FD already added, so try modifying
   {
-    queue.emplace(fd, flags); // create a new entry
+    queue.emplace(target, flags); // create a new entry
     posix::success();
   }
 
-  return fd;
+  return target;
 }
+
 
 bool EventBackend::remove(posix::fd_t fd) noexcept
 {
+  if(proc_fd(fd).isProcess)
+    return platform->procnotify.remove(fd);
   struct epoll_event event;
   auto iter = queue.find(fd); // search queue for FD
   if(iter == queue.end() && // entry exists for FD
@@ -320,6 +321,7 @@ bool EventBackend::remove(posix::fd_t fd) noexcept
 }
 
 #define INOTIFY_EVENT_SIZE   (sizeof(inotify_event) + NAME_MAX + 1)
+#include <iostream>
 
 bool EventBackend::getevents(int timeout) noexcept
 {
@@ -346,21 +348,32 @@ bool EventBackend::getevents(int timeout) noexcept
         };
       } procnote;
 
-      if(::recv(platform->procnotify.fd, &procnote, sizeof(procnote), 0) > 0)
+      pollfd fds = { pos->data.fd, POLLIN, 0 };
+      while(posix::ignore_interruption(::poll, &fds, nfds_t(1), 0) > 0) // while there are more messages
       {
-        EventFlags_t flags = from_native_procflags(procnote.event.what);
-        auto entries = platform->procnotify.events.equal_range(procnote.event.event_data.id.process_pid); // get all the entries for that PID
-        for_each(entries.first, entries.second, // for each matching PID entry
-          [&procnote, flags](const std::pair<pid_t, proc_fd>& pair)
+        //std::cout << std::endl << "more";
+        if(posix::ignore_interruption(::recv, platform->procnotify.fd, reinterpret_cast<void*>(&procnote), sizeof(procnote), 0) > 0)
+        {
+          //std::cout << std::endl << "found: " << procnote.event.event_data.id.process_pid;
+
+          EventFlags_t flags = from_native_procflags(procnote.event.what);
+          auto entries = platform->procnotify.events.equal_range(procnote.event.event_data.id.process_pid); // get all the entries for that PID
+          if(entries.first != entries.second)
           {
-            if(pair.second.read_flags() & flags) // test to see if the current process matches the triggering EventFlag
-              results.emplace(pair.second,
-                EventData_t(flags,
-                 procnote.event.event_data.exit.process_pid,
-                 procnote.event.event_data.exit.process_tgid,
-                 procnote.event.event_data.exit.exit_code,
-                 procnote.event.event_data.exit.exit_signal));
-          });
+            std::cout << std::endl << "process: " << procnote.event.event_data.id.process_pid;
+          }
+          for_each(entries.first, entries.second, // for each matching PID entry
+            [&procnote, flags](const std::pair<pid_t, proc_fd>& pair)
+            {
+              if(pair.second.read_flags() & flags) // test to see if the current process matches the triggering EventFlag
+                results.emplace(pair.second,
+                  EventData_t(flags,
+                   procnote.event.event_data.exit.process_pid,
+                   procnote.event.event_data.exit.process_tgid,
+                   procnote.event.event_data.exit.exit_code,
+                   procnote.event.event_data.exit.exit_signal));
+            });
+        }
       }
     }
     else if(platform->fsnotify.fds.find(pos->data.fd) != platform->fsnotify.fds.end()) // if an inotify event

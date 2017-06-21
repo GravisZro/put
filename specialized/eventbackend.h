@@ -7,7 +7,7 @@
 #include <sys/types.h>
 
 // STL
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 // PDTK
@@ -122,8 +122,8 @@ struct EventBackend // TODO: convert to namespace
 
   static bool getevents(int timeout = -1) noexcept;
 
-  static std::multimap<posix::fd_t, EventFlags_t> queue; // watch queue
-  static std::multimap<posix::fd_t, EventData_t> results; // results from getevents()
+  static std::unordered_multimap<posix::fd_t, EventFlags_t> queue; // watch queue
+  static std::unordered_multimap<posix::fd_t, EventData_t> results; // results from getevents()
 
   static struct platform_dependant* platform;
 };
