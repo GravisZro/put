@@ -1,6 +1,7 @@
 #include "process.h"
 
 // POSIX
+#include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/resource.h>
@@ -39,10 +40,55 @@ enum class command : uint8_t
 static inline vfifo& operator << (vfifo& vq, command cmd) noexcept
 { return vq << static_cast<uint8_t>(cmd); }
 
+static std::unordered_map<pid_t, Process*> process_map; // do not try to own Process memory
+
+void Process::init_once(void) noexcept
+{
+  static bool ok = true;
+  if(ok)
+  {
+    ok = false;
+    struct sigaction actions;
+    actions.sa_handler = &reaper;
+    ::sigemptyset(&actions.sa_mask);
+    actions.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+
+    if(::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response)
+    {
+      ::perror("An 'impossible' situation has occurred.");
+      ::exit(1);
+    }
+  }
+}
+
+void Process::reaper(int sig) noexcept
+{
+  assert(sig == SIGCHLD); // there should only be one way to get here, so be sure there is no funny business
+  pid_t pid = posix::error_response; // set value just in case
+  int status = 0;
+  while((pid = ::waitpid(pid_t(-1), &status, WNOHANG)) != posix::error_response) // get the next dead process (if there is one)... while the currently reaped process was valid
+  {
+    auto process_map_iter = process_map.find(pid); // find dead process
+    if(process_map_iter != process_map.end()) // if the dead process exists...
+    {
+      Process* p = process_map_iter->second;
+      EventBackend::remove(p->getStdOut());
+      EventBackend::remove(p->getStdErr());
+      ::close(p->getStdOut());
+      ::close(p->getStdErr());
+      ::close(p->getStdIn());
+      p->m_state = Process::State::Finished;
+      process_map.erase(process_map_iter); // remove finished process from the process map
+    }
+  }
+}
+
 Process::Process(void) noexcept
   : m_state(State::Initializing),
     m_error(Error::None)
 {
+  init_once();
+  process_map.emplace(processId(), this); // add self to process map
   Object::connect(EventBackend::watch(processId(), EventFlags::ExecEvent), started);
   Object::connect(EventBackend::watch(processId(), EventFlags::ExitEvent), finished);
 }
@@ -200,13 +246,14 @@ bool Process::invoke(void) noexcept
 
 Process::State Process::state(void) noexcept
 {
-  if(m_state != State::Finished) // if the process hasn't been reaped already
+  switch(m_state)
   {
-    process_state_t data;
-    if(!::procstat(PipedSpawn::processId(), data)) // check if running
-      m_state = State::Invalid; // if not running
-    else if(m_state != State::Initializing) // if not in the process loader stub
-    {
+    case State::Finished:
+    case State::Initializing:
+      break;
+    default:
+      process_state_t data;
+      assert(::procstat(PipedSpawn::processId(), data)); // process _must_ exist
       switch (data.state)
       {
         case WaitingInterruptable:
@@ -216,7 +263,6 @@ Process::State Process::state(void) noexcept
         case Stopped: m_state = State::Stopped; break;
         case Running: m_state = State::Running; break;
       }
-    }
   }
   return m_state;
 }

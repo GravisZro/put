@@ -100,6 +100,9 @@ private:
 
   State m_state;
   Error m_error;
+
+  static void reaper(int sig) noexcept;
+  static void init_once(void) noexcept;
 };
 
 #endif // PROCESS_H
