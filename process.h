@@ -37,18 +37,6 @@ public:
     Finished,     // process executed and exited
   };
 
-  enum class Error
-  {
-    None = 0,       // No error has occurred. This is the default return value of error().
-    Unknown,        // An unknown error occurred.
-    FailedToStart,  // process failed to start. Either the invoked program is missing, or you may have insufficient permissions to invoke the program.
-    Crashed,        // process crashed some time after starting successfully.
-    Killed,         // process was killed some time after starting successfully.
-    Timedout,       // The last waitFor...() function timed out.
-    Write,          // An error occurred when attempting to write to the process.
-    Read,           // An error occurred when attempting to read from the process.
-  };
-
   enum class Resource : int
   {
     CoreDumpSize    = RLIMIT_CORE,    // Limit on size of core file.
@@ -78,7 +66,6 @@ public:
   bool setPriority(int nval) noexcept;
 
   State state(void) noexcept;
-  Error error(void) const noexcept { return m_error; }
 
   bool invoke    (void) noexcept;
   bool sendSignal(posix::signal::EId id, int value = 0) const noexcept;
@@ -99,7 +86,6 @@ private:
   vfifo m_iobuf;
 
   State m_state;
-  Error m_error;
 
   static void reaper(int sig) noexcept;
   static void init_once(void) noexcept;
