@@ -74,7 +74,7 @@ void Process::reaper(int sig) noexcept
     {
       Process* p = process_map_iter->second;
 #ifndef ENABLE_PROCESS_EVENT_TRACKING
-      Object::enqueue_copy(p->finished, posix::error_response, EventData_t(EventFlags::ExitEvent, p->processId(), p->processId(), status, sig));
+      Object::enqueue_copy(p->finished, posix::invalid_descriptor, EventData_t(EventFlags::ExitEvent, p->processId(), p->processId(), status, sig));
 #endif
       EventBackend::remove(p->getStdOut());
       EventBackend::remove(p->getStdErr());
@@ -241,7 +241,7 @@ bool Process::invoke(void) noexcept
   state();
 
 #ifndef ENABLE_PROCESS_EVENT_TRACKING
-  Object::enqueue_copy(started, posix::error_response, EventData_t(EventFlags::ExecEvent, processId(), processId()));
+  Object::enqueue_copy(started, posix::invalid_descriptor, EventData_t(EventFlags::ExecEvent, processId(), processId()));
 #endif
 
   Object::connect(EventBackend::watch(getStdOut()), stdoutMessage);
