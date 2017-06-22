@@ -44,15 +44,19 @@ enum class EventFlags : uint32_t
 };
 static_assert(sizeof(EventFlags) == sizeof(uint32_t), "EventFlags: bad size");
 
-template<typename itype>
-constexpr uint32_t operator |(EventFlags a, itype b)
+template<typename itype> constexpr uint32_t operator |(EventFlags a, itype b)
+  { return static_cast<EventFlags>(a) | static_cast<EventFlags>(b); }
+template<typename itype> constexpr uint32_t operator &(EventFlags a, itype b)
+  { return static_cast<EventFlags>(a) & static_cast<EventFlags>(b); }
+template<typename itype> constexpr uint32_t operator >=(EventFlags a, itype b)
+  { return static_cast<EventFlags>(a) >= static_cast<EventFlags>(b); }
+template<typename itype> constexpr uint32_t operator |(EventFlags a, EventFlags b)
   { return static_cast<uint32_t>(a) | static_cast<uint32_t>(b); }
-template<typename itype>
-constexpr uint32_t operator &(EventFlags a, itype b)
+template<typename itype> constexpr uint32_t operator &(EventFlags a, EventFlags b)
   { return static_cast<uint32_t>(a) & static_cast<uint32_t>(b); }
-template<typename itype>
-constexpr uint32_t operator >=(EventFlags a, itype b)
+template<typename itype> constexpr uint32_t operator >=(EventFlags a, EventFlags b)
   { return static_cast<uint32_t>(a) >= static_cast<uint32_t>(b); }
+
 
 struct EventFlags_t
 {

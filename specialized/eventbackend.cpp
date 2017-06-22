@@ -121,11 +121,11 @@ struct platform_dependant
   struct pollnotify_t // poll notification (epoll)
   {
     posix::fd_t fd;
+    std::unordered_multimap<posix::fd_t, EventFlags_t>& fds;
     struct epoll_event output[MAX_EVENTS];
-    int output_count;
 
     pollnotify_t(void) noexcept
-      : fd(0), output_count(0)
+      : fd(posix::invalid_descriptor), fds(EventBackend::queue)
     {
       fd = epoll_create(MAX_EVENTS);
       flaw(fd == posix::invalid_descriptor,
@@ -138,6 +138,48 @@ struct platform_dependant
       fd = posix::invalid_descriptor;
     }
 
+    int wait(int timeout)
+    {
+      return ::epoll_wait(fd, output, MAX_EVENTS, timeout); // wait for new results
+    }
+
+    posix::fd_t watch(posix::fd_t wd, EventFlags_t flags) noexcept
+    {
+      struct epoll_event native_event;
+      native_event.data.fd = wd;
+      native_event.events = to_native_fdflags(flags); // be sure to convert to native events
+      auto iter = fds.find(wd); // search queue for FD
+      if(iter != fds.end()) // entry exists for FD
+      {
+        if(epoll_ctl(fd, EPOLL_CTL_MOD, wd, &native_event) == posix::success_response || // try to modify FD first
+           (errno == ENOENT && epoll_ctl(fd, EPOLL_CTL_ADD, wd, &native_event) == posix::success_response)) // error: FD not added, so try adding
+        {
+          iter->second = flags; // set value of existing entry
+          posix::success();
+        }
+      }
+      else if(epoll_ctl(fd, EPOLL_CTL_ADD, wd, &native_event) == posix::success_response || // try adding FD first
+              (errno == EEXIST && epoll_ctl(fd, EPOLL_CTL_MOD, wd, &native_event) == posix::success_response)) // error: FD already added, so try modifying
+      {
+        fds.emplace(wd, flags); // create a new entry
+        posix::success();
+      }
+      return wd;
+    }
+
+    bool remove(posix::fd_t wd) noexcept
+    {
+      struct epoll_event event;
+      auto iter = fds.find(wd); // search queue for FD
+      if(iter == fds.end() && // entry exists for FD
+         epoll_ctl(fd, EPOLL_CTL_DEL, wd, &event) == posix::success_response) // try to delete entry
+      {
+        fds.erase(iter); // remove entry for FD
+        return true;
+      }
+      return false;
+    }
+
   } pollnotify;
 
   struct fsnotify_t // file notification (inotify)
@@ -146,6 +188,7 @@ struct platform_dependant
     std::set<posix::fd_t> fds;
 
     fsnotify_t(void) noexcept
+      : fd(posix::invalid_descriptor)
     {
       fd = inotify_init();
       flaw(fd == posix::invalid_descriptor,
@@ -181,6 +224,7 @@ struct platform_dependant
     std::unordered_multimap<pid_t, proc_fd> events;
 
     procnotify_t(void) noexcept
+      : fd(posix::invalid_descriptor)
     {
       fd = ::socket(PF_NETLINK, SOCK_DGRAM, NETLINK_CONNECTOR);
       flaw(fd == posix::invalid_descriptor,
@@ -288,31 +332,13 @@ posix::fd_t EventBackend::watch(const char* path, EventFlags_t flags) noexcept
 
 posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
 {
-#ifdef ENABLE_PROCESS_EVENT_TRACKING
   if(flags >= EventFlags::ExecEvent)
+#ifdef ENABLE_PROCESS_EVENT_TRACKING
     return platform->procnotify.watch(target, flags);
+#else
+    return posix::invalid_descriptor;
 #endif
-  struct epoll_event native_event;
-  native_event.data.fd = target;
-  native_event.events = to_native_fdflags(flags); // be sure to convert to native events
-  auto iter = queue.find(target); // search queue for FD
-  if(iter != queue.end()) // entry exists for FD
-  {
-    if(epoll_ctl(platform->pollnotify.fd, EPOLL_CTL_MOD, target, &native_event) == posix::success_response || // try to modify FD first
-       (errno == ENOENT && epoll_ctl(platform->pollnotify.fd, EPOLL_CTL_ADD, target, &native_event) == posix::success_response)) // error: FD not added, so try adding
-    {
-      iter->second = flags; // set value of existing entry
-      posix::success();
-    }
-  }
-  else if(epoll_ctl(platform->pollnotify.fd, EPOLL_CTL_ADD, target, &native_event) == posix::success_response || // try adding FD first
-          (errno == EEXIST && epoll_ctl(platform->pollnotify.fd, EPOLL_CTL_MOD, target, &native_event) == posix::success_response)) // error: FD already added, so try modifying
-  {
-    queue.emplace(target, flags); // create a new entry
-    posix::success();
-  }
-
-  return target;
+  return platform->pollnotify.watch(target, flags);
 }
 
 
@@ -322,27 +348,23 @@ bool EventBackend::remove(posix::fd_t fd) noexcept
   if(proc_fd(fd).isProcess)
     return platform->procnotify.remove(fd);
 #endif
-  struct epoll_event event;
-  auto iter = queue.find(fd); // search queue for FD
-  if(iter == queue.end() && // entry exists for FD
-     epoll_ctl(platform->pollnotify.fd, EPOLL_CTL_DEL, fd, &event) == posix::success_response) // try to delete entry
-    queue.erase(iter); // remove entry for FD
-  return errno == posix::success_response;
+  return platform->pollnotify.remove(fd) &&
+      errno == posix::success_response;
 }
 
 #define INOTIFY_EVENT_SIZE   (sizeof(inotify_event) + NAME_MAX + 1)
 
 bool EventBackend::getevents(int timeout) noexcept
 {
-  platform->pollnotify.output_count = epoll_wait(platform->pollnotify.fd, platform->pollnotify.output, MAX_EVENTS, timeout); // wait for new results
+  int count = platform->pollnotify.wait(timeout);
   results.clear(); // clear old results
 
-  if(platform->pollnotify.output_count == posix::error_response) // if error/timeout occurred
+  if(count == posix::error_response) // if error/timeout occurred
     return false; //fail
 
   uint8_t inotifiy_buffer_data[INOTIFY_EVENT_SIZE * 16]; // queue has a minimum of size of 16 inotify events
 
-  const epoll_event* end = platform->pollnotify.output + platform->pollnotify.output_count;
+  const epoll_event* end = platform->pollnotify.output + count;
   for(epoll_event* pos = platform->pollnotify.output; pos != end; ++pos) // iterate through results
   {
 #ifdef ENABLE_PROCESS_EVENT_TRACKING
@@ -359,9 +381,9 @@ bool EventBackend::getevents(int timeout) noexcept
       } procnote;
 
       pollfd fds = { pos->data.fd, POLLIN, 0 };
-      while(posix::ignore_interruption(::poll, &fds, nfds_t(1), 0) > 0) // while there are more messages
+      while(posix::ignore_interruption(::poll, &fds, nfds_t(1), 0) > 0) // while there are messages
       {
-        if(posix::ignore_interruption(::recv, platform->procnotify.fd, reinterpret_cast<void*>(&procnote), sizeof(procnote), 0) > 0)
+        if(posix::ignore_interruption(::recv, platform->procnotify.fd, reinterpret_cast<void*>(&procnote), sizeof(procnote), 0) > 0) // read process event message
         {
           EventFlags_t flags = from_native_procflags(procnote.event.what);
           auto entries = platform->procnotify.events.equal_range(procnote.event.event_data.id.process_pid); // get all the entries for that PID
