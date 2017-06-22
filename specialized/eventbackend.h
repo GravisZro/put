@@ -44,11 +44,14 @@ enum class EventFlags : uint32_t
 };
 static_assert(sizeof(EventFlags) == sizeof(uint32_t), "EventFlags: bad size");
 
-constexpr uint32_t operator |(EventFlags a, EventFlags b)
+template<typename itype>
+constexpr uint32_t operator |(EventFlags a, itype b)
   { return static_cast<uint32_t>(a) | static_cast<uint32_t>(b); }
-constexpr uint32_t operator &(EventFlags a, EventFlags b)
+template<typename itype>
+constexpr uint32_t operator &(EventFlags a, itype b)
   { return static_cast<uint32_t>(a) & static_cast<uint32_t>(b); }
-constexpr uint32_t operator >=(EventFlags a, EventFlags b)
+template<typename itype>
+constexpr uint32_t operator >=(EventFlags a, itype b)
   { return static_cast<uint32_t>(a) >= static_cast<uint32_t>(b); }
 
 struct EventFlags_t
