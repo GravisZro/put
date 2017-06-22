@@ -13,7 +13,6 @@
 #include <cassert>
 #include <climits>
 #include <cstring>
-#include <unordered_map>
 #include <algorithm>
 
 // POSIX
@@ -127,7 +126,8 @@ struct platform_dependant
     pollnotify_t(void) noexcept
     {
       fd = epoll_create(MAX_EVENTS);
-      assert(fd != posix::error_response);
+      if(fd == posix::error_response)
+        perror("Unable to create an instance of epoll!");
       output_count = 0;
     }
 
@@ -147,7 +147,8 @@ struct platform_dependant
     fsnotify_t(void) noexcept
     {
       fd = inotify_init();
-      assert(fd != posix::error_response);
+      if(fd == posix::error_response)
+        perror("Unable to create an instance of inotify!");
     }
 
     ~fsnotify_t(void) noexcept
@@ -181,39 +182,45 @@ struct platform_dependant
     procnotify_t(void) noexcept
     {
       fd = ::socket(PF_NETLINK, SOCK_DGRAM, NETLINK_CONNECTOR);
-      assert(fd != posix::error_response);
+      if(fd == posix::error_response)
+      {
+        perror("Unable to open a netlink socket for Process Events Connector");
+        return;
+      }
+
       sockaddr_nl sa_nl;
       sa_nl.nl_family = AF_NETLINK;
       sa_nl.nl_groups = CN_IDX_PROC;
       sa_nl.nl_pid = getpid();
       int binderr = ::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl));
       if(binderr == posix::error_response)
-        perror("Process Events Connector requires root level access");
-      else
       {
-        struct alignas(NLMSG_ALIGNTO) // 32-bit alignment
-        {
-          nlmsghdr header; // 16 bytes
-          struct __attribute__((__packed__))
-          {
-            cn_msg message;
-            proc_cn_mcast_op operation;
-          };
-        } procconn;
-        static_assert(sizeof(nlmsghdr) + sizeof(cn_msg) + sizeof(proc_cn_mcast_op) == sizeof(procconn), "compiler failed to pack struct");
-
-        std::memset(&procconn, 0, sizeof(procconn));
-        procconn.header.nlmsg_len = sizeof(procconn);
-        procconn.header.nlmsg_pid = getpid();
-        procconn.header.nlmsg_type = NLMSG_DONE;
-        procconn.message.id.idx = CN_IDX_PROC;
-        procconn.message.id.val = CN_VAL_PROC;
-        procconn.message.len = sizeof(proc_cn_mcast_op);
-        procconn.operation = PROC_CN_MCAST_LISTEN;
-
-        if(::send(fd, &procconn, sizeof(procconn), 0) == posix::error_response)
-          perror("Failed to enable Process Events Connector notifications");
+        perror("Process Events Connector requires root level access");
+        return;
       }
+
+      struct alignas(NLMSG_ALIGNTO) // 32-bit alignment
+      {
+        nlmsghdr header; // 16 bytes
+        struct __attribute__((__packed__))
+        {
+          cn_msg message;
+          proc_cn_mcast_op operation;
+        };
+      } procconn;
+      static_assert(sizeof(nlmsghdr) + sizeof(cn_msg) + sizeof(proc_cn_mcast_op) == sizeof(procconn), "compiler failed to pack struct");
+
+      std::memset(&procconn, 0, sizeof(procconn));
+      procconn.header.nlmsg_len = sizeof(procconn);
+      procconn.header.nlmsg_pid = getpid();
+      procconn.header.nlmsg_type = NLMSG_DONE;
+      procconn.message.id.idx = CN_IDX_PROC;
+      procconn.message.id.val = CN_VAL_PROC;
+      procconn.message.len = sizeof(proc_cn_mcast_op);
+      procconn.operation = PROC_CN_MCAST_LISTEN;
+
+      if(::send(fd, &procconn, sizeof(procconn), 0) == posix::error_response)
+        perror("Failed to enable Process Events Connector notifications");
     }
 
     ~procnotify_t(void) noexcept
@@ -256,16 +263,24 @@ struct platform_dependant* EventBackend::platform = nullptr;
 
 void EventBackend::init(void) noexcept
 {
-  assert(platform == nullptr);
-  platform = new platform_dependant;
-  watch(platform->procnotify.fd, EventFlags::Readable);
+  if(platform != nullptr)
+    dprintf(STDERR_FILENO, "ERROR: EventBackend::init() has been called multiple times!");
+  else
+  {
+    platform = new platform_dependant;
+    watch(platform->procnotify.fd, EventFlags::Readable);
+  }
 }
 
 void EventBackend::destroy(void) noexcept
 {
-  assert(platform != nullptr);
-  delete platform;
-  platform = nullptr;
+  if(platform == nullptr)
+    dprintf(STDERR_FILENO, "ERROR: EventBackend::destroy() has been called multiple times!");
+  else
+  {
+    delete platform;
+    platform = nullptr;
+  }
 }
 
 
@@ -321,7 +336,6 @@ bool EventBackend::remove(posix::fd_t fd) noexcept
 }
 
 #define INOTIFY_EVENT_SIZE   (sizeof(inotify_event) + NAME_MAX + 1)
-#include <iostream>
 
 bool EventBackend::getevents(int timeout) noexcept
 {
@@ -351,17 +365,10 @@ bool EventBackend::getevents(int timeout) noexcept
       pollfd fds = { pos->data.fd, POLLIN, 0 };
       while(posix::ignore_interruption(::poll, &fds, nfds_t(1), 0) > 0) // while there are more messages
       {
-        //std::cout << std::endl << "more";
         if(posix::ignore_interruption(::recv, platform->procnotify.fd, reinterpret_cast<void*>(&procnote), sizeof(procnote), 0) > 0)
         {
-          //std::cout << std::endl << "found: " << procnote.event.event_data.id.process_pid;
-
           EventFlags_t flags = from_native_procflags(procnote.event.what);
           auto entries = platform->procnotify.events.equal_range(procnote.event.event_data.id.process_pid); // get all the entries for that PID
-          if(entries.first != entries.second)
-          {
-            std::cout << std::endl << "process: " << procnote.event.event_data.id.process_pid;
-          }
           for_each(entries.first, entries.second, // for each matching PID entry
             [&procnote, flags](const std::pair<pid_t, proc_fd>& pair)
             {
