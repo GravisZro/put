@@ -73,6 +73,9 @@ void Process::reaper(int sig) noexcept
     if(process_map_iter != process_map.end()) // if the dead process exists...
     {
       Process* p = process_map_iter->second;
+#ifndef ENABLE_PROCESS_EVENT_TRACKING
+      Object::enqueue_copy(p->finished, posix::error_response, EventData_t(EventFlags::ExitEvent, p->processId(), p->processId(), status, sig));
+#endif
       EventBackend::remove(p->getStdOut());
       EventBackend::remove(p->getStdErr());
       ::close(p->getStdOut());
@@ -90,8 +93,10 @@ Process::Process(void) noexcept
 {
   init_once();
   process_map.emplace(processId(), this); // add self to process map
+#ifdef ENABLE_PROCESS_EVENT_TRACKING
   Object::connect(EventBackend::watch(processId(), EventFlags::ExecEvent), started);
   Object::connect(EventBackend::watch(processId(), EventFlags::ExitEvent), finished);
+#endif
 }
 
 Process::~Process(void) noexcept
@@ -235,8 +240,12 @@ bool Process::invoke(void) noexcept
   m_state = State::Invalid;
   state();
 
+#ifndef ENABLE_PROCESS_EVENT_TRACKING
+  Object::enqueue_copy(started, posix::error_response, EventData_t(EventFlags::ExecEvent, processId(), processId()));
+#endif
+
   Object::connect(EventBackend::watch(getStdOut()), stdoutMessage);
-  Object::connect(EventBackend::watch(getStdOut()), stderrMessage);
+  Object::connect(EventBackend::watch(getStdErr()), stderrMessage);
 
   m_state = State::Running;
   return errno == posix::success_response;
