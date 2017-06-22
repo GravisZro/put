@@ -128,14 +128,14 @@ struct platform_dependant
       : fd(0), output_count(0)
     {
       fd = epoll_create(MAX_EVENTS);
-      flaw(fd == posix::error_response,
+      flaw(fd == posix::invalid_descriptor,
            "Unable to create an instance of epoll! %s", strerror(errno))
     }
 
     ~pollnotify_t(void) noexcept
     {
       ::close(fd);
-      fd = posix::error_response;
+      fd = posix::invalid_descriptor;
     }
 
   } pollnotify;
@@ -148,7 +148,7 @@ struct platform_dependant
     fsnotify_t(void) noexcept
     {
       fd = inotify_init();
-      flaw(fd == posix::error_response,
+      flaw(fd == posix::invalid_descriptor,
            "Unable to create an instance of inotify!: %s", strerror(errno))
     }
 
@@ -183,7 +183,7 @@ struct platform_dependant
     procnotify_t(void) noexcept
     {
       fd = ::socket(PF_NETLINK, SOCK_DGRAM, NETLINK_CONNECTOR);
-      flaw(fd == posix::error_response,
+      flaw(fd == posix::invalid_descriptor,
            "Unable to open a netlink socket for Process Events Connector: %s", strerror(errno))
 
       sockaddr_nl sa_nl;
@@ -281,7 +281,7 @@ posix::fd_t EventBackend::watch(const char* path, EventFlags_t flags) noexcept
   if(fd > 0 && watch(fd, EventFlags::Readable) <= 0)
   {
     platform->fsnotify.remove(fd);
-    fd = posix::error_response;
+    fd = posix::invalid_descriptor;
   }
   return fd;
 }
