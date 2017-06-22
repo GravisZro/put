@@ -13,6 +13,15 @@
 // PDTK
 #include <cxxutils/posix_helpers.h>
 
+#define flaw(condition, ...) \
+  if(condition) \
+  { \
+    dprintf(STDERR_FILENO, "ERROR: "); \
+    dprintf(STDERR_FILENO, ##__VA_ARGS__); \
+    dprintf(STDERR_FILENO, "\n"); \
+    exit(1); \
+  }
+
 
 enum class EventFlags : uint32_t
 {

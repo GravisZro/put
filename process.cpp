@@ -63,7 +63,8 @@ void Process::init_once(void) noexcept
 
 void Process::reaper(int sig) noexcept
 {
-  assert(sig == SIGCHLD); // there should only be one way to get here, so be sure there is no funny business
+  flaw(sig != SIGCHLD,"EventBackend::destroy() has been called multiple times!")
+
   pid_t pid = posix::error_response; // set value just in case
   int status = 0;
   while((pid = ::waitpid(pid_t(-1), &status, WNOHANG)) != posix::error_response) // get the next dead process (if there is one)... while the currently reaped process was valid
@@ -104,9 +105,9 @@ Process::~Process(void) noexcept
 bool Process::write_then_read(void) noexcept
 {
   if(m_iobuf.empty() || // ensure there is data to write
-     !PipedSpawn::writeStdIn(m_iobuf) || // write data to pipe
-     !PipedSpawn::waitReadStdOut(1000) || // wait to read pipe
-     !PipedSpawn::readStdOut(m_iobuf) || // read data from pipe
+     !writeStdIn(m_iobuf) || // write data to pipe
+     !waitReadStdOut(1000) || // wait to read pipe
+     !readStdOut(m_iobuf) || // read data from pipe
      (m_iobuf >> errno).hadError()) // read return value
     return false;
   return errno == posix::success_response;
@@ -217,25 +218,22 @@ bool Process::setPriority(int nval) noexcept
 
 bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
 {
-  return posix::signal::send(PipedSpawn::processId(), id, value);
+  return posix::signal::send(processId(), id, value);
 }
 
 bool Process::invoke(void) noexcept
 {
-  assert(m_state == State::Initializing);
+  flaw(m_state != State::Initializing,
+       "Called Process::invoke() on an active process!")
 
   m_iobuf.reset();
   m_iobuf << command::invoke;
 
-  if(!PipedSpawn::writeStdIn(m_iobuf))
+  if(!writeStdIn(m_iobuf))
     return false;
 
-  process_state_t data;
-  if(!::procstat(PipedSpawn::processId(), data))
-  {
-    m_state = State::Invalid;
-    return false;
-  }
+  m_state = State::Invalid;
+  state();
 
   Object::connect(EventBackend::watch(getStdOut()), stdoutMessage);
   Object::connect(EventBackend::watch(getStdOut()), stderrMessage);
@@ -253,7 +251,8 @@ Process::State Process::state(void) noexcept
       break;
     default:
       process_state_t data;
-      assert(::procstat(PipedSpawn::processId(), data)); // process _must_ exist
+      flaw(!::procstat(processId(), data),
+           "Process %i does not exist.", processId()); // process _must_ exist
       switch (data.state)
       {
         case WaitingInterruptable:

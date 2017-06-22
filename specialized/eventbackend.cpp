@@ -124,11 +124,11 @@ struct platform_dependant
     int output_count;
 
     pollnotify_t(void) noexcept
+      : fd(0), output_count(0)
     {
       fd = epoll_create(MAX_EVENTS);
-      if(fd == posix::error_response)
-        perror("Unable to create an instance of epoll!");
-      output_count = 0;
+      flaw(fd == posix::error_response,
+           "Unable to create an instance of epoll! %s", strerror(errno))
     }
 
     ~pollnotify_t(void) noexcept
@@ -147,8 +147,8 @@ struct platform_dependant
     fsnotify_t(void) noexcept
     {
       fd = inotify_init();
-      if(fd == posix::error_response)
-        perror("Unable to create an instance of inotify!");
+      flaw(fd == posix::error_response,
+           "Unable to create an instance of inotify!: %s", strerror(errno))
     }
 
     ~fsnotify_t(void) noexcept
@@ -182,22 +182,16 @@ struct platform_dependant
     procnotify_t(void) noexcept
     {
       fd = ::socket(PF_NETLINK, SOCK_DGRAM, NETLINK_CONNECTOR);
-      if(fd == posix::error_response)
-      {
-        perror("Unable to open a netlink socket for Process Events Connector");
-        return;
-      }
+      flaw(fd == posix::error_response,
+           "Unable to open a netlink socket for Process Events Connector: %s", strerror(errno))
 
       sockaddr_nl sa_nl;
       sa_nl.nl_family = AF_NETLINK;
       sa_nl.nl_groups = CN_IDX_PROC;
       sa_nl.nl_pid = getpid();
       int binderr = ::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl));
-      if(binderr == posix::error_response)
-      {
-        perror("Process Events Connector requires root level access");
-        return;
-      }
+      flaw(binderr == posix::error_response,
+           "Process Events Connector requires root level access: %s", strerror(errno))
 
       struct alignas(NLMSG_ALIGNTO) // 32-bit alignment
       {
@@ -219,8 +213,8 @@ struct platform_dependant
       procconn.message.len = sizeof(proc_cn_mcast_op);
       procconn.operation = PROC_CN_MCAST_LISTEN;
 
-      if(::send(fd, &procconn, sizeof(procconn), 0) == posix::error_response)
-        perror("Failed to enable Process Events Connector notifications");
+      flaw(::send(fd, &procconn, sizeof(procconn), 0) == posix::error_response,
+           "Failed to enable Process Events Connector notifications: %s", strerror(errno))
     }
 
     ~procnotify_t(void) noexcept
@@ -263,24 +257,18 @@ struct platform_dependant* EventBackend::platform = nullptr;
 
 void EventBackend::init(void) noexcept
 {
-  if(platform != nullptr)
-    dprintf(STDERR_FILENO, "ERROR: EventBackend::init() has been called multiple times!");
-  else
-  {
-    platform = new platform_dependant;
-    watch(platform->procnotify.fd, EventFlags::Readable);
-  }
+  flaw(platform != nullptr,
+       "EventBackend::init() has been called multiple times!")
+  platform = new platform_dependant;
+  watch(platform->procnotify.fd, EventFlags::Readable);
 }
 
 void EventBackend::destroy(void) noexcept
 {
-  if(platform == nullptr)
-    dprintf(STDERR_FILENO, "ERROR: EventBackend::destroy() has been called multiple times!");
-  else
-  {
-    delete platform;
-    platform = nullptr;
-  }
+  flaw(platform == nullptr,
+       "EventBackend::destroy() has been called multiple times!")
+  delete platform;
+  platform = nullptr;
 }
 
 
