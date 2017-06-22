@@ -63,6 +63,7 @@ constexpr uint32_t to_native_fileflags(const EventFlags_t& flags)
       (flags.Moved        ? uint32_t(IN_MOVE_SELF) : 0) ; // Watched file/directory was itself moved.
 }
 
+#ifdef ENABLE_PROCESS_EVENT_TRACKING
 // process flags
 inline EventFlags_t from_native_procflags(const uint32_t flags) noexcept
 {
@@ -114,7 +115,7 @@ struct proc_fd
   operator posix::fd_t(void) const noexcept
     { return *reinterpret_cast<const posix::fd_t*>(this); }
 };
-
+#endif
 struct platform_dependant
 {
   struct pollnotify_t // poll notification (epoll)
@@ -173,7 +174,7 @@ struct platform_dependant
       return inotify_rm_watch(fd, wd) == posix::success_response;
     }
   } fsnotify;
-
+#ifdef ENABLE_PROCESS_EVENT_TRACKING
   struct procnotify_t // process notification (process events connector)
   {
     posix::fd_t fd;
@@ -247,7 +248,7 @@ struct platform_dependant
       return true;
     }
   } procnotify;
-
+#endif
 };
 
 std::unordered_multimap<posix::fd_t, EventFlags_t> EventBackend::queue; // watch queue
@@ -260,7 +261,9 @@ void EventBackend::init(void) noexcept
   flaw(platform != nullptr,
        "EventBackend::init() has been called multiple times!")
   platform = new platform_dependant;
+#ifdef ENABLE_PROCESS_EVENT_TRACKING
   watch(platform->procnotify.fd, EventFlags::Readable);
+#endif
 }
 
 void EventBackend::destroy(void) noexcept
@@ -285,8 +288,10 @@ posix::fd_t EventBackend::watch(const char* path, EventFlags_t flags) noexcept
 
 posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
 {
+#ifdef ENABLE_PROCESS_EVENT_TRACKING
   if(flags >= EventFlags::ExecEvent)
     return platform->procnotify.watch(target, flags);
+#endif
   struct epoll_event native_event;
   native_event.data.fd = target;
   native_event.events = to_native_fdflags(flags); // be sure to convert to native events
@@ -313,8 +318,10 @@ posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
 
 bool EventBackend::remove(posix::fd_t fd) noexcept
 {
+#ifdef ENABLE_PROCESS_EVENT_TRACKING
   if(proc_fd(fd).isProcess)
     return platform->procnotify.remove(fd);
+#endif
   struct epoll_event event;
   auto iter = queue.find(fd); // search queue for FD
   if(iter == queue.end() && // entry exists for FD
@@ -338,6 +345,7 @@ bool EventBackend::getevents(int timeout) noexcept
   const epoll_event* end = platform->pollnotify.output + platform->pollnotify.output_count;
   for(epoll_event* pos = platform->pollnotify.output; pos != end; ++pos) // iterate through results
   {
+#ifdef ENABLE_PROCESS_EVENT_TRACKING
     if(pos->data.fd == platform->procnotify.fd) // if a process event
     {
       struct alignas(NLMSG_ALIGNTO) // 32-bit alignment
@@ -371,7 +379,9 @@ bool EventBackend::getevents(int timeout) noexcept
         }
       }
     }
-    else if(platform->fsnotify.fds.find(pos->data.fd) != platform->fsnotify.fds.end()) // if an inotify event
+    else
+#endif
+    if(platform->fsnotify.fds.find(pos->data.fd) != platform->fsnotify.fds.end()) // if an inotify event
     {
       union {
         uint8_t* inpos;
