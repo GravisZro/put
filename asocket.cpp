@@ -46,8 +46,8 @@ AsyncSocket::AsyncSocket(posix::fd_t socket) noexcept
   m_read_command  = cmdio[0];
   m_write_command = cmdio[1];
 
-  EventBackend::watch(m_read_command, EventFlags_e::Read);
-  EventBackend::watch(m_socket, EventFlags_e::Read);
+  EventBackend::watch(m_read_command, EventFlags::Readable);
+  EventBackend::watch(m_socket, EventFlags::Readable);
 }
 
 AsyncSocket::~AsyncSocket(void) noexcept
@@ -116,11 +116,11 @@ void AsyncSocket::async_io(void) noexcept // runs as it's own thread
 
   for(;;)
   {
-    if(EventBackend::invoke())
+    if(EventBackend::getevents())
     {
-      for(const auto& pos : EventBackend::results())
+      for(const auto& pos : EventBackend::results)
       {
-        if(pos.first == m_read_command && (pos.second & EventFlags_e::Read))
+        if(pos.first == m_read_command && (pos.second.flags & EventFlags::Readable))
         {
           command_buffer = 0;
           byte_count = posix::read(pos.first, &command_buffer, sizeof(uint64_t));
@@ -169,7 +169,7 @@ void AsyncSocket::async_io(void) noexcept // runs as it's own thread
         }
         else if(m_bound && // if in server mode
                 pos.first == m_socket && // and this is a primary socket
-                pos.second & EventFlags_e::Read) // and it's a read event
+                pos.second.flags & EventFlags::Readable) // and it's a read event
         {
           proccred_t peercred;
           posix::sockaddr_t peeraddr;
@@ -179,7 +179,7 @@ void AsyncSocket::async_io(void) noexcept // runs as it's own thread
             std::cout << "accept error: " << std::strerror(errno) << std::endl << std::flush;
           else
           {
-            if(!EventBackend::watch(fd, EventFlags_e::Read)) // monitor new socket connection
+            if(!EventBackend::watch(fd, EventFlags::Readable)) // monitor new socket connection
               std::cout << "watch failure: " << std::strerror(errno) << std::endl << std::flush;
             if(!posix::getpeercred(fd, peercred)) // get creditials of connected peer process
               std::cout << "peercred failure: " << std::strerror(errno) << std::endl << std::flush;
@@ -188,12 +188,12 @@ void AsyncSocket::async_io(void) noexcept // runs as it's own thread
         }
         else
         {
-          if(pos.second & (EventFlags_e::Disconnect | EventFlags_e::Error)) // connection severed or connection error
+          if(pos.second.flags & (EventFlags::Disconnected | EventFlags::Error)) // connection severed or connection error
           {
             EventBackend::remove(pos.first); // stop watching for events
             posix::close(pos.first); // close connection if open
           }
-          else if(pos.second & EventFlags_e::Read) // read
+          else if(pos.second.flags & EventFlags::Readable) // read
           {
             m_incomming.socket = m_bound ? m_socket : m_read_command; // select proper output socket
             m_incomming.buffer.allocate(); // allocate 64KB buffer
@@ -227,9 +227,9 @@ void AsyncSocket::async_io(void) noexcept // runs as it's own thread
               Object::enqueue(readFinished, m_incomming.socket, m_incomming);
             }
           }
-          else if(pos.second)
+          else if(pos.second.flags >= 0)
           {
-            std::cout << "unknown event at: " << pos.first << " value: " << std::hex << (int)pos.second << std::dec << std::endl << std::flush;
+            std::cout << "unknown event at: " << pos.first << " value: " << std::hex << uint32_t(EventFlags(pos.second.flags)) << std::dec << std::endl << std::flush;
           }
         }
       }
