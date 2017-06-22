@@ -88,8 +88,7 @@ void Process::reaper(int sig) noexcept
 }
 
 Process::Process(void) noexcept
-  : m_state(State::Initializing),
-    m_error(Error::None)
+  : m_state(State::Initializing)
 {
   init_once();
   process_map.emplace(processId(), this); // add self to process map
