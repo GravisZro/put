@@ -13,13 +13,14 @@
 // PDTK
 #include <cxxutils/posix_helpers.h>
 
-#define flaw(condition, ...) \
+#define flaw(condition, exec, rvalue, ...) \
   if(condition) \
   { \
     dprintf(STDERR_FILENO, "ERROR: "); \
     dprintf(STDERR_FILENO, ##__VA_ARGS__); \
     dprintf(STDERR_FILENO, "\n"); \
-    exit(1); \
+    exec; \
+    return rvalue; \
   }
 
 

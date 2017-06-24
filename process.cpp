@@ -63,7 +63,8 @@ void Process::init_once(void) noexcept
 
 void Process::reaper(int sig) noexcept
 {
-  flaw(sig != SIGCHLD,"EventBackend::destroy() has been called multiple times!")
+  flaw(sig != SIGCHLD, errno = EINVAL,,
+       "EventBackend::destroy() has been called multiple times!")
 
   pid_t pid = posix::error_response; // set value just in case
   int status = 0;
@@ -227,7 +228,7 @@ bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
 
 bool Process::invoke(void) noexcept
 {
-  flaw(m_state != State::Initializing,
+  flaw(m_state != State::Initializing, errno = EINPROGRESS, false,
        "Called Process::invoke() on an active process!")
 
   m_iobuf.reset();
@@ -259,7 +260,7 @@ Process::State Process::state(void) noexcept
       break;
     default:
       process_state_t data;
-      flaw(!::procstat(processId(), data),
+      flaw(!::procstat(processId(), data), m_state = State::Invalid, m_state,
            "Process %i does not exist.", processId()); // process _must_ exist
       switch (data.state)
       {
