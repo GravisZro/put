@@ -159,7 +159,7 @@ void AsyncSocket::async_io(void) noexcept // runs as it's own thread
                 byte_count = posix::sendmsg(msg_pos.socket, &msg, 0);
 
                 if(byte_count == posix::error_response) // error
-                  std::cout << std::flush << std::endl << std::red << "sendmsg error: " << std::strerror(errno) << std::none << std::endl << std::flush;
+                  std::cout << std::flush << std::endl << posix::fg::red << "sendmsg error: " << std::strerror(errno) << posix::fg::reset << std::endl << std::flush;
                 else
                   Object::enqueue(writeFinished, msg_pos.socket, byte_count);
               }
@@ -205,7 +205,7 @@ void AsyncSocket::async_io(void) noexcept // runs as it's own thread
             byte_count = posix::recvmsg(pos.first, &msg, 0);
 
             if(byte_count == posix::error_response)
-              std::cout << std::red << "recvmsg error: " << std::strerror(errno) << std::none << std::endl << std::flush;
+              std::cout << posix::fg::red << "recvmsg error: " << std::strerror(errno) << posix::fg::reset << std::endl << std::flush;
             else if(!byte_count)
             {
               EventBackend::remove(pos.first); // stop watching for events
@@ -223,7 +223,7 @@ void AsyncSocket::async_io(void) noexcept // runs as it's own thread
                  m_incomming.fd_buffer = *reinterpret_cast<int*>(CMSG_DATA(cmsg));
               }
               else if(msg.msg_flags)
-                std::cout << std::red << "error, message flags: " << std::hex << msg.msg_flags << std::dec << std::none << std::endl << std::flush;
+                std::cout << posix::fg::red << "error, message flags: " << std::hex << msg.msg_flags << std::dec << posix::fg::reset << std::endl << std::flush;
               Object::enqueue(readFinished, m_incomming.socket, m_incomming);
             }
           }
@@ -245,3 +245,111 @@ bool AsyncSocket::write(message_t msg) noexcept
   posix::write(m_write_command, &LocalCommand::write, sizeof(uint64_t));
   return true;
 }
+
+#if 0
+// connect to primary socket
+static bool accept(posix::fd_t socket, posix::fd_t& fd) noexcept
+{
+  proccred_t peercred;
+  posix::sockaddr_t peeraddr;
+  socklen_t addrlen = 0;
+  fd = posix::accept(m_socket, peeraddr, &addrlen); // accept a new socket connection
+  if(fd == posix::error_response)
+    std::cout << "accept error: " << std::strerror(errno) << std::endl << std::flush;
+  else
+  {
+    if(!EventBackend::watch(fd, EventFlags::Readable)) // monitor new socket connection
+      std::cout << "watch failure: " << std::strerror(errno) << std::endl << std::flush;
+    if(!posix::getpeercred(fd, peercred)) // get creditials of connected peer process
+      std::cout << "peercred failure: " << std::strerror(errno) << std::endl << std::flush;
+    Object::enqueue(connectedToPeer, fd, peeraddr, peercred);
+  }
+}
+
+struct BufferedSocket
+{
+  bool read(void) noexcept
+  {
+    msghdr header = {};
+    iovec iov = {};
+    char aux_buffer[CMSG_SPACE(sizeof(int))] = { 0 };
+
+    header.msg_iov = &iov;
+    header.msg_iovlen = 1;
+    header.msg_control = aux_buffer;
+
+    iov.iov_base = buffer.begin();
+    iov.iov_len = buffer.capacity();
+    header.msg_controllen = sizeof(aux_buffer);
+
+    ssize_t byte_count = posix::recvmsg(socket, &header, 0);
+    flaw(byte_count > 0xFFFF, errno = EMSGSIZE, false, "Absurdly large socket message!: %i bytes", byte_count)
+
+    if(byte_count == posix::error_response)
+    {
+      std::cout << posix::fg::red << "recvmsg error: " << std::strerror(errno) << posix::fg::reset << std::endl << std::flush;
+      return false;
+    }
+    else if(!byte_count)
+    {
+      EventBackend::remove(socket); // stop watching for events
+      posix::close(socket); // connection severed!
+    }
+    else if(buffer.resize(byte_count))
+    {
+      fd = posix::invalid_descriptor;
+      if(header.msg_controllen == CMSG_SPACE(sizeof(int)))
+      {
+        cmsghdr* cmsg = CMSG_FIRSTHDR(&header);
+        if(cmsg->cmsg_level == SOL_SOCKET &&
+           cmsg->cmsg_type == SCM_RIGHTS &&
+           cmsg->cmsg_len == CMSG_LEN(sizeof(int)))
+          fd = *reinterpret_cast<int*>(CMSG_DATA(cmsg));
+      }
+      else if(header.msg_flags)
+      {
+        std::cout << posix::fg::red << "error, message flags: " << std::hex << header.msg_flags << std::dec << posix::fg::reset << std::endl << std::flush;
+        return false;
+      }
+    }
+    else // buffer too small!
+    {
+      errno = ENOBUFS;
+      return false;
+    }
+    return true;
+  }
+
+  bool write(void) noexcept
+  {
+    msghdr header = {};
+    iovec iov = {};
+    char aux_buffer[CMSG_SPACE(sizeof(int))] = { 0 };
+
+    header.msg_iov = &iov;
+    header.msg_iovlen = 1;
+    header.msg_control = aux_buffer;
+
+    iov.iov_base = buffer.begin();
+    iov.iov_len = buffer.size();
+
+    header.msg_controllen = 0;
+
+    if(fd != posix::invalid_descriptor) // if a file descriptor needs to be sent
+    {
+      header.msg_controllen = CMSG_SPACE(sizeof(int));
+      cmsghdr* cmsg = CMSG_FIRSTHDR(&header);
+      cmsg->cmsg_level = SOL_SOCKET;
+      cmsg->cmsg_type = SCM_RIGHTS;
+      cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+      *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = fd;
+    }
+
+    return posix::sendmsg(socket, &header, 0) != posix::error_response;
+  }
+
+  posix::fd_t socket;
+  vfifo       buffer;
+  posix::fd_t fd;
+};
+#endif
