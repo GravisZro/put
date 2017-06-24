@@ -134,7 +134,7 @@ struct platform_dependant
 
     ~pollnotify_t(void) noexcept
     {
-      ::close(fd);
+      posix::close(fd);
       fd = posix::invalid_descriptor;
     }
 
@@ -197,7 +197,7 @@ struct platform_dependant
 
     ~fsnotify_t(void) noexcept
     {
-      ::close(fd);
+      posix::close(fd);
       fd = posix::error_response;
     }
 
@@ -264,7 +264,7 @@ struct platform_dependant
 
     ~procnotify_t(void) noexcept
     {
-      ::close(fd);
+      posix::close(fd);
       fd = posix::error_response;
     }
 

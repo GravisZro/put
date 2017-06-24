@@ -9,7 +9,6 @@
 #include <sys/socket.h> // for socket()
 #include <poll.h>       // for poll()
 #include <fcntl.h>      // for fcntl()
-#include <unistd.h>     // for close()
 
 // PDTK
 #include "error_helpers.h"

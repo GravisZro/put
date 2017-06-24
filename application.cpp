@@ -41,8 +41,8 @@ Application::~Application(void) noexcept
   if(s_pipeio[Read] != posix::invalid_descriptor)
   {
     EventBackend::destroy(); // shutdown event backend
-    ::close(s_pipeio[Read ]);
-    ::close(s_pipeio[Write]);
+    posix::close(s_pipeio[Read ]);
+    posix::close(s_pipeio[Write]);
     s_pipeio[Read ] = posix::invalid_descriptor;
     s_pipeio[Write] = posix::invalid_descriptor;
   }

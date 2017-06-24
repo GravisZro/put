@@ -75,9 +75,9 @@ void Process::reaper(int sig) noexcept
 #endif
       EventBackend::remove(p->getStdOut());
       EventBackend::remove(p->getStdErr());
-      ::close(p->getStdOut());
-      ::close(p->getStdErr());
-      ::close(p->getStdIn());
+      posix::close(p->getStdOut());
+      posix::close(p->getStdErr());
+      posix::close(p->getStdIn());
       p->m_state = Process::State::Finished;
       process_map.erase(process_map_iter); // remove finished process from the process map
     }
