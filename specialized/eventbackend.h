@@ -12,11 +12,12 @@
 
 // PDTK
 #include <cxxutils/posix_helpers.h>
+#include <cxxutils/streamcolors.h>
 
 #define flaw(condition, exec, rvalue, ...) \
   if(condition) \
   { \
-    dprintf(STDERR_FILENO, "ERROR: "); \
+    dprintf(STDERR_FILENO, posix::critical); \
     dprintf(STDERR_FILENO, ##__VA_ARGS__); \
     dprintf(STDERR_FILENO, "\n"); \
     exec; \
@@ -45,18 +46,12 @@ enum class EventFlags : uint32_t
 };
 static_assert(sizeof(EventFlags) == sizeof(uint32_t), "EventFlags: bad size");
 
-template<typename itype> constexpr uint32_t operator |(EventFlags a, itype b)
-  { return static_cast<EventFlags>(a) | static_cast<EventFlags>(b); }
-template<typename itype> constexpr uint32_t operator &(EventFlags a, itype b)
-  { return static_cast<EventFlags>(a) & static_cast<EventFlags>(b); }
-template<typename itype> constexpr uint32_t operator >=(EventFlags a, itype b)
-  { return static_cast<EventFlags>(a) >= static_cast<EventFlags>(b); }
-template<typename itype> constexpr uint32_t operator |(EventFlags a, EventFlags b)
-  { return static_cast<uint32_t>(a) | static_cast<uint32_t>(b); }
-template<typename itype> constexpr uint32_t operator &(EventFlags a, EventFlags b)
-  { return static_cast<uint32_t>(a) & static_cast<uint32_t>(b); }
-template<typename itype> constexpr uint32_t operator >=(EventFlags a, EventFlags b)
-  { return static_cast<uint32_t>(a) >= static_cast<uint32_t>(b); }
+template<typename itype> constexpr uint32_t operator | (EventFlags a, itype b) { return a | static_cast<EventFlags>(b); }
+template<typename itype> constexpr uint32_t operator & (EventFlags a, itype b) { return a & static_cast<EventFlags>(b); }
+template<typename itype> constexpr uint32_t operator >=(EventFlags a, itype b) { return a >= static_cast<EventFlags>(b); }
+constexpr uint32_t operator | (EventFlags a, EventFlags b) { return static_cast<uint32_t>(a) |  static_cast<uint32_t>(b); }
+constexpr uint32_t operator & (EventFlags a, EventFlags b) { return static_cast<uint32_t>(a) &  static_cast<uint32_t>(b); }
+constexpr uint32_t operator >=(EventFlags a, EventFlags b) { return static_cast<uint32_t>(a) >= static_cast<uint32_t>(b); }
 
 
 struct EventFlags_t
