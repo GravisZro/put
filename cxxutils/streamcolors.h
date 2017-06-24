@@ -46,10 +46,10 @@ namespace posix
     string_literal reset   = "\x1B[49m";
   }
 
-  string_literal information = "\x1B[0;40;34;1mINFORMATION:\x1B[0m ";
+  string_literal information = "\x1B[0;40;34mINFORMATION:\x1B[0m ";
   string_literal warning     = "\x1B[0;40;33;1mWARNING:\x1B[0m ";
   string_literal severe      = "\x1B[0;40;31;1mSEVERE WARNING:\x1B[0m ";
-  string_literal critical    = "\x1B[0;41;37;1mCRITICAL:\x1B[0m ";
+  string_literal critical    = "\x1B[0;41;37;1mCRITICAL ERROR:\x1B[0m ";
 }
 
 #endif // STREAMCOLORS_H
