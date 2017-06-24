@@ -283,7 +283,7 @@ struct BufferedSocket
     header.msg_controllen = sizeof(aux_buffer);
 
     ssize_t byte_count = posix::recvmsg(socket, &header, 0);
-    flaw(byte_count > 0xFFFF, errno = EMSGSIZE, false, "Absurdly large socket message!: %i bytes", byte_count)
+    flaw(byte_count > 0xFFFF, posix::severe, errno = EMSGSIZE, false, "Absurdly large socket message!: %i bytes", byte_count)
 
     if(byte_count == posix::error_response)
     {

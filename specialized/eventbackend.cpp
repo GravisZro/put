@@ -128,7 +128,7 @@ struct platform_dependant
       : fd(posix::invalid_descriptor), fds(EventBackend::queue)
     {
       fd = epoll_create(MAX_EVENTS);
-      flaw(fd == posix::invalid_descriptor,,,
+      flaw(fd == posix::invalid_descriptor, posix::critical,,,
            "Unable to create an instance of epoll! %s", strerror(errno))
     }
 
@@ -191,7 +191,7 @@ struct platform_dependant
       : fd(posix::invalid_descriptor)
     {
       fd = inotify_init();
-      flaw(fd == posix::invalid_descriptor,,,
+      flaw(fd == posix::invalid_descriptor, posix::severe,,,
            "Unable to create an instance of inotify!: %s", strerror(errno))
     }
 
@@ -227,7 +227,7 @@ struct platform_dependant
       : fd(posix::invalid_descriptor)
     {
       fd = ::socket(PF_NETLINK, SOCK_DGRAM, NETLINK_CONNECTOR);
-      flaw(fd == posix::invalid_descriptor,,,
+      flaw(fd == posix::invalid_descriptor, posix::warning,,,
            "Unable to open a netlink socket for Process Events Connector: %s", strerror(errno))
 
       sockaddr_nl sa_nl;
@@ -235,7 +235,7 @@ struct platform_dependant
       sa_nl.nl_groups = CN_IDX_PROC;
       sa_nl.nl_pid = getpid();
       int binderr = ::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl));
-      flaw(binderr == posix::error_response,,,
+      flaw(binderr == posix::error_response, posix::warning,,,
            "Process Events Connector requires root level access: %s", strerror(errno))
 
       struct alignas(NLMSG_ALIGNTO) // 32-bit alignment
@@ -258,7 +258,7 @@ struct platform_dependant
       procconn.message.len = sizeof(proc_cn_mcast_op);
       procconn.operation = PROC_CN_MCAST_LISTEN;
 
-      flaw(::send(fd, &procconn, sizeof(procconn), 0) == posix::error_response,,,
+      flaw(::send(fd, &procconn, sizeof(procconn), 0) == posix::error_response, posix::warning,,,
            "Failed to enable Process Events Connector notifications: %s", strerror(errno))
     }
 
@@ -302,7 +302,7 @@ struct platform_dependant* EventBackend::platform = nullptr;
 
 void EventBackend::init(void) noexcept
 {
-  flaw(platform != nullptr, errno = EPERM,,
+  flaw(platform != nullptr, posix::warning, errno = EPERM,,
        "EventBackend::init() has been called multiple times!")
   platform = new platform_dependant;
 #ifdef ENABLE_PROCESS_EVENT_TRACKING
@@ -312,7 +312,7 @@ void EventBackend::init(void) noexcept
 
 void EventBackend::destroy(void) noexcept
 {
-  flaw(platform == nullptr, errno = EPERM,,
+  flaw(platform == nullptr, posix::warning, errno = EPERM,,
        "EventBackend::destroy() has been called multiple times!")
   delete platform;
   platform = nullptr;

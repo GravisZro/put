@@ -29,7 +29,8 @@ Application::Application (void) noexcept
 {
   if(s_pipeio[Read] == posix::invalid_descriptor) // if execution stepper pipe  hasn't been initialized yet
   {
-    assert(::pipe(s_pipeio) != posix::error_response); // create execution stepper pipe input/output
+    flaw(::pipe(s_pipeio) == posix::error_response, posix::critical, ::exit(1),,
+         "Unable to create pipe for execution stepper.")
     EventBackend::init(); // initialize event backend
     EventBackend::watch(s_pipeio[Read], EventFlags::Readable); // watch for when execution stepper pipe has content to read
   }

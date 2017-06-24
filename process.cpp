@@ -11,7 +11,6 @@
 // C++
 #include <cassert>
 #include <cerrno>
-#include <cstdio>
 #include <cstdlib>
 #include <climits>
 #include <cstring>
@@ -53,18 +52,15 @@ void Process::init_once(void) noexcept
     ::sigemptyset(&actions.sa_mask);
     actions.sa_flags = SA_RESTART | SA_NOCLDSTOP;
 
-    if(::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response)
-    {
-      ::perror("An 'impossible' situation has occurred.");
-      ::exit(1);
-    }
+    flaw(::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response, posix::critical, , ::exit(1),
+         "An 'impossible' situation has occurred.")
   }
 }
 
 void Process::reaper(int sig) noexcept
 {
-  flaw(sig != SIGCHLD, errno = EINVAL,,
-       "EventBackend::destroy() has been called multiple times!")
+  flaw(sig != SIGCHLD, posix::warning, errno = EINVAL,,
+       "Process::reaper() has been called improperly")
 
   pid_t pid = posix::error_response; // set value just in case
   int status = 0;
@@ -228,7 +224,7 @@ bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
 
 bool Process::invoke(void) noexcept
 {
-  flaw(m_state != State::Initializing, errno = EINPROGRESS, false,
+  flaw(m_state != State::Initializing, posix::severe, errno = EINPROGRESS, false,
        "Called Process::invoke() on an active process!")
 
   m_iobuf.reset();
@@ -260,7 +256,7 @@ Process::State Process::state(void) noexcept
       break;
     default:
       process_state_t data;
-      flaw(!::procstat(processId(), data), m_state = State::Invalid, m_state,
+      flaw(!::procstat(processId(), data), posix::severe, m_state = State::Invalid, m_state,
            "Process %i does not exist.", processId()); // process _must_ exist
       switch (data.state)
       {
