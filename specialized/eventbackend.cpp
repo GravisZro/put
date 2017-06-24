@@ -128,7 +128,7 @@ struct platform_dependant
       : fd(posix::invalid_descriptor), fds(EventBackend::queue)
     {
       fd = epoll_create(MAX_EVENTS);
-      flaw(fd == posix::invalid_descriptor, posix::critical,,,
+      flaw(fd == posix::invalid_descriptor, posix::critical, ::exit(1),,
            "Unable to create an instance of epoll! %s", strerror(errno))
     }
 
