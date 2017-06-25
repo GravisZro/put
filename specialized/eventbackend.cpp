@@ -87,34 +87,6 @@ constexpr uint32_t to_native_procflags(const EventFlags_t& flags)
       (flags.GIDEvent  ? uint32_t(proc_event::PROC_EVENT_GID ) : 0) | // Process changed it's Group ID
       (flags.SIDEvent  ? uint32_t(proc_event::PROC_EVENT_SID ) : 0);  // Process changed it's Session ID
 }
-
-struct proc_fd
-{
-  uint32_t isProcess : 1;
-  uint32_t flags_upper : 2;
-  uint32_t flags_lower : 13;
-  uint32_t pid : 16;
-
-  proc_fd(const uint32_t val) noexcept
-    { *reinterpret_cast<uint32_t*>(this) = val; }
-
-  proc_fd(const uint32_t _pid, const EventFlags_t& flags) noexcept
-    : isProcess(1), pid(_pid)
-    { write_flags(flags); }
-
-  EventFlags_t read_flags(void) const noexcept
-    { return from_native_procflags((flags_upper << 30) | flags_lower); }
-
-  void write_flags(const EventFlags_t& flags) noexcept
-  {
-    uint32_t f = to_native_procflags(flags);
-    flags_upper = f >> 30;
-    flags_lower = f;
-  }
-
-  operator posix::fd_t(void) const noexcept
-    { return *reinterpret_cast<const posix::fd_t*>(this); }
-};
 #endif
 
 struct platform_dependant
@@ -223,7 +195,7 @@ struct platform_dependant
   struct procnotify_t // process notification (process events connector)
   {
     posix::fd_t fd;
-    std::unordered_multimap<pid_t, proc_fd> events;
+    std::unordered_multimap<pid_t, EventFlags_t> events;
 
     procnotify_t(void) noexcept
       : fd(posix::invalid_descriptor)
@@ -272,23 +244,23 @@ struct platform_dependant
 
     posix::fd_t watch(pid_t pid, EventFlags_t flags) noexcept
     {
-      auto iter = events.emplace(pid, proc_fd(pid, flags));
+      auto iter = events.emplace(pid, flags);
 
       // add filter installation code here
 
       return iter->second;
     }
 
-    bool remove(posix::fd_t _fd) noexcept
+    bool remove(pid_t pid) noexcept
     {
-      auto entries = events.equal_range(proc_fd(_fd).pid); // get all the entries for that PID
+      auto entries = events.equal_range(pid); // get all the entries for that PID
       if(entries.first == entries.second)
         return false;
 
       auto pos = entries.first;
       while(pos != entries.second)
       {
-        if(pos->second == fd)
+        if(pos->second >= EventFlags::ExecEvent)
           pos = events.erase(pos); // increments to next iterator
         else
           ++pos;
@@ -393,10 +365,10 @@ bool EventBackend::getevents(int timeout) noexcept
           EventFlags_t flags = from_native_procflags(procnote.event.what);
           auto entries = platform->procnotify.events.equal_range(procnote.event.event_data.id.process_pid); // get all the entries for that PID
           for_each(entries.first, entries.second, // for each matching PID entry
-            [&procnote, flags](const std::pair<pid_t, proc_fd>& pair)
+            [&procnote, flags](const std::pair<pid_t, EventFlags_t>& pair)
             {
-              if(pair.second.read_flags() & flags) // test to see if the current process matches the triggering EventFlag
-                results.emplace(pair.second,
+              if(pair.second & flags) // test to see if the current process matches the triggering EventFlag
+                results.emplace(pair.first,
                   EventData_t(flags,
                    procnote.event.event_data.exit.process_pid,
                    procnote.event.event_data.exit.process_tgid,
