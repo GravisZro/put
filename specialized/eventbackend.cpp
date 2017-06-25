@@ -253,18 +253,8 @@ struct platform_dependant
 
     bool remove(pid_t pid) noexcept
     {
-      auto entries = events.equal_range(pid); // get all the entries for that PID
-      if(entries.first == entries.second)
-        return false;
-
-      auto pos = entries.first;
-      while(pos != entries.second)
-      {
-        if(pos->second >= EventFlags::ExecEvent)
-          pos = events.erase(pos); // increments to next iterator
-        else
-          ++pos;
-      }
+      if(!events.erase(pid)) // erase all the entries for that PID
+        return false; // no entries found
 
       // add filter removal code here
 
