@@ -8,6 +8,7 @@
 
 // STL
 #include <functional>
+#include <algorithm>
 #include <list>
 #include <iostream>
 struct ProtoObject
@@ -67,6 +68,7 @@ public:
   template<class ObjType, typename RType>
   static inline void connect(posix::fd_t fd, EventFlags_t flags, ObjType* obj, RType(ObjType::*slot)(posix::fd_t, EventData_t)) noexcept
   {
+    EventBackend::watch(fd, flags);
     Application::ms_fd_signals.emplace(std::make_pair(fd, std::make_pair(flags,
       [obj, slot](posix::fd_t _fd, EventData_t data) noexcept
         { if(obj == obj->self) (obj->*slot)(_fd, data); }))); // if ProtoObject is valid (not deleted), call slot
@@ -79,6 +81,7 @@ public:
   // connect an file descriptor event to a signal
   static inline void connect(posix::fd_t fd, EventFlags_t flags, signal<posix::fd_t, EventData_t>& sig) noexcept
   {
+    EventBackend::watch(fd, flags);
     Application::ms_fd_signals.emplace(std::make_pair(fd, std::make_pair(flags,
       [&sig](posix::fd_t _fd, EventData_t _data) noexcept
       {
@@ -100,6 +103,7 @@ public:
   template<typename RType>
   static inline void connect(posix::fd_t fd, EventFlags_t flags, RType(*slot)(posix::fd_t, EventData_t)) noexcept
   {
+    EventBackend::watch(fd, flags);
     Application::ms_fd_signals.emplace(std::make_pair(fd, std::make_pair(flags,
       [slot](posix::fd_t fd, EventData_t data) noexcept
         { slot(fd, data); })));
@@ -109,6 +113,28 @@ public:
   static inline void connect(posix::fd_t fd, RType(*slot)(posix::fd_t, EventData_t)) noexcept
     { connect(fd, EventFlags::Readable, slot); }
 
+   // disconnect _all_ connections to fd
+  static inline void disconnect(posix::fd_t fd)
+    { Application::ms_fd_signals.erase(fd); } // totally remove _all_ connections to fd
+
+  // disconnect connections to fd for certain event flags
+  static inline void disconnect(posix::fd_t fd, EventFlags_t flags) noexcept
+  {
+    EventBackend::remove(fd, flags);
+    auto range = Application::ms_fd_signals.equal_range(fd);
+    auto pos = range.first; // pos = iterator
+    while(pos != range.second) // pos is _always_ advanced within loop
+    {
+      if(pos->second.first == flags) // if the flags match exactly
+        Application::ms_fd_signals.erase(pos); // completely remove and advance iterator
+      else
+      {
+        if(pos->second.first & flags) // if the flags match partially
+          pos->second.first = pos->second.first ^ flags; // remove all matching parts
+        ++pos; // advance iterator
+      }
+    }
+  }
 
   // enqueue a call to the functions connected to the signal
   template<typename... ArgTypes>

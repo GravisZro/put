@@ -90,8 +90,8 @@ Process::Process(void) noexcept
   init_once();
   process_map.emplace(processId(), this); // add self to process map
 #ifdef ENABLE_PROCESS_EVENT_TRACKING
-  Object::connect(EventBackend::watch(processId(), EventFlags::ExecEvent), started);
-  Object::connect(EventBackend::watch(processId(), EventFlags::ExitEvent), finished);
+  Object::connect(processId(), EventFlags::ExecEvent, started);
+  Object::connect(processId(), EventFlags::ExitEvent, finished);
 #endif
 }
 
@@ -100,6 +100,10 @@ Process::~Process(void) noexcept
   if(m_state == State::Running)
     sendSignal(posix::signal::Kill);
 
+  Object::disconnect(getStdOut(), EventFlags::Readable);
+  Object::disconnect(getStdErr(), EventFlags::Readable);
+  Object::disconnect(processId(), EventFlags::ExecEvent);
+  Object::disconnect(processId(), EventFlags::ExitEvent);
   m_state = State::Invalid;
 }
 
@@ -240,8 +244,8 @@ bool Process::invoke(void) noexcept
   Object::enqueue_copy(started, posix::invalid_descriptor, EventData_t(EventFlags::ExecEvent, processId(), processId()));
 #endif
 
-  Object::connect(EventBackend::watch(getStdOut()), stdoutMessage);
-  Object::connect(EventBackend::watch(getStdErr()), stderrMessage);
+  Object::connect(getStdOut(), EventFlags::Readable, stdoutMessage);
+  Object::connect(getStdErr(), EventFlags::Readable, stderrMessage);
 
   m_state = State::Running;
   return errno == posix::success_response;

@@ -116,6 +116,7 @@ struct proc_fd
     { return *reinterpret_cast<const posix::fd_t*>(this); }
 };
 #endif
+
 struct platform_dependant
 {
   struct pollnotify_t // poll notification (epoll)
@@ -217,6 +218,7 @@ struct platform_dependant
       return inotify_rm_watch(fd, wd) == posix::success_response;
     }
   } fsnotify;
+
 #ifdef ENABLE_PROCESS_EVENT_TRACKING
   struct procnotify_t // process notification (process events connector)
   {
@@ -283,9 +285,14 @@ struct platform_dependant
       if(entries.first == entries.second)
         return false;
 
-      for(auto pos = entries.first; pos != entries.second; ++pos)
+      auto pos = entries.first;
+      while(pos != entries.second)
+      {
         if(pos->second == fd)
-          events.erase(pos);
+          pos = events.erase(pos); // increments to next iterator
+        else
+          ++pos;
+      }
 
       // add filter removal code here
 
@@ -342,13 +349,11 @@ posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
 }
 
 
-bool EventBackend::remove(posix::fd_t fd) noexcept
+bool EventBackend::remove(int target, EventFlags_t flags) noexcept
 {
-#ifdef ENABLE_PROCESS_EVENT_TRACKING
-  if(proc_fd(fd).isProcess)
-    return platform->procnotify.remove(fd);
-#endif
-  return platform->pollnotify.remove(fd) &&
+  if(flags >= EventFlags::ExecEvent)
+    return platform->procnotify.remove(target);
+  return platform->pollnotify.remove(target) &&
       errno == posix::success_response;
 }
 

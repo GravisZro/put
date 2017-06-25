@@ -47,13 +47,7 @@ enum class EventFlags : uint32_t
 };
 static_assert(sizeof(EventFlags) == sizeof(uint32_t), "EventFlags: bad size");
 
-template<typename itype> constexpr uint32_t operator | (EventFlags a, itype b) { return a | static_cast<EventFlags>(b); }
-template<typename itype> constexpr uint32_t operator & (EventFlags a, itype b) { return a & static_cast<EventFlags>(b); }
-template<typename itype> constexpr uint32_t operator >=(EventFlags a, itype b) { return a >= static_cast<EventFlags>(b); }
 constexpr uint32_t operator | (EventFlags a, EventFlags b) { return static_cast<uint32_t>(a) |  static_cast<uint32_t>(b); }
-constexpr uint32_t operator & (EventFlags a, EventFlags b) { return static_cast<uint32_t>(a) &  static_cast<uint32_t>(b); }
-constexpr uint32_t operator >=(EventFlags a, EventFlags b) { return static_cast<uint32_t>(a) >= static_cast<uint32_t>(b); }
-
 
 struct EventFlags_t
 {
@@ -76,8 +70,16 @@ struct EventFlags_t
   uint32_t GIDEvent     : 1;
   uint32_t SIDEvent     : 1;
 
+  EventFlags_t(uint32_t flags) : EventFlags_t(static_cast<EventFlags>(flags)) { }
   EventFlags_t(EventFlags flags = EventFlags::Invalid) noexcept { *reinterpret_cast<EventFlags*>(this) = flags; }
-  operator EventFlags(void) const noexcept { return *reinterpret_cast<const EventFlags*>(this); }
+  //operator EventFlags(void) const noexcept { return *reinterpret_cast<const EventFlags*>(this); }
+  operator uint32_t(void) const noexcept { return *reinterpret_cast<const uint32_t*>(this); }
+
+
+  uint32_t operator | (EventFlags a) const { return static_cast<uint32_t>(*this) |  static_cast<uint32_t>(a); }
+  uint32_t operator & (EventFlags a) const { return static_cast<uint32_t>(*this) &  static_cast<uint32_t>(a); }
+  uint32_t operator ^ (EventFlags a) const { return static_cast<uint32_t>(*this) ^  static_cast<uint32_t>(a); }
+  uint32_t operator >=(EventFlags a) const { return static_cast<uint32_t>(*this) >= static_cast<uint32_t>(a); }
 };
 static_assert(sizeof(EventFlags_t) == sizeof(EventFlags), "EventFlags_t: bad size");
 
@@ -131,7 +133,7 @@ struct EventBackend // TODO: convert to namespace
   static posix::fd_t watch(const char* path, EventFlags_t flags = EventFlags::Readable) noexcept; // add file events to montior
   static posix::fd_t watch(int target, EventFlags_t flags = EventFlags::Readable) noexcept; // add FD or process events to montior
 
-  static bool remove(posix::fd_t fd) noexcept; // remove from watch queue
+  static bool remove(int target, EventFlags_t flags = EventFlags::Readable) noexcept; // remove from watch queue
 
   static bool getevents(int timeout = -1) noexcept;
 
