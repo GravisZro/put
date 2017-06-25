@@ -30,22 +30,37 @@ public:
   template<class ObjType, typename RType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, RType(ObjType::*slot)(ArgTypes...)) noexcept
   {
-    sig.emplace_back(std::make_pair(static_cast<ProtoObject*>(obj), [slot](ProtoObject* p, ArgTypes... args) noexcept
-      { if(p == p->self) (static_cast<ObjType*>(p)->*slot)(args...); })); // if ProtoObject is valid (not deleted), call slot
+    sig.emplace_back(std::make_pair(static_cast<ProtoObject*>(obj),
+      [slot](ProtoObject* p, ArgTypes... args) noexcept
+        { if(p == p->self) (static_cast<ObjType*>(p)->*slot)(args...); })); // if ProtoObject is valid (not deleted), call slot
+  }
+
+  // connect to another signal
+  template<typename... ArgTypes>
+  static inline void connect(signal<ArgTypes...>& sig1, signal<ArgTypes...>& sig2) noexcept
+  {
+    sig1.emplace_back(std::make_pair(static_cast<ProtoObject*>(nullptr),
+      [&sig2](ProtoObject*, ArgTypes... args) noexcept
+        { enqueue(sig2, args...); }));
   }
 
   // connect to a function that accept the object pointer as the first argument
   template<class ObjType, typename RType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, RType(*slot)(ObjType*, ArgTypes...)) noexcept
   {
-    sig.emplace_back(std::make_pair(static_cast<ProtoObject*>(obj), [slot](ProtoObject* p, ArgTypes... args) noexcept
-      { if(p == p->self) slot(static_cast<ObjType*>(p), args...); })); // if ProtoObject is valid (not deleted), call slot
+    sig.emplace_back(std::make_pair(static_cast<ProtoObject*>(obj),
+      [slot](ProtoObject* p, ArgTypes... args) noexcept
+        { if(p == p->self) slot(static_cast<ObjType*>(p), args...); })); // if ProtoObject is valid (not deleted), call slot
   }
 
   // connect to a function and ignore the object
   template<typename RType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, RType(*slot)(ArgTypes...)) noexcept
-    { sig.emplace_back(std::make_pair(static_cast<ProtoObject*>(nullptr), [slot](ProtoObject*, ArgTypes... args) noexcept { slot(args...); })); }
+  {
+    sig.emplace_back(std::make_pair(static_cast<ProtoObject*>(nullptr),
+      [slot](ProtoObject*, ArgTypes... args) noexcept
+        { slot(args...); }));
+  }
 
 
   // connect a file descriptor event to an object member function
@@ -86,7 +101,8 @@ public:
   static inline void connect(posix::fd_t fd, EventFlags_t flags, RType(*slot)(posix::fd_t, EventData_t)) noexcept
   {
     Application::ms_fd_signals.emplace(std::make_pair(fd, std::make_pair(flags,
-      [slot](posix::fd_t fd, EventData_t data) noexcept { slot(fd, data); })));
+      [slot](posix::fd_t fd, EventData_t data) noexcept
+        { slot(fd, data); })));
   }
 
   template<typename RType>
