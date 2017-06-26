@@ -314,7 +314,11 @@ posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
 bool EventBackend::remove(int target, EventFlags_t flags) noexcept
 {
   if(flags >= EventFlags::ExecEvent)
+#ifdef ENABLE_PROCESS_EVENT_TRACKING
     return platform->procnotify.remove(target);
+#else
+    return posix::invalid_descriptor;
+#endif
   return platform->pollnotify.remove(target) &&
       errno == posix::success_response;
 }
