@@ -111,7 +111,7 @@ struct platform_dependant
       fd = posix::invalid_descriptor;
     }
 
-    int wait(int timeout)
+    int wait(int timeout) noexcept
     {
       return ::epoll_wait(fd, output, MAX_EVENTS, timeout); // wait for new results
     }

@@ -130,7 +130,7 @@ public:
       else
       {
         if(pos->second.first & flags) // if the flags match partially
-          pos->second.first = pos->second.first ^ flags; // remove all matching parts
+          pos->second.first &= pos->second.first ^ flags; // remove all matching parts
         ++pos; // advance iterator
       }
     }
