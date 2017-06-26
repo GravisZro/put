@@ -72,10 +72,7 @@ struct EventFlags_t
 
   EventFlags_t(uint32_t flags) : EventFlags_t(static_cast<EventFlags>(flags)) { }
   EventFlags_t(EventFlags flags = EventFlags::Invalid) noexcept { *reinterpret_cast<EventFlags*>(this) = flags; }
-  //operator EventFlags(void) const noexcept { return *reinterpret_cast<const EventFlags*>(this); }
   operator uint32_t(void) const noexcept { return *reinterpret_cast<const uint32_t*>(this); }
-  operator uint32_t(void) noexcept { return *reinterpret_cast<uint32_t*>(this); }
-
 
   uint32_t operator |  (EventFlags a) const noexcept { return *this |  static_cast<uint32_t>(a); }
   uint32_t operator &  (EventFlags a) const noexcept { return *this &  static_cast<uint32_t>(a); }
