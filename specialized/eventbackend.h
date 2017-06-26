@@ -82,9 +82,9 @@ struct EventFlags_t
   uint32_t operator ^  (EventFlags a) const noexcept { return *this ^  static_cast<uint32_t>(a); }
   uint32_t operator >= (EventFlags a) const noexcept { return *this >= static_cast<uint32_t>(a); }
 
-  uint32_t operator &= (uint32_t v) noexcept { return *this &= v; }
-  uint32_t operator |= (uint32_t v) noexcept { return *this |= v; }
-  uint32_t operator ^= (uint32_t v) noexcept { return *this ^= v; }
+  uint32_t operator &= (uint32_t v) noexcept { return *reinterpret_cast<uint32_t*>(this) &= v; }
+  uint32_t operator |= (uint32_t v) noexcept { return *reinterpret_cast<uint32_t*>(this) |= v; }
+  uint32_t operator ^= (uint32_t v) noexcept { return *reinterpret_cast<uint32_t*>(this) ^= v; }
 };
 static_assert(sizeof(EventFlags_t) == sizeof(EventFlags), "EventFlags_t: bad size");
 
