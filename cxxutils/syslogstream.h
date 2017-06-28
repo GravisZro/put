@@ -2,8 +2,8 @@
 #define SYSLOG_H
 
 // STL
-#include <iostream>
-#include <string>
+#include <ostream>
+#include <streambuf>
 
 // POSIX
 #include <sys/syslog.h>

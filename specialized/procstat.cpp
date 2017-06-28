@@ -7,8 +7,6 @@
 // C++
 #include <cstdio>
 
-#include <iostream>
-
 // Linux
 #include <linux/limits.h>
 

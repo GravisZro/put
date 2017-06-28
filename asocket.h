@@ -3,6 +3,7 @@
 
 // STL
 #include <vector>
+#include <list>
 #include <queue>
 #include <thread>
 #include <mutex>

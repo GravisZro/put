@@ -19,7 +19,7 @@
 #include <specialized/procstat.h>
 #include <specialized/eventbackend.h>
 #include <cxxutils/error_helpers.h>
-#include <cxxutils/streamcolors.h>
+#include <cxxutils/colors.h>
 
 
 enum class command : uint8_t

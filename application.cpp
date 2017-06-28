@@ -10,7 +10,7 @@
 
 // PDTK
 #include <object.h>
-#include <cxxutils/streamcolors.h>
+#include <cxxutils/colors.h>
 #include <cxxutils/error_helpers.h>
 
 // atomic vars are to avoid race conditions

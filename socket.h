@@ -1,45 +1,76 @@
 #ifndef SOCKET_H
 #define SOCKET_H
 
+// STL
+#include <list>
+
+// PDTK
 #include <object.h>
-#include "socket_helpers.h"
+#include <cxxutils/socket_helpers.h>
+#include <cxxutils/vfifo.h>
+#include <specialized/getpeercred.h>
 
-#include <vector>
-#include <string>
-
-#include <sys/socket.h> // for socket functions
-#include <sys/un.h> // for struct sockaddr_un
-#include <unistd.h> // for close()
-
-#include <cstring>
-#include <cassert>
-#include <thread>
-
-#include <map>
-#include <stropts.h>
-
-
-using namespace posix;
-
-class SocketBase : public Object,
-                   protected socket_t
+class GenericSocket : public Object
 {
 public:
-  SocketBase(fd_t fd);
-  ~SocketBase(void);
+  GenericSocket(posix::fd_t fd) noexcept;
+  ~GenericSocket(void) noexcept;
 
-  int bytesAvailable(void);
+  signal<posix::fd_t> disconnected; // connection with peer was severed
+protected:
+  void disconnect(void) noexcept;
 
-  static void process_socket_queue(void);
+  virtual bool read(posix::fd_t socket, EventData_t event) noexcept = 0;
 
-  bool connect(const char *socket_path);
-  bool bind   (const char *socket_path);
-  bool listen(int max_connections = SOMAXCONN);
+  bool m_connected;
+  posix::sockaddr_t m_selfaddr;
+  posix::fd_t m_socket;
+};
+
+class ClientSocket : public GenericSocket
+{
+public:
+  ClientSocket(EDomain   domain   = EDomain::local,
+               EType     type     = EType::seqpacket,
+               EProtocol protocol = EProtocol::unspec,
+               int       flags    = 0) noexcept;
+
+  ClientSocket(posix::fd_t fd) noexcept;
+
+  bool connect(const char *socket_path) noexcept;
+
+  bool write(const vfifo& buffer, posix::fd_t fd = posix::invalid_descriptor) noexcept;
+
+  signal<posix::fd_t, posix::sockaddr_t, proccred_t> connected; // peer is connected
+  signal<posix::fd_t, vfifo, posix::fd_t> newMessage; // message received
 
 private:
-  sockaddr_t m_addr;
-  static lockable<fdset_t> s_socket_indexes; // use as index into s_socket_map
-  static std::map<fd_t, SocketBase*> s_socket_map;
+  bool read(posix::fd_t socket, EventData_t event) noexcept; // buffers incomming data and then enqueues newMessage
+  vfifo m_buffer;
+};
+
+class ServerSocket : public GenericSocket
+{
+public:
+  ServerSocket(EDomain   domain   = EDomain::local,
+               EType     type     = EType::seqpacket,
+               EProtocol protocol = EProtocol::unspec,
+               int       flags    = 0) noexcept;
+
+  ServerSocket(posix::fd_t fd) noexcept;
+
+  bool bind(const char* socket_path, int socket_backlog) noexcept;
+
+  void acceptPeerRequest(posix::fd_t fd) noexcept;
+  void rejectPeerRequest(posix::fd_t fd) const noexcept;
+
+  signal<posix::fd_t, posix::sockaddr_t, proccred_t> newPeerRequest; // peer is requesting a connection
+  signal<posix::fd_t> connectedPeer;    // connection with peer was established
+  signal<posix::fd_t> disconnectedPeer; // connection with peer was severed
+
+private:
+  bool read(posix::fd_t socket, EventData_t event) noexcept; // accepts socket connections and then enqueues newPeerRequest
+  std::list<ClientSocket> m_clients;
 };
 
 #endif // SOCKET_H

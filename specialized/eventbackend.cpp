@@ -23,7 +23,7 @@
 #include <unistd.h>
 
 // PDTK
-#include <cxxutils/streamcolors.h>
+#include <cxxutils/colors.h>
 #include <cxxutils/error_helpers.h>
 
 #define MAX_EVENTS 2048
