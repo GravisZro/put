@@ -10,7 +10,8 @@
 
 // PDTK
 #include <object.h>
-#include <specialized/eventbackend.h>
+#include <cxxutils/streamcolors.h>
+#include <cxxutils/error_helpers.h>
 
 // atomic vars are to avoid race conditions
 static std::atomic_int  s_return_value (0);

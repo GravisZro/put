@@ -2,9 +2,11 @@
 #define PIPEDSPAWN_H
 
 // PDTK
-#include <cxxutils/posix_helpers.h>
 #include <cxxutils/vfifo.h>
 #include <specialized/eventbackend.h>
+#include <cxxutils/posix_helpers.h>
+#include <cxxutils/error_helpers.h>
+#include <cxxutils/streamcolors.h>
 
 // Realtime POSIX
 #include <spawn.h>

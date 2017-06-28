@@ -18,7 +18,9 @@
 // PDTK
 #include <specialized/procstat.h>
 #include <specialized/eventbackend.h>
-#include <cxxutils/cstringarray.h>
+#include <cxxutils/error_helpers.h>
+#include <cxxutils/streamcolors.h>
+
 
 enum class command : uint8_t
 {

@@ -4,13 +4,11 @@
 // PDTK
 #include <cxxutils/posix_helpers.h>
 #include <application.h>
-#include <specialized/eventbackend.h>
 
 // STL
 #include <functional>
-#include <algorithm>
 #include <list>
-#include <iostream>
+
 struct ProtoObject
 {
   inline  ProtoObject(void) noexcept { self = this; }
@@ -24,7 +22,7 @@ public:
   template<typename... ArgTypes>
   using signal = std::list<std::pair<ProtoObject*, std::function<void(ProtoObject*, ArgTypes...)>>>;
 
-  inline Object(void) noexcept  { }
+  inline  Object(void) noexcept { }
   inline ~Object(void) noexcept { }
 
   // connect to a member of an object

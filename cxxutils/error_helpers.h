@@ -1,8 +1,23 @@
 #ifndef ERROR_HELPERS_H
 #define ERROR_HELPERS_H
 
+// C++
+#include <cerrno>
+#include <cstdio>
+
 // STL
 #include <system_error>
+
+
+#define flaw(condition, msg_prefix, exec, rvalue, ...) \
+  if(condition) \
+  { \
+    dprintf(STDERR_FILENO, msg_prefix); \
+    dprintf(STDERR_FILENO, ##__VA_ARGS__); \
+    dprintf(STDERR_FILENO, "\n"); \
+    exec; \
+    return rvalue; \
+  }
 
 template<typename T>
 constexpr bool operator ==(std::errc err, T err_num) noexcept

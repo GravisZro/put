@@ -3,27 +3,14 @@
 
 // POSIX
 #include <poll.h>
-//#include <time.h>
 #include <sys/types.h>
 
 // STL
-#include <cstdio>
 #include <unordered_map>
-#include <vector>
 
 // PDTK
 #include <cxxutils/posix_helpers.h>
-#include <cxxutils/streamcolors.h>
 
-#define flaw(condition, msg_prefix, exec, rvalue, ...) \
-  if(condition) \
-  { \
-    dprintf(STDERR_FILENO, msg_prefix); \
-    dprintf(STDERR_FILENO, ##__VA_ARGS__); \
-    dprintf(STDERR_FILENO, "\n"); \
-    exec; \
-    return rvalue; \
-  }
 
 
 enum class EventFlags : uint32_t
