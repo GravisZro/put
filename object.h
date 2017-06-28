@@ -127,8 +127,8 @@ public:
         Application::ms_fd_signals.erase(pos); // completely remove and advance iterator
       else
       {
-        if(pos->second.first & flags) // if the flags match partially
-          pos->second.first &= pos->second.first ^ flags; // remove all matching parts
+        if(pos->second.first.isSet(flags)) // if the flags match partially
+          pos->second.first.unset(flags); // remove all matching parts
         ++pos; // advance iterator
       }
     }

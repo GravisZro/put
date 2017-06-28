@@ -255,7 +255,7 @@ struct platform_dependant
 
       // add filter installation code here
 
-      return iter->second;
+      return iter->first;
     }
 
     bool remove(pid_t pid) noexcept
@@ -368,7 +368,7 @@ bool EventBackend::getevents(int timeout) noexcept
           for_each(entries.first, entries.second, // for each matching PID entry
             [&procnote, flags](const std::pair<pid_t, EventFlags_t>& pair)
             {
-              if(pair.second & flags) // test to see if the current process matches the triggering EventFlag
+              if(pair.second.isSet(flags)) // test to see if the current process matches the triggering EventFlag
                 results.emplace(pair.first,
                   EventData_t(flags,
                    procnote.event.event_data.exit.process_pid,

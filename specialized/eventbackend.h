@@ -31,10 +31,12 @@ enum class EventFlags : uint32_t
   UIDEvent      = 0x1000, // Process changed its User ID
   GIDEvent      = 0x2000, // Process changed its Group ID
   SIDEvent      = 0x4000, // Process changed its Session ID
+
+  Any           = 0xFFFF, // any flag
 };
 static_assert(sizeof(EventFlags) == sizeof(uint32_t), "EventFlags: bad size");
 
-constexpr uint32_t operator | (EventFlags a, EventFlags b) { return static_cast<uint32_t>(a) |  static_cast<uint32_t>(b); }
+constexpr uint32_t operator | (EventFlags a, EventFlags b) { return static_cast<uint32_t>(a) | static_cast<uint32_t>(b); }
 
 struct EventFlags_t
 {
@@ -59,16 +61,14 @@ struct EventFlags_t
 
   EventFlags_t(uint32_t flags) : EventFlags_t(static_cast<EventFlags>(flags)) { }
   EventFlags_t(EventFlags flags = EventFlags::Invalid) noexcept { *reinterpret_cast<EventFlags*>(this) = flags; }
-  operator uint32_t(void) const noexcept { return *reinterpret_cast<const uint32_t*>(this); }
+  operator EventFlags(void) const noexcept { return *reinterpret_cast<const EventFlags*>(this); }
 
-  uint32_t operator |  (EventFlags a) const noexcept { return *this |  static_cast<uint32_t>(a); }
-  uint32_t operator &  (EventFlags a) const noexcept { return *this &  static_cast<uint32_t>(a); }
-  uint32_t operator ^  (EventFlags a) const noexcept { return *this ^  static_cast<uint32_t>(a); }
-  uint32_t operator >= (EventFlags a) const noexcept { return *this >= static_cast<uint32_t>(a); }
+  void unset(EventFlags flags) noexcept { return unset(static_cast<uint32_t>(flags)); }
+  void unset(uint32_t flags) noexcept { *reinterpret_cast<uint32_t*>(this) &= *reinterpret_cast<uint32_t*>(this) ^flags; }
+  bool isSet(EventFlags flags) const noexcept { return isSet(static_cast<uint32_t>(flags)); }
+  bool isSet(uint32_t flags) const noexcept { return *reinterpret_cast<const uint32_t*>(this) & flags; }
 
-  uint32_t operator &= (uint32_t v) noexcept { return *reinterpret_cast<uint32_t*>(this) &= v; }
-  uint32_t operator |= (uint32_t v) noexcept { return *reinterpret_cast<uint32_t*>(this) |= v; }
-  uint32_t operator ^= (uint32_t v) noexcept { return *reinterpret_cast<uint32_t*>(this) ^= v; }
+  bool operator >= (EventFlags a) const noexcept { return *reinterpret_cast<const uint32_t*>(this) >= static_cast<uint32_t>(a); }
 };
 static_assert(sizeof(EventFlags_t) == sizeof(EventFlags), "EventFlags_t: bad size");
 

@@ -88,7 +88,7 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
         for_each(entries.first, entries.second, // for each FD
           [&pos](const std::pair<posix::fd_t, std::pair<EventFlags_t, vfdfunc>>& pair) // executed for each FD signal pair
             {
-              if(pair.second.first & pos.second.flags) // if the flags match
+              if(pair.second.first.isSet(pos.second.flags)) // if the flags match
                 pair.second.second(pos.first, pos.second); // call the fuction with the FD and triggering EventFlag
             });
       }
