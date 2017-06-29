@@ -9,7 +9,6 @@
 #include <algorithm> // for for_each
 
 // PDTK
-#include <object.h>
 #include <cxxutils/colors.h>
 #include <cxxutils/error_helpers.h>
 
