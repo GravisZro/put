@@ -7,7 +7,7 @@
 // PDTK
 #include <cxxutils/error_helpers.h>
 
-#if defined(__linux__)
+#if defined(__linux__) // Linux
 
 int peercred(int sockfd, proccred_t& cred) noexcept
 {
@@ -28,9 +28,7 @@ int peercred(int sockfd, proccred_t& cred) noexcept
   return rval;
 }
 
-#elif defined(LOCAL_PEERCRED)
-
-// Old FreeBSD
+#elif defined(LOCAL_PEERCRED) // Old FreeBSD
 #include <sys/ucred.h>
 int peercred(int sockfd, proccred_t& cred) noexcept
 {
@@ -52,8 +50,7 @@ int peercred(int sockfd, proccred_t& cred) noexcept
 }
 
 
-#elif defined(__MACH__)
-// New FreeBSD/Darwin
+#elif defined(__MACH__) // New FreeBSD/Darwin
 
 // POSIX
 #include <sys/types.h>
@@ -64,9 +61,7 @@ int peercred(int sockfd, proccred_t& cred) noexcept
   return getpeereid(sockfd, &cred.uid, &cred.gid);
 }
 
-#elif defined(__sun) && defined(__SVR4)
-
-// Solaris
+#elif defined(__sun) && defined(__SVR4) // Solaris
 #include <ucred.h>
 
 int peercred(int sockfd, proccred_t& cred) noexcept
