@@ -278,7 +278,7 @@ struct platform_dependant* EventBackend::platform = nullptr;
 
 void EventBackend::init(void) noexcept
 {
-  flaw(platform != nullptr, posix::warning, errno = EPERM,,
+  flaw(platform != nullptr, posix::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::init() has been called multiple times!")
   platform = new platform_dependant;
 #ifdef ENABLE_PROCESS_EVENT_TRACKING
@@ -288,7 +288,7 @@ void EventBackend::init(void) noexcept
 
 void EventBackend::destroy(void) noexcept
 {
-  flaw(platform == nullptr, posix::warning, errno = EPERM,,
+  flaw(platform == nullptr, posix::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::destroy() has been called multiple times!")
   delete platform;
   platform = nullptr;

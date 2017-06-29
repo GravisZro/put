@@ -40,10 +40,7 @@ int peercred(int sockfd, proccred_t& cred) noexcept
   int rval = getsockopt(sock, 0, LOCAL_PEERCRED, &data, &so_len);
 
   if(len != sizeof(data) || data.cr_version != XUCRED_VERSION))
-  {
-    errno = EINVAL;
-    rval = -1;
-  }
+    rval = posix::error(std::errc::invalid_argument);
 
   if(rval == posix::success)
   {

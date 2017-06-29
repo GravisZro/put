@@ -61,7 +61,7 @@ void Process::init_once(void) noexcept
 
 void Process::reaper(int sig) noexcept
 {
-  flaw(sig != SIGCHLD, posix::warning, errno = EINVAL,,
+  flaw(sig != SIGCHLD, posix::warning, posix::error(std::errc::invalid_argument),,
        "Process::reaper() has been called improperly")
 
   pid_t pid = posix::error_response; // set value just in case
@@ -230,7 +230,7 @@ bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
 
 bool Process::invoke(void) noexcept
 {
-  flaw(m_state != State::Initializing, posix::severe, errno = EINPROGRESS, false,
+  flaw(m_state != State::Initializing, posix::severe, posix::error(std::errc::device_or_resource_busy), false,
        "Called Process::invoke() on an active process!")
 
   m_iobuf.reset();
