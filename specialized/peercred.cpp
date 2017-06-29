@@ -92,6 +92,8 @@ int peercred(int sockfd, proccred_t& cred) noexcept
 
 #elif defined(__unix__)
 
-#error no code for your operating system. :(
+#error no code yet for your operating system. :(
 
+#else
+#error Unsupported platform! >:(
 #endif
