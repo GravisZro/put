@@ -8,7 +8,7 @@
 #include <object.h>
 #include <cxxutils/socket_helpers.h>
 #include <cxxutils/vfifo.h>
-#include <specialized/getpeercred.h>
+#include <specialized/peercred.h>
 
 class GenericSocket : public Object
 {
@@ -18,10 +18,8 @@ public:
 
   signal<posix::fd_t> disconnected; // connection with peer was severed
 protected:
-  void disconnect(void) noexcept;
-
   virtual bool read(posix::fd_t socket, EventData_t event) noexcept = 0;
-
+  void disconnect(void) noexcept;
   bool m_connected;
   posix::sockaddr_t m_selfaddr;
   posix::fd_t m_socket;

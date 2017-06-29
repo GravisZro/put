@@ -16,7 +16,7 @@
 #include <object.h>
 #include <cxxutils/socket_helpers.h>
 #include <cxxutils/vfifo.h>
-#include <specialized/getpeercred.h>
+#include <specialized/peercred.h>
 #include <specialized/eventbackend.h>
 
 struct message_t

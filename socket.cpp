@@ -5,8 +5,8 @@
 
 namespace posix
 {
-  inline bool getpeercred(fd_t sockfd, proccred_t& cred) noexcept
-    { return ::getpeercred(sockfd, cred) == posix::success_response; }
+  inline bool peercred(fd_t sockfd, proccred_t& cred) noexcept
+    { return ::peercred(sockfd, cred) == posix::success_response; }
 }
 
 GenericSocket::GenericSocket(posix::fd_t fd) noexcept
@@ -32,6 +32,8 @@ void GenericSocket::disconnect(void) noexcept
     posix::close(m_socket); // connection severed!
     m_socket = posix::invalid_descriptor;
   }
+
+  m_connected = false;
 }
 
 
@@ -63,7 +65,7 @@ bool ClientSocket::connect(const char *socket_path) noexcept
        "connect() failure: %s", std::strerror(errno)) // connect to peer process
   m_connected = true;
 
-  flaw(!posix::getpeercred(m_socket, peercred), posix::warning,, false,
+  flaw(!posix::peercred(m_socket, peercred), posix::warning,, false,
        "peercred() failure: %s", std::strerror(errno)) // get creditials of connected peer process
 
   Object::enqueue(connected, m_socket, peeraddr, peercred);
@@ -199,7 +201,7 @@ bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
   flaw(fd == posix::error_response, posix::warning,, false,
        "accept() failure: %s", std::strerror(errno))
 
-  flaw(!posix::getpeercred(fd, peercred), posix::warning,, false,
+  flaw(!posix::peercred(fd, peercred), posix::warning,, false,
        "peercred() failure: %s", std::strerror(errno)) // get creditials of connected peer process
 
   Object::enqueue(newPeerRequest, fd, peeraddr, peercred);

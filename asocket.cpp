@@ -30,8 +30,8 @@ namespace LocalCommand
 
 namespace posix
 {
-  bool getpeercred(fd_t sockfd, proccred_t& cred) noexcept;
-//    { return ::getpeercred(sockfd, cred) == posix::success_response; }
+  bool peercred(fd_t sockfd, proccred_t& cred) noexcept;
+//    { return ::peercred(sockfd, cred) == posix::success_response; }
 }
 
 AsyncSocket::AsyncSocket(EDomain domain, EType type, EProtocol protocol, int flags) noexcept
@@ -88,7 +88,7 @@ bool AsyncSocket::connect(const char *socket_path) noexcept
   m_selfaddr = EDomain::unspec;
 
   return posix::connect(m_socket, peeraddr, peeraddr.size()) &&
-         posix::getpeercred(m_socket, peercred) &&
+         posix::peercred(m_socket, peercred) &&
          async_spawn() &&
          Object::enqueue(connectedToPeer, m_socket, peeraddr, peercred);
 }
@@ -181,7 +181,7 @@ void AsyncSocket::async_io(void) noexcept // runs as it's own thread
           {
             if(!EventBackend::watch(fd, EventFlags::Readable)) // monitor new socket connection
               std::cout << "watch failure: " << std::strerror(errno) << std::endl << std::flush;
-            if(!posix::getpeercred(fd, peercred)) // get creditials of connected peer process
+            if(!posix::peercred(fd, peercred)) // get creditials of connected peer process
               std::cout << "peercred failure: " << std::strerror(errno) << std::endl << std::flush;
             Object::enqueue(connectedToPeer, fd, peeraddr, peercred);
           }
