@@ -50,7 +50,7 @@ int peercred(int sockfd, proccred_t& cred) noexcept
 }
 
 
-#elif defined(__MACH__) // New FreeBSD/Darwin
+#elif defined(BSD) || defined(__MACH__) // *BSD or Darwin
 
 // POSIX
 #include <sys/types.h>

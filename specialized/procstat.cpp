@@ -3,7 +3,7 @@
 // PDTK
 #include <cxxutils/posix_helpers.h>
 
-#if defined(__linux__)
+#if defined(__linux__) // Linux
 // C++
 #include <cstdio>
 
@@ -118,7 +118,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 
   return true;
 }
-#else
+#elif defined(BSD) || defined(__MACH__) // *BSD or Apple
 
 // PDTK
 #include <cxxutils/misc_helpers.h>
@@ -144,4 +144,12 @@ bool procstat(pid_t pid, process_t& data) noexcept
 
   return true;
 }
+
+#elif defined(__unix__)
+
+#error no code yet for your operating system. :(
+
+#else
+#error Unsupported platform! >:(
 #endif
+
