@@ -6,7 +6,7 @@
 #if defined(__linux__) // Linux
 
 #include <dirent.h>
-#include <cctype>
+#include <cstdlib>
 
 int proclist(pid_t* list, int max_length)
 {
@@ -22,12 +22,7 @@ int proclist(pid_t* list, int max_length)
   {
     if(entry->d_type == DT_DIR)
     {
-      list[count] = 0;
-      for(int i = 0; entry->d_name[i] != '\0' && std::isdigit(entry->d_name[i]); ++i)
-      {
-        list[count] *= 10;
-        list[count] += entry->d_name[i] - '0';
-      }
+      list[count] = std::atoi(entry->d_name);
       if(list[count])
         ++count;
     }

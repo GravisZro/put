@@ -117,8 +117,8 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
               &process.wchan);
   std::fclose(file);
 
-  data.filename.assign(buffer+1);
-  data.filename.pop_back();
+  data.name.assign(buffer+1);
+  data.name.pop_back();
 
   std::sprintf(buffer, "/proc/%d/cmdline", pid);
 
