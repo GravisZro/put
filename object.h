@@ -7,7 +7,6 @@
 
 // STL
 #include <functional>
-#include <list>
 #include <unordered_map>
 
 struct ProtoObject
@@ -22,7 +21,6 @@ class Object : private ProtoObject
 public:
   template<typename... ArgTypes>
   using signal = std::unordered_multimap<ProtoObject*, std::function<void(ProtoObject*, ArgTypes...)>>;
-  //std::list<std::pair<ProtoObject*, std::function<void(ProtoObject*, ArgTypes...)>>>;
 
   inline  Object(void) noexcept { }
   inline ~Object(void) noexcept { }
