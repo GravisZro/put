@@ -137,7 +137,7 @@ public:
     while(pos != range.second) // pos is _always_ advanced within loop
     {
       if(pos->second.first == flags) // if the flags match exactly
-        Application::ms_fd_signals.erase(pos); // completely remove and advance iterator
+        pos = Application::ms_fd_signals.erase(pos); // completely remove and advance iterator
       else
       {
         if(pos->second.first.isSet(flags)) // if the flags match partially
