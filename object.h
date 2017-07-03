@@ -8,6 +8,7 @@
 // STL
 #include <functional>
 #include <list>
+#include <unordered_map>
 
 struct ProtoObject
 {
@@ -20,7 +21,8 @@ class Object : private ProtoObject
 {
 public:
   template<typename... ArgTypes>
-  using signal = std::list<std::pair<ProtoObject*, std::function<void(ProtoObject*, ArgTypes...)>>>;
+  using signal = std::unordered_multimap<ProtoObject*, std::function<void(ProtoObject*, ArgTypes...)>>;
+  //std::list<std::pair<ProtoObject*, std::function<void(ProtoObject*, ArgTypes...)>>>;
 
   inline  Object(void) noexcept { }
   inline ~Object(void) noexcept { }
@@ -29,36 +31,36 @@ public:
   template<class ObjType, typename RType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, RType(ObjType::*slot)(ArgTypes...)) noexcept
   {
-    sig.emplace_back(std::make_pair(static_cast<ProtoObject*>(obj),
+    sig.emplace(static_cast<ProtoObject*>(obj),
       [slot](ProtoObject* p, ArgTypes... args) noexcept
-        { if(p == p->self) (static_cast<ObjType*>(p)->*slot)(args...); })); // if ProtoObject is valid (not deleted), call slot
+        { if(p == p->self) (static_cast<ObjType*>(p)->*slot)(args...); }); // if ProtoObject is valid (not deleted), call slot
   }
 
   // connect to another signal
   template<typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig1, signal<ArgTypes...>& sig2) noexcept
   {
-    sig1.emplace_back(std::make_pair(static_cast<ProtoObject*>(nullptr),
+    sig1.emplace(static_cast<ProtoObject*>(nullptr),
       [&sig2](ProtoObject*, ArgTypes... args) noexcept
-        { enqueue(sig2, args...); }));
+        { enqueue(sig2, args...); });
   }
 
   // connect to a function that accept the object pointer as the first argument
   template<class ObjType, typename RType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, RType(*slot)(ObjType*, ArgTypes...)) noexcept
   {
-    sig.emplace_back(std::make_pair(static_cast<ProtoObject*>(obj),
+    sig.emplace(static_cast<ProtoObject*>(obj),
       [slot](ProtoObject* p, ArgTypes... args) noexcept
-        { if(p == p->self) slot(static_cast<ObjType*>(p), args...); })); // if ProtoObject is valid (not deleted), call slot
+        { if(p == p->self) slot(static_cast<ObjType*>(p), args...); }); // if ProtoObject is valid (not deleted), call slot
   }
 
   // connect to a function and ignore the object
   template<typename RType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, RType(*slot)(ArgTypes...)) noexcept
   {
-    sig.emplace_back(std::make_pair(static_cast<ProtoObject*>(nullptr),
+    sig.emplace(static_cast<ProtoObject*>(nullptr),
       [slot](ProtoObject*, ArgTypes... args) noexcept
-        { slot(args...); }));
+        { slot(args...); });
   }
 
 
@@ -67,9 +69,9 @@ public:
   static inline void connect(posix::fd_t fd, EventFlags_t flags, ObjType* obj, RType(ObjType::*slot)(posix::fd_t, EventData_t)) noexcept
   {
     EventBackend::watch(fd, flags);
-    Application::ms_fd_signals.emplace(std::make_pair(fd, std::make_pair(flags,
+    Application::ms_fd_signals.emplace(fd, std::make_pair(flags,
       [obj, slot](posix::fd_t _fd, EventData_t data) noexcept
-        { if(obj == obj->self) (obj->*slot)(_fd, data); }))); // if ProtoObject is valid (not deleted), call slot
+        { if(obj == obj->self) (obj->*slot)(_fd, data); })); // if ProtoObject is valid (not deleted), call slot
   }
 
   template<class ObjType, typename RType>
@@ -80,7 +82,7 @@ public:
   static inline void connect(posix::fd_t fd, EventFlags_t flags, signal<posix::fd_t, EventData_t>& sig) noexcept
   {
     EventBackend::watch(fd, flags);
-    Application::ms_fd_signals.emplace(std::make_pair(fd, std::make_pair(flags,
+    Application::ms_fd_signals.emplace(fd, std::make_pair(flags,
       [&sig](posix::fd_t _fd, EventData_t _data) noexcept
       {
         if(!sig.empty()) // ensure that invalid signals are not enqueued
@@ -90,7 +92,7 @@ public:
             Application::ms_signal_queue.emplace(std::bind(sigpair.second, sigpair.first, _fd, _data));
           Application::step(); // inform execution stepper
         }
-      })));
+      }));
   }
 
   static inline void connect(posix::fd_t fd, signal<posix::fd_t, EventData_t>& sig) noexcept
@@ -102,16 +104,27 @@ public:
   static inline void connect(posix::fd_t fd, EventFlags_t flags, RType(*slot)(posix::fd_t, EventData_t)) noexcept
   {
     EventBackend::watch(fd, flags);
-    Application::ms_fd_signals.emplace(std::make_pair(fd, std::make_pair(flags,
+    Application::ms_fd_signals.emplace(fd, std::make_pair(flags,
       [slot](posix::fd_t fd, EventData_t data) noexcept
-        { slot(fd, data); })));
+        { slot(fd, data); }));
   }
 
   template<typename RType>
   static inline void connect(posix::fd_t fd, RType(*slot)(posix::fd_t, EventData_t)) noexcept
     { connect(fd, EventFlags::Readable, slot); }
 
-   // disconnect _all_ connections to fd
+
+  // disconnect all connections from signal
+  template<typename... ArgTypes>
+  static inline void disconnect(signal<ArgTypes...>& sig) noexcept
+    { sig.clear(); }
+
+  // disconnect all connections from signal to object
+  template<typename... ArgTypes>
+  static inline void disconnect(signal<ArgTypes...>& sig, Object* obj) noexcept
+    { sig.erase(obj); }
+
+  // disconnect _all_ connections to fd
   static inline void disconnect(posix::fd_t fd)
     { Application::ms_fd_signals.erase(fd); } // totally remove _all_ connections to fd
 
