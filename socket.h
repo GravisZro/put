@@ -2,7 +2,7 @@
 #define SOCKET_H
 
 // STL
-#include <list>
+#include <unordered_map>
 
 // PDTK
 #include <object.h>
@@ -65,10 +65,12 @@ public:
   signal<posix::fd_t, posix::sockaddr_t, proccred_t> newPeerRequest; // peer is requesting a connection
   signal<posix::fd_t> connectedPeer;    // connection with peer was established
   signal<posix::fd_t> disconnectedPeer; // connection with peer was severed
+  signal<posix::fd_t, vfifo, posix::fd_t> newPeerMessage; // message received from peer
 
 private:
+  void disconnectPeer(posix::fd_t fd);
   bool read(posix::fd_t socket, EventData_t event) noexcept; // accepts socket connections and then enqueues newPeerRequest
-  std::list<ClientSocket> m_clients;
+  std::unordered_map<posix::fd_t, ClientSocket> m_clients;
 };
 
 #endif // SOCKET_H

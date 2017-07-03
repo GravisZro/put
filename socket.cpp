@@ -179,8 +179,9 @@ bool ServerSocket::bind(const char* socket_path, int socket_backlog) noexcept
 
 void ServerSocket::acceptPeerRequest(posix::fd_t fd) noexcept
 {
-  m_clients.emplace_back(fd);
-  Object::connect(m_clients.back().disconnected, disconnectedPeer);
+  auto client = m_clients.emplace(std::make_pair(fd, fd));
+  Object::connect(client.first->second.disconnected, this, &ServerSocket::disconnectPeer);
+  Object::connect(client.first->second.newMessage, newPeerMessage);
   Object::enqueue(connectedPeer, fd);
 }
 
@@ -189,6 +190,19 @@ void ServerSocket::rejectPeerRequest(posix::fd_t fd) const noexcept
   posix::close(fd);
   Object::enqueue(disconnectedPeer, fd);
 }
+
+void ServerSocket::disconnectPeer(posix::fd_t fd)
+{
+  auto client = m_clients.find(fd);
+  if(client != m_clients.end())
+  {
+    client->second.disconnected.clear();
+    client->second.newMessage.clear();
+    m_clients.erase(client);
+  }
+  Object::enqueue(disconnectedPeer, fd);
+}
+
 
 // accepts socket connections and then enqueues newPeerRequest
 bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
