@@ -3,6 +3,7 @@
 
 // STL
 #include <string>
+#include <vector>
 
 // POSIX
 #include <sys/types.h>
@@ -21,6 +22,7 @@ struct process_state_t
 {
   pid_t process_id;         // process id
   std::string filename;     // filename of the executable
+  std::vector<std::string> arguments; // arguments of launched executable
   ExecutionState state;     // process execution state
   pid_t parent_process_id;  // process id of the parent process
   pid_t process_group_id;   // process group id

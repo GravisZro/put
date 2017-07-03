@@ -9,6 +9,9 @@
 
 // Linux
 #include <linux/limits.h>
+#ifndef ARG_MAX
+#define ARG_MAX 131072
+#endif
 
 bool procstat(pid_t pid, process_state_t& data) noexcept
 {
@@ -16,7 +19,9 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   static_assert(sizeof(uid_t) == sizeof(int), "size error");
   static_assert(sizeof(pid_t) == sizeof(int), "size error");
 
-  data.filename.reserve(PATH_MAX);
+  data.arguments.clear();
+
+  char buffer[ARG_MAX];
 
   struct procinfo_t
   {
@@ -64,20 +69,19 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   };
 
   procinfo_t process;
-  char path[PATH_MAX] = {0};
-  std::sprintf(path, "/proc/%d/stat", pid);
+  std::sprintf(buffer, "/proc/%d/stat", pid);
 
-  if(::access(path, R_OK) == posix::error_response)
+  if(::access(buffer, R_OK) == posix::error_response)
     return false;
 
-  FILE* file = std::fopen(path, "r");
+  FILE* file = std::fopen(buffer, "r");
   if(file == nullptr)
     return false;
 
   //char state;
   std::fscanf(file, "%d %s %c %d %d %d %d %d %u %u %u %u %u %d %d %d %d %d %d %u %u %d %u %u %u %u %u %u %u %u %d %d %d %d %u",
               &data.process_id,
-              path,
+              buffer,
               reinterpret_cast<char*>(&data.state),
               &data.parent_process_id,
               &data.process_group_id,
@@ -113,8 +117,28 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
               &process.wchan);
   std::fclose(file);
 
-  data.filename.assign(path+1);
+  data.filename.assign(buffer+1);
   data.filename.pop_back();
+
+  std::sprintf(buffer, "/proc/%d/cmdline", pid);
+
+  if(::access(buffer, R_OK) == posix::error_response)
+    return false;
+
+  file = std::fopen(buffer, "r");
+  if(file == nullptr)
+    return false;
+
+  std::memset(buffer, 0, sizeof(buffer));
+
+  while(!std::feof(file))
+  {
+    std::fscanf(file, "%s ", buffer);
+    if(std::strlen(buffer))
+      data.arguments.push_back(buffer);
+  }
+
+  std::fclose(file);
 
   return true;
 }
