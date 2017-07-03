@@ -196,8 +196,8 @@ void ServerSocket::disconnectPeer(posix::fd_t fd)
   auto client = m_clients.find(fd);
   if(client != m_clients.end())
   {
-    client->second.disconnected.clear();
-    client->second.newMessage.clear();
+    Object::disconnect(client->second.disconnected, this);
+    Object::disconnect(client->second.newMessage, this);
     m_clients.erase(client);
   }
   Object::enqueue(disconnectedPeer, fd);
