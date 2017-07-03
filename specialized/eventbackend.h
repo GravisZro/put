@@ -15,24 +15,26 @@
 
 enum class EventFlags : uint32_t
 {
-  Invalid       = 0x0000,
-  Error         = 0x0001, // FD encountered an error (output only)
-  Disconnected  = 0x0002, // FD has disconnected (output only)
-  Readable      = 0x0004, // FD has content to read
-  Writeable     = 0x0008, // FD is writeable
-  EdgeTrigger   = 0x0010, // FD will be edge-triggered (input only)
-  ReadEvent     = 0x0020, // File/directory was read from
-  WriteEvent    = 0x0040, // File/directory was written to
-  AttributeMod  = 0x0080, // File/directory metadata was modified
-  Moved         = 0x0100, // File/directory was moved
-  ExecEvent     = 0x0200, // Process called exec*()
-  ExitEvent     = 0x0400, // Process exited
-  ForkEvent     = 0x0800, // Process forked
-  UIDEvent      = 0x1000, // Process changed its User ID
-  GIDEvent      = 0x2000, // Process changed its Group ID
-  SIDEvent      = 0x4000, // Process changed its Session ID
+  Invalid       = 0x00000000,
+  Error         = 0x00000001, // FD encountered an error (output only)
+  Disconnected  = 0x00000002, // FD has disconnected (output only)
+  Readable      = 0x00000004, // FD has content to read
+  Writeable     = 0x00000008, // FD is writeable
+  EdgeTrigger   = 0x00000010, // FD will be edge-triggered (input only)
+  ReadEvent     = 0x00000020, // File/directory was read from
+  WriteEvent    = 0x00000040, // File/directory was written to
+  AttributeMod  = 0x00000080, // File/directory metadata was modified
+  Moved         = 0x00000100, // File/directory was moved
+  Deleted       = 0x00000200, // File/directory was deleted
+  Created       = 0x00000400, // File/directory was created
+  ExecEvent     = 0x00000800, // Process called exec*()
+  ExitEvent     = 0x00001000, // Process exited
+  ForkEvent     = 0x00002000, // Process forked
+  UIDEvent      = 0x00004000, // Process changed its User ID
+  GIDEvent      = 0x00008000, // Process changed its Group ID
+  SIDEvent      = 0x00010000, // Process changed its Session ID
 
-  Any           = 0xFFFF, // any flag
+  Any           = 0xFFFFFFFF, // any flag
 };
 static_assert(sizeof(EventFlags) == sizeof(uint32_t), "EventFlags: bad size");
 
@@ -51,6 +53,8 @@ struct EventFlags_t
   uint32_t WriteEvent   : 1;
   uint32_t AttributeMod : 1;
   uint32_t Moved        : 1;
+  uint32_t Deleted      : 1;
+  uint32_t Created      : 1;
   // Proc events
   uint32_t ExecEvent    : 1;
   uint32_t ExitEvent    : 1;
