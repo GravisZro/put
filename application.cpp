@@ -25,7 +25,7 @@ enum {
   Write = 1,
 };
 
-Application::Application (void) noexcept
+Application::Application(void) noexcept
 {
   if(s_pipeio[Read] == posix::invalid_descriptor) // if execution stepper pipe  hasn't been initialized yet
   {

@@ -25,7 +25,7 @@ public:
 
   int exec(void) noexcept;
 
-  static void quit(int return_value = 0) noexcept;
+  static void quit(int return_value = posix::success_response) noexcept;
 
 private:
   static void step(void) noexcept;
