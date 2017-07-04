@@ -12,7 +12,6 @@
 #include <cxxutils/posix_helpers.h>
 
 
-
 enum class EventFlags : uint32_t
 {
   Invalid       = 0x00000000,
@@ -27,12 +26,14 @@ enum class EventFlags : uint32_t
   Moved         = 0x00000100, // File/directory was moved
   Deleted       = 0x00000200, // File/directory was deleted
   Created       = 0x00000400, // File/directory was created
+  FileEvent     = 0x000007E0, // Any file/directory event
   ExecEvent     = 0x00000800, // Process called exec*()
   ExitEvent     = 0x00001000, // Process exited
   ForkEvent     = 0x00002000, // Process forked
   UIDEvent      = 0x00004000, // Process changed its User ID
   GIDEvent      = 0x00008000, // Process changed its Group ID
   SIDEvent      = 0x00010000, // Process changed its Session ID
+  ProcEvent     = 0x0001F800, // Any process event
 
   Any           = 0xFFFFFFFF, // any flag
 };
@@ -123,7 +124,7 @@ struct EventBackend // TODO: convert to namespace
   static void init(void) noexcept;
   static void destroy(void) noexcept;
 
-  static posix::fd_t watch(const char* path, EventFlags_t flags = EventFlags::Readable) noexcept; // add file events to montior
+  static posix::fd_t watch(const char* path, EventFlags_t flags = EventFlags::FileEvent) noexcept; // add file events to montior
   static posix::fd_t watch(int target, EventFlags_t flags = EventFlags::Readable) noexcept; // add FD or process events to montior
 
   static bool remove(int target, EventFlags_t flags = EventFlags::Readable) noexcept; // remove from watch queue
