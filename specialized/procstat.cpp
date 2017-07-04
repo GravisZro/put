@@ -6,6 +6,7 @@
 #if defined(__linux__) // Linux
 // C++
 #include <cstdio>
+#include <cstring>
 
 // Linux
 #include <linux/limits.h>
