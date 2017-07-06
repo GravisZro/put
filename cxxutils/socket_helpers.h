@@ -59,7 +59,7 @@ namespace posix
       std::memset(sun_path, 0, sizeof(sun_path));
     }
 
-    posix::size_t size(void) const noexcept { return sizeof(sun_family) + std::strlen(sun_path); }
+    size_t size(void) const noexcept { return sizeof(sun_family) + std::strlen(sun_path); }
     operator struct sockaddr*(void) noexcept { return reinterpret_cast<struct sockaddr*>(this); }
     operator const struct sockaddr*(void) const noexcept { return reinterpret_cast<const struct sockaddr*>(this); }
     operator EDomain(void) const noexcept { return static_cast<EDomain>(sun_family); }
@@ -104,10 +104,10 @@ namespace posix
   static inline bool bind(fd_t sockfd, const sockaddr* addr, socklen_t addrlen) noexcept
     { return ::bind(sockfd, addr, addrlen) != error_response; }
 
-  static inline ssize_t send(fd_t sockfd, const void* buffer, posix::size_t length, int flags = 0) noexcept
+  static inline ssize_t send(fd_t sockfd, const void* buffer, size_t length, int flags = 0) noexcept
     { return ignore_interruption(::send, sockfd, buffer, length, flags); }
 
-  static inline ssize_t recv(fd_t sockfd, void* buffer, posix::size_t length, int flags = 0) noexcept
+  static inline ssize_t recv(fd_t sockfd, void* buffer, size_t length, int flags = 0) noexcept
     { return ignore_interruption(::recv, sockfd, buffer, length, flags); }
 
   static inline ssize_t sendmsg(fd_t sockfd, const msghdr* msg, int flags = 0) noexcept
