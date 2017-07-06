@@ -114,7 +114,7 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
   iov.iov_len = m_buffer.capacity();
   header.msg_controllen = sizeof(aux_buffer);
 
-  ssize_t byte_count = posix::recvmsg(socket, &header, 0);
+  posix::ssize_t byte_count = posix::recvmsg(socket, &header, 0);
 
   flaw(byte_count > 0xFFFF, posix::severe, posix::seterror(std::errc::message_size), false,
        "Socket message exceeds 64KB maximum: %li bytes", byte_count)

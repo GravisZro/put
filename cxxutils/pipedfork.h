@@ -106,7 +106,7 @@ protected:
 
   bool read(posix::fd_t fd, vfifo& vq) const noexcept
   {
-    volatile ssize_t sz = posix::read(fd, vq.data(), vq.capacity());
+    volatile posix::ssize_t sz = posix::read(fd, vq.data(), vq.capacity());
     return sz > 0 && vq.resize(sz);
   }
 

@@ -5,6 +5,9 @@
 #include <cstddef>
 #include <ostream>
 
+//PDTK
+#include <cxxutils/posix_helpers.h>
+
 template <typename T>
 class nullable final
 {
@@ -32,7 +35,7 @@ public:
   inline bool operator==(const nullable<T>& o) const
     { return (is_null() && o.is_null()) || (!is_null() && !o.is_null() && value() == o.value()); }
 
-  inline std::size_t size(void) const { return m_isnull ? 0 : sizeof(T); }
+  inline posix::size_t size(void) const { return m_isnull ? 0 : sizeof(T); }
 
   // reroute comparisons to class operators
   template <typename T2> inline friend bool operator==(const T2& v, const nullable<T>& o) { return o == v; }

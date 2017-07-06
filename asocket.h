@@ -44,7 +44,7 @@ public:
   bool write(message_t msg) noexcept;
 
   signal<posix::fd_t, message_t>                     readFinished;          // msesage received
-  signal<posix::fd_t, ssize_t>                       writeFinished;         // message sent
+  signal<posix::fd_t, posix::ssize_t>                writeFinished;         // message sent
   signal<posix::fd_t, posix::sockaddr_t, proccred_t> connectedToPeer;       // connection is open with peer
   signal<posix::fd_t>                                disconnectedFromPeer;  // connection with peer was severed
 
@@ -88,7 +88,7 @@ public:
       return AsyncSocket::write({ m_fd, buffer, fd_buffer }); }
 
   signal<message_t>                     readFinished;          // msesage received
-  signal<ssize_t>                       writeFinished;         // message sent
+  signal<posix::ssize_t>                writeFinished;         // message sent
   signal<posix::sockaddr_t, proccred_t> connectedToPeer;       // connection is open with peer
   signal<>                              disconnectedFromPeer;  // connection with peer was severed
 private:
@@ -100,7 +100,7 @@ private:
     Object::connect(AsyncSocket::disconnectedFromPeer, this, &SingleSocket::disconnected);
   }
 
-  void sent(posix::fd_t, ssize_t count) noexcept
+  void sent(posix::fd_t, posix::ssize_t count) noexcept
     { Object::enqueue(SingleSocket::writeFinished, count); }
 
   void receive(posix::fd_t, message_t msg) noexcept

@@ -12,6 +12,9 @@
 #include <vector>
 #include <string>
 
+// PDTK
+#include <cxxutils/posix_helpers.h>
+
 // virtual queue class
 class vfifo
 {
@@ -98,7 +101,7 @@ public:
     return m_virt_end <= end();
   }
 
-  bool shrink(ssize_t count) noexcept
+  bool shrink(posix::ssize_t count) noexcept
   {
     if(count < 0)
       return m_ok = false;
@@ -109,7 +112,7 @@ public:
     return true;
   }
 
-  bool expand(ssize_t count) noexcept
+  bool expand(posix::ssize_t count) noexcept
   {
     if(count < 0)
       return m_ok = false;
@@ -174,7 +177,7 @@ private:
   {
     if(push<uint16_t>(sizeof(T)) &&
        push<uint16_t>(length))
-      for(size_t i = 0; m_ok && i < length; ++i)
+      for(posix::size_t i = 0; m_ok && i < length; ++i)
         push(arg[i]);
   }
 
@@ -185,7 +188,7 @@ private:
        pull  <uint16_t>() &&               // no buffer underflow
        front<uint16_t>() == length &&     // length matches
        pull  <uint16_t>())                 // no buffer underflow
-      for(size_t i = 0; m_ok && i < length; ++i)
+      for(posix::size_t i = 0; m_ok && i < length; ++i)
       {
         arg[i] = front<T>();
         pull<T>();

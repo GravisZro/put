@@ -9,11 +9,12 @@
 #include <iostream>
 
 // PDTK
+#include <cxxutils/posix_helpers.h>
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/colors.h>
 
 #ifndef CMSG_LEN
-#define CMSG_ALIGN(len) (((len) + sizeof(size_t) - 1) & (size_t) ~ (sizeof(size_t) - 1))
+#define CMSG_ALIGN(len) (((len) + sizeof(posix::size_t) - 1) & (posix::size_t) ~ (sizeof(posix::size_t) - 1))
 #define CMSG_SPACE(len) (CMSG_ALIGN (len) + CMSG_ALIGN (sizeof (struct cmsghdr)))
 #define CMSG_LEN(len)   (CMSG_ALIGN (sizeof (struct cmsghdr)) + (len))
 #endif
@@ -108,7 +109,7 @@ void AsyncSocket::async_io(void) noexcept // runs as it's own thread
   iovec iov = {};
   char aux_buffer[CMSG_SPACE(sizeof(int))] = { 0 };
   uint64_t command_buffer = 0;
-  ssize_t byte_count = 0;
+  posix::ssize_t byte_count = 0;
 
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;

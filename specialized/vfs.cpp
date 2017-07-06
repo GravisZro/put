@@ -130,7 +130,7 @@ VFS::VFS()
 */
 }
 
-int VFS::GetXAttr(const char* path, const char* name, char* value, size_t size)
+int VFS::GetXAttr(const char* path, const char* name, char* value, posix::size_t size)
 {
   if(std::string(name) == "exec")
   {
@@ -140,7 +140,7 @@ int VFS::GetXAttr(const char* path, const char* name, char* value, size_t size)
   return posix::success;
 }
 
-int VFS::ListXAttr(const char* path, char* list, size_t size)
+int VFS::ListXAttr(const char* path, char* list, posix::size_t size)
 {
   strcpy(list, "system.posix_acl_access\0");
   return 1;
@@ -169,7 +169,7 @@ int VFS::ReadDir(const char* path,
 
 int VFS::Read(const char* path,
                         char* buf,
-                        size_t size,
+                        posix::size_t size,
                         off_t offset,
                         struct fuse_file_info* fileInfo)
 {
@@ -182,7 +182,7 @@ int VFS::Read(const char* path,
 
 int VFS::Write(const char* path,
                          const char* buf,
-                         size_t size,
+                         posix::size_t size,
                          off_t offset,
                          struct fuse_file_info* fileInfo)
 {

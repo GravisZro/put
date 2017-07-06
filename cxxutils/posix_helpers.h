@@ -6,6 +6,7 @@
 #include <set>
 
 // POSIX
+#include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
 #include <signal.h>
@@ -16,6 +17,9 @@
 
 namespace posix
 {
+  using ::size_t;
+  using ::ssize_t;
+
   typedef int fd_t;
   static const fd_t invalid_descriptor = -1;
 

@@ -96,7 +96,7 @@ protected:
 
   static bool read(posix::fd_t fd, vfifo& vq) noexcept
   {
-    ssize_t sz = posix::read(fd, vq.data(), vq.capacity());
+    posix::ssize_t sz = posix::read(fd, vq.data(), vq.capacity());
     return sz > 0 && vq.resize(sz);
   }
 

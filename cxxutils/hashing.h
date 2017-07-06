@@ -10,6 +10,10 @@
 #include <cstdint>
 #include <cstring>
 
+// PDTK
+#include <cxxutils/posix_helpers.h>
+
+
 // CRC32 Table (zlib polynomial)
 static constexpr uint32_t crc_table[256] = {
   0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
@@ -67,15 +71,15 @@ static constexpr uint32_t crc_table[256] = {
 };
 
 // compiletime hashing
-constexpr uint32_t crc32_compiletime(const char* str, std::size_t idx) noexcept
-  { return idx == std::size_t(-1) ? 0xFFFFFFFF : ((crc32_compiletime(str, idx-1) >> 8) ^ crc_table[(crc32_compiletime(str, idx-1) ^ str[idx]) & 0x000000FF]); }
+constexpr uint32_t crc32_compiletime(const char* str, posix::size_t idx) noexcept
+  { return idx == posix::size_t(-1) ? 0xFFFFFFFF : ((crc32_compiletime(str, idx-1) >> 8) ^ crc_table[(crc32_compiletime(str, idx-1) ^ str[idx]) & 0x000000FF]); }
 
-constexpr uint32_t operator "" _hash(const char* str, const std::size_t sz) noexcept { return crc32_compiletime(str, sz - 2) ^ 0xFFFFFFFF; }
+constexpr uint32_t operator "" _hash(const char* str, const posix::size_t sz) noexcept { return crc32_compiletime(str, sz - 2) ^ 0xFFFFFFFF; }
 
 // runtime hashing
-static inline uint32_t crc32_runtime(const char* str, std::size_t idx) noexcept
+static inline uint32_t crc32_runtime(const char* str, posix::size_t idx) noexcept
 {
-  if(idx == std::size_t(-1))
+  if(idx == posix::size_t(-1))
     return 0xFFFFFFFF;
   uint32_t result = crc32_runtime(str, idx-1);
   return (result >> 8) ^ crc_table[(result ^ str[idx]) & 0x000000FF];

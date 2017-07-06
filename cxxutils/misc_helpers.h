@@ -1,11 +1,11 @@
 #ifndef MISC_HELPERS_H
 #define MISC_HELPERS_H
 
-// POSIX
-#include <sys/types.h>
+// PDTK
+#include <cxxutils/posix_helpers.h>
 
 #ifndef arraylength
-template <typename T, size_t N> char (&ArrayLengthHelper(T (&arr)[N]))[N];
+template <typename T, posix::size_t N> char (&ArrayLengthHelper(T (&arr)[N]))[N];
 #define arraylength(arr) (sizeof(ArrayLengthHelper(arr)))
 #endif
 
