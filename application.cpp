@@ -52,7 +52,7 @@ void Application::step(void) noexcept
 {
   static const uint8_t dummydata = 0; // dummy content
   flaw(posix::write(s_pipeio[Write], &dummydata, 1) != 1, posix::critical, ::exit(1),, // triggers execution stepper FD
-       "Unable to trigger Object signal queue processor: %s", ::strerror(errno));
+       "Unable to trigger Object signal queue processor: %s", std::strerror(errno));
 }
 
 int Application::exec(void) noexcept // non-static function to ensure an instance of Application exists

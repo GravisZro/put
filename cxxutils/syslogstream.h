@@ -6,11 +6,11 @@
 #include <streambuf>
 
 // POSIX
-#include <sys/syslog.h>
+#include <syslog.h>
 
-namespace std
+namespace posix
 {
-  enum class priority : int
+  enum priority : int
   {
     emergency = LOG_EMERG,    // system is unusable
     alert     = LOG_ALERT,    // action must be taken immediately
@@ -22,14 +22,13 @@ namespace std
     debug     = LOG_DEBUG,    // debug-level message
   };
 
-  enum class facility : int
+  enum facility : int
   {
     kernel   = LOG_KERN,      // kernel messages
     user     = LOG_USER,      // random user-level messages
     mail     = LOG_MAIL,      // mail system
     daemon   = LOG_DAEMON,    // system daemons
     auth     = LOG_AUTH,      // security/authorization messages
-    syslog   = LOG_SYSLOG,    // messages generated internally by syslogd
     printer  = LOG_LPR,       // line printer subsystem
     news     = LOG_NEWS,      // network news subsystem
     uucp     = LOG_UUCP,      // UUCP subsystem
@@ -37,6 +36,48 @@ namespace std
     authpriv = LOG_AUTHPRIV,  // security/authorization messages (private)
   };
 
+  enum control
+  {
+    eol,
+    eom,
+  };
+
+  class SyslogStream
+  {
+  public:
+    static void open(const char* name, facility f = daemon)
+      { ::openlog(name, LOG_PID | LOG_CONS | LOG_NOWAIT, f); }
+    static void close(void) { ::closelog(); }
+
+    SyslogStream& operator << (priority p) { m_priority = p;  return *this; }
+
+    SyslogStream& operator << (const char* d) { m_buffer.append(d); return *this; }
+    SyslogStream& operator << (const std::string& d) { m_buffer.append(d);  return *this; }
+
+    SyslogStream& operator << (control cntl)
+    {
+      switch(cntl)
+      {
+        case eol:
+          m_buffer.push_back('\n');
+          break;
+        case eom:
+          ::syslog(int(m_priority), "%s", m_buffer.c_str());
+          m_buffer.clear();
+          m_priority = info;
+          break;
+      }
+      return *this;
+    }
+
+  private:
+    priority m_priority;
+    std::string m_buffer;
+  };
+
+  static SyslogStream syslog;
+
+#if 0
   ostream& operator << (ostream& os, const priority& p);
 
   class syslogstreambuf : public basic_streambuf<char>
@@ -99,6 +140,7 @@ namespace std
   {
     sysloginit(clog, ident, f);
   }
+#endif
 }
 
 #endif // SYSLOG_H
