@@ -5,6 +5,7 @@
 #include <cstring>
 
 // POSIX
+#include <sys/types.h>
 #include <sys/un.h>     // for struct sockaddr_un
 #include <sys/socket.h> // for socket()
 #include <poll.h>       // for poll()
@@ -58,7 +59,7 @@ namespace posix
       std::memset(sun_path, 0, sizeof(sun_path));
     }
 
-    int size(void) const noexcept { return sizeof(sun_family) + std::strlen(sun_path); }
+    size_t size(void) const noexcept { return sizeof(sun_family) + std::strlen(sun_path); }
     operator struct sockaddr*(void) noexcept { return reinterpret_cast<struct sockaddr*>(this); }
     operator const struct sockaddr*(void) const noexcept { return reinterpret_cast<const struct sockaddr*>(this); }
     operator EDomain(void) const noexcept { return static_cast<EDomain>(sun_family); }

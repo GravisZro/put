@@ -25,7 +25,7 @@ constexpr bool operator ==(std::errc err, T err_num) noexcept
 
 template<typename T>
 constexpr bool operator ==(T err_num, std::errc err) noexcept
-  { return (int)err == err_num; }
+  { return int(err) == err_num; }
 
 namespace posix
 {
