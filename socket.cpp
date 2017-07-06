@@ -9,6 +9,12 @@ namespace posix
     { return ::peercred(sockfd, cred) == posix::success_response; }
 }
 
+GenericSocket::GenericSocket(EDomain   domain,
+                             EType     type,
+                             EProtocol protocol,
+                             int       flags) noexcept
+  : GenericSocket(posix::socket(domain, type, protocol, flags)) { }
+
 GenericSocket::GenericSocket(posix::fd_t fd) noexcept
   : m_connected(false), m_socket(fd)
 {
@@ -36,15 +42,6 @@ void GenericSocket::disconnect(void) noexcept
   m_connected = false;
 }
 
-
-ClientSocket::ClientSocket(EDomain   domain,
-                           EType     type,
-                           EProtocol protocol,
-                           int       flags) noexcept
-  : ClientSocket(posix::socket(domain, type, protocol, flags)) { }
-
-ClientSocket::ClientSocket(posix::fd_t fd) noexcept
-  : GenericSocket(fd) { }
 
 bool ClientSocket::connect(const char *socket_path) noexcept
 {
@@ -147,20 +144,13 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
   return true;
 }
 
-
-ServerSocket::ServerSocket(EDomain   domain,
-                           EType     type,
-                           EProtocol protocol,
-                           int       flags) noexcept
-  : ServerSocket(posix::socket(domain, type, protocol, flags)) { }
-
-ServerSocket::ServerSocket(posix::fd_t fd) noexcept
-  : GenericSocket(fd) { }
-
 bool ServerSocket::bind(const char* socket_path, int socket_backlog) noexcept
 {
   flaw(m_connected, posix::warning,,false,
        "Server socket is already bound!")
+
+  flaw(socket_path == nullptr,posix::warning,,false,
+       "socket_path is a null value")
 
   flaw(std::strlen(socket_path) >= sizeof(sockaddr_un::sun_path),posix::warning,,false,
        "socket_path exceeds the maximum path length, %lu bytes", sizeof(sockaddr_un::sun_path))
@@ -172,14 +162,15 @@ bool ServerSocket::bind(const char* socket_path, int socket_backlog) noexcept
        "Unable to bind to socket to %s: %s", socket_path, ::strerror(errno))
   m_connected = true;
 
-  flaw(!posix::listen(m_socket),posix::warning,,false,
+  flaw(!posix::listen(m_socket, socket_backlog),posix::warning,,false,
        "Unable to listen to server socket: %s", ::strerror(errno))
   return true;
 }
 
 void ServerSocket::acceptPeerRequest(posix::fd_t fd) noexcept
 {
-  auto client = m_clients.emplace(std::make_pair(fd, fd));
+  auto client = m_clients.emplace(fd, fd);
+
   Object::connect(client.first->second.disconnected, this, &ServerSocket::disconnectPeer);
   Object::connect(client.first->second.newMessage, newPeerMessage);
   Object::enqueue(connectedPeer, fd);

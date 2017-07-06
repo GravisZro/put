@@ -13,6 +13,10 @@
 class GenericSocket : public Object
 {
 public:
+  GenericSocket(EDomain   domain   = EDomain::local,
+               EType     type     = EType::seqpacket,
+               EProtocol protocol = EProtocol::unspec,
+               int       flags    = 0) noexcept;
   GenericSocket(posix::fd_t fd) noexcept;
   ~GenericSocket(void) noexcept;
 
@@ -28,12 +32,7 @@ protected:
 class ClientSocket : public GenericSocket
 {
 public:
-  ClientSocket(EDomain   domain   = EDomain::local,
-               EType     type     = EType::seqpacket,
-               EProtocol protocol = EProtocol::unspec,
-               int       flags    = 0) noexcept;
-
-  ClientSocket(posix::fd_t fd) noexcept;
+  using GenericSocket::GenericSocket;
 
   bool connect(const char *socket_path) noexcept;
 
@@ -50,14 +49,9 @@ private:
 class ServerSocket : public GenericSocket
 {
 public:
-  ServerSocket(EDomain   domain   = EDomain::local,
-               EType     type     = EType::seqpacket,
-               EProtocol protocol = EProtocol::unspec,
-               int       flags    = 0) noexcept;
+  using GenericSocket::GenericSocket;
 
-  ServerSocket(posix::fd_t fd) noexcept;
-
-  bool bind(const char* socket_path, int socket_backlog) noexcept;
+  bool bind(const char* socket_path, int socket_backlog = SOMAXCONN) noexcept;
 
   void acceptPeerRequest(posix::fd_t fd) noexcept;
   void rejectPeerRequest(posix::fd_t fd) const noexcept;
