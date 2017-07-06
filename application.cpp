@@ -2,11 +2,13 @@
 
 // POSIX
 #include <stropts.h> // for ioctl()
-#include <string.h> // for strerror()
 
 // STL
 #include <atomic>
 #include <algorithm> // for for_each
+
+// C++
+#include <cstring> // for strerror()
 
 // PDTK
 #include <cxxutils/colors.h>
