@@ -1,5 +1,6 @@
 #include "socket.h"
 
+// PDTK
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/colors.h>
 
@@ -198,6 +199,8 @@ void ServerSocket::disconnectPeer(posix::fd_t fd)
 // accepts socket connections and then enqueues newPeerRequest
 bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
 {
+  (void)socket;
+  (void)event;
   proccred_t peercred;
   posix::sockaddr_t peeraddr;
   socklen_t addrlen = 0;
@@ -205,6 +208,12 @@ bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
 
   flaw(fd == posix::error_response, posix::warning,, false,
        "accept() failure: %s", std::strerror(errno))
+
+  flaw(addrlen >= sizeof(sockaddr_un::sun_path), posix::severe,, false,
+       "accept() implementation bug: %s", "address length exceeds availible storage");
+
+  flaw(addrlen != peeraddr.size(), posix::warning,, false,
+       "accept() implementation bug: %s", "address length does not match string length");
 
   flaw(!posix::peercred(fd, peercred), posix::warning,, false,
        "peercred() failure: %s", std::strerror(errno)) // get creditials of connected peer process
