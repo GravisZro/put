@@ -10,7 +10,7 @@
 
 namespace posix
 {
-  enum priority : int
+  enum class priority : int
   {
     emergency = LOG_EMERG,    // system is unusable
     alert     = LOG_ALERT,    // action must be taken immediately
@@ -22,7 +22,7 @@ namespace posix
     debug     = LOG_DEBUG,    // debug-level message
   };
 
-  enum facility : int
+  enum class facility : int
   {
     kernel   = LOG_KERN,      // kernel messages
     user     = LOG_USER,      // random user-level messages
@@ -45,7 +45,7 @@ namespace posix
   class SyslogStream
   {
   public:
-    static void open(const char* name, facility f = daemon)
+    static void open(const char* name, facility f = facility::daemon)
       { ::openlog(name, LOG_PID | LOG_CONS | LOG_NOWAIT, f); }
     static void close(void) { ::closelog(); }
 

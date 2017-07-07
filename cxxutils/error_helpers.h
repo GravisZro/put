@@ -32,7 +32,7 @@ namespace posix
   constexpr int success_response = 0;
   constexpr int error_response = -1;
   static inline int success(void) noexcept { return errno = success_response; }
-  static inline int seterror(std::errc err) noexcept { errno = int(err); return error_response; }
+  static inline int error(std::errc err) noexcept { errno = int(err); return error_response; }
 }
 
 #endif // ERROR_HELPERS_H

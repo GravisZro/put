@@ -116,7 +116,7 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 
   posix::ssize_t byte_count = posix::recvmsg(socket, &header, 0);
 
-  flaw(byte_count > 0xFFFF, posix::severe, posix::seterror(std::errc::message_size), false,
+  flaw(byte_count > 0xFFFF, posix::severe, posix::error(std::errc::message_size), false,
        "Socket message exceeds 64KB maximum: %li bytes", byte_count)
 
   flaw(byte_count == posix::error_response, posix::warning,, false,
@@ -125,7 +125,7 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
   flaw(!byte_count, posix::information, disconnect(), false,
        "Socket disconnected.")
 
-  flaw(!m_buffer.resize(byte_count), posix::severe, posix::seterror(std::errc::not_enough_memory), false,
+  flaw(!m_buffer.resize(byte_count), posix::severe, posix::error(std::errc::not_enough_memory), false,
        "Failed to resize buffer to %li bytes", byte_count)
 
   posix::fd_t fd = posix::invalid_descriptor;
