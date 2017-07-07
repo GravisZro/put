@@ -168,29 +168,50 @@ bool ServerSocket::bind(const char* socket_path, int socket_backlog) noexcept
   return true;
 }
 
+bool ServerSocket::peerData(posix::fd_t fd, posix::sockaddr_t* addr, proccred_t* creds) const noexcept
+{
+  auto peer = m_peers.find(fd);
+  if(peer == m_peers.end())
+    return false;
+
+  if(addr != nullptr)
+    *addr = peer->second.addr;
+  if(creds != nullptr)
+    *creds = peer->second.creds;
+  return true;
+}
+
+
 void ServerSocket::acceptPeerRequest(posix::fd_t fd) noexcept
 {
-  auto client = m_clients.emplace(fd, fd);
-
-  Object::connect(client.first->second.disconnected, this, &ServerSocket::disconnectPeer);
-  Object::connect(client.first->second.newMessage, newPeerMessage);
-  Object::enqueue(connectedPeer, fd);
-}
-
-void ServerSocket::rejectPeerRequest(posix::fd_t fd) const noexcept
-{
-  posix::close(fd);
-  Object::enqueue(disconnectedPeer, fd);
-}
-
-void ServerSocket::disconnectPeer(posix::fd_t fd)
-{
-  auto client = m_clients.find(fd);
-  if(client != m_clients.end())
+  auto peer = m_peers.find(fd);
+  if(peer != m_peers.end())
   {
-    Object::disconnect(client->second.disconnected, this);
-    Object::disconnect(client->second.newMessage, this);
-    m_clients.erase(client);
+    Object::connect(peer->second.client.disconnected, this, &ServerSocket::disconnectPeer);
+    Object::connect(peer->second.client.newMessage, newPeerMessage);
+    Object::enqueue(connectedPeer, fd);
+  }
+}
+
+void ServerSocket::rejectPeerRequest(posix::fd_t fd) noexcept
+{
+  auto peer = m_peers.find(fd);
+  if(peer != m_peers.end())
+  {
+    posix::close(fd);
+    Object::enqueue(disconnectedPeer, fd);
+    m_peers.erase(peer);
+  }
+}
+
+void ServerSocket::disconnectPeer(posix::fd_t fd) noexcept
+{
+  auto peer = m_peers.find(fd);
+  if(peer != m_peers.end())
+  {
+    Object::disconnect(peer->second.client.disconnected, this);
+    Object::disconnect(peer->second.client.newMessage, this);
+    m_peers.erase(peer);
   }
   Object::enqueue(disconnectedPeer, fd);
 }
@@ -218,6 +239,7 @@ bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
   flaw(!posix::peercred(fd, peercred), posix::warning,, false,
        "peercred() failure: %s", std::strerror(errno)) // get creditials of connected peer process
 
+  m_peers.emplace(socket, peer_t(socket, peeraddr, peercred));
   Object::enqueue(newPeerRequest, fd, peeraddr, peercred);
   return true;
 }
