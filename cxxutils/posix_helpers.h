@@ -23,16 +23,11 @@ namespace posix
   typedef int fd_t;
   static const fd_t invalid_descriptor = -1;
 
-#ifndef __clang__
   template<typename RType, typename... ArgTypes>
   using function = RType(*)(ArgTypes...);
 
   template<typename RType, typename... ArgTypes>
   static inline RType ignore_interruption(function<RType, ArgTypes...> func, ArgTypes... args) noexcept
-#else
-  template<typename RType, typename... ArgTypes>
-  static inline RType ignore_interruption(RType(*func)(ArgTypes...), ArgTypes... args) noexcept
-#endif
   {
     RType rval = error_response;
     do {
@@ -41,13 +36,8 @@ namespace posix
     return rval;
   }
 
-#ifndef __clang__
   template<typename RType, typename... ArgTypes>
   static inline RType* ignore_interruption(function<RType*, ArgTypes...> func, ArgTypes... args) noexcept
-#else
-  template<typename RType, typename... ArgTypes>
-  static inline RType* ignore_interruption(RType*(*func)(ArgTypes...), ArgTypes... args) noexcept
-#endif
   {
     RType* rval = nullptr;
     do {
@@ -56,17 +46,12 @@ namespace posix
     return rval;
   }
 
-#ifdef __clang__
-#define __uid_t uid_t
-#define __gid_t gid_t
-#endif
-
 // POSIX wrappers
   static inline passwd* getpwuid(uid_t uid) noexcept
-    { return ignore_interruption<passwd, __uid_t>(::getpwuid, uid); }
+    { return ignore_interruption<passwd, uid_t>(::getpwuid, uid); }
 
   static inline group* getgrgid(gid_t gid) noexcept
-    { return ignore_interruption<group, __gid_t>(::getgrgid, gid); }
+    { return ignore_interruption<group, gid_t>(::getgrgid, gid); }
 
 // shortcuts
   static inline std::string getusername(uid_t uid) noexcept
