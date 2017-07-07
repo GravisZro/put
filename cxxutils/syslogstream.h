@@ -51,6 +51,7 @@ namespace posix
 
     SyslogStream& operator << (priority p) { m_priority = p;  return *this; }
 
+    SyslogStream& operator << (char c) { m_buffer.push_back(c); return *this; }
     SyslogStream& operator << (const char* d) { m_buffer.append(d); return *this; }
     SyslogStream& operator << (const std::string& d) { m_buffer.append(d);  return *this; }
 
