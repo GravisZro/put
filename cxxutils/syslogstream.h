@@ -46,7 +46,7 @@ namespace posix
   {
   public:
     static void open(const char* name, facility f = facility::daemon)
-      { ::openlog(name, LOG_PID | LOG_CONS | LOG_NOWAIT, f); }
+      { ::openlog(name, LOG_PID | LOG_CONS | LOG_NOWAIT, int(f)); }
     static void close(void) { ::closelog(); }
 
     SyslogStream& operator << (priority p) { m_priority = p;  return *this; }
@@ -64,7 +64,7 @@ namespace posix
         case eom:
           ::syslog(int(m_priority), "%s", m_buffer.c_str());
           m_buffer.clear();
-          m_priority = info;
+          m_priority = priority::info;
           break;
       }
       return *this;
