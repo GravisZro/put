@@ -102,6 +102,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) noexcept
 
 bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 {
+  (void)event;
   msghdr header = {};
   iovec iov = {};
   char aux_buffer[CMSG_SPACE(sizeof(int))] = { 0 };
@@ -243,3 +244,12 @@ bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
   Object::enqueue(newPeerRequest, fd, peeraddr, peercred);
   return true;
 }
+
+bool ServerSocket::write(posix::fd_t socket, const vfifo& buffer, posix::fd_t fd) noexcept
+{
+  auto peer = m_peers.find(socket);
+  if(peer != m_peers.end())
+    return peer->second.client.write(buffer, fd);
+  return false;
+}
+

@@ -62,6 +62,7 @@ public:
   signal<posix::fd_t> disconnectedPeer; // connection with peer was severed
   signal<posix::fd_t, vfifo, posix::fd_t> newPeerMessage; // message received from peer
 
+  bool write(posix::fd_t socket, const vfifo& buffer, posix::fd_t fd = posix::invalid_descriptor) noexcept;
 private:
   struct peer_t
   {
