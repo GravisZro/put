@@ -20,7 +20,8 @@
 class vfifo
 {
 public:
-  vfifo(uint16_t length = 0xFFFF) noexcept : m_ok(true) { allocate(length); }
+  vfifo(posix::ssize_t length = 0x0000FFFF) noexcept  // default size is 64 KiB
+    : m_ok(true) { allocate(length); }
   vfifo(const vfifo& that) noexcept { operator=(that); }
 
   vfifo& operator=(const vfifo& other) noexcept
@@ -71,7 +72,7 @@ public:
 
 
 // === manual queue manipulators ===
-  bool allocate(uint16_t length = 0xFFFF) noexcept
+  bool allocate(posix::size_t length = 0x0000FFFF) noexcept // 64 KiB
   {
     m_data.reset(new char[length]);
     std::memset(m_data.get(), 0, length);
@@ -94,7 +95,7 @@ public:
     clearError();
   }
 
-  bool resize(uint16_t sz) noexcept // causing this to fail would be exceptionally difficult
+  bool resize(posix::size_t sz) noexcept
   {
     m_virt_begin = m_data.get();
     m_virt_end   = m_data.get() + sz;
@@ -102,10 +103,8 @@ public:
     return m_virt_end <= end();
   }
 
-  bool shrink(posix::ssize_t count) noexcept
+  bool shrink(posix::size_t count) noexcept
   {
-    if(count < 0)
-      return m_ok = false;
     if(m_virt_begin + count < m_virt_end)
       m_virt_begin += count;
     else
@@ -113,10 +112,8 @@ public:
     return true;
   }
 
-  bool expand(posix::ssize_t count) noexcept
+  bool expand(posix::size_t count) noexcept
   {
-    if(count < 0)
-      return m_ok = false;
     if(m_virt_end + count < end())
       m_virt_end += count;
     else
@@ -124,16 +121,16 @@ public:
     return true;
   }
 
-  template<typename T = char> constexpr       T& front   (void) noexcept       { return *data<T>(); }
-  template<typename T = char> constexpr       T& back    (void) noexcept       { return *dataEnd<T>(); }
+  template<typename T = char> constexpr T& front   (void) noexcept       { return *data<T>(); }
+  template<typename T = char> constexpr T& back    (void) noexcept       { return *dataEnd<T>(); }
 
-  template<typename T = char> constexpr       T* data    (void) const noexcept { return reinterpret_cast<T*>(m_virt_begin); }
-  template<typename T = char> constexpr       T* dataEnd (void) const noexcept { return reinterpret_cast<T*>(m_virt_end  ); }
+  template<typename T = char> constexpr T* data    (void) const noexcept { return reinterpret_cast<T*>(m_virt_begin); }
+  template<typename T = char> constexpr T* dataEnd (void) const noexcept { return reinterpret_cast<T*>(m_virt_end  ); }
 
-  template<typename T = char>                 T* begin   (void) const noexcept { return reinterpret_cast<T*>(m_data.get()); }
-  template<typename T = char> constexpr       T* end     (void) const noexcept { return reinterpret_cast<T*>(m_data.get() + m_capacity); }
+  template<typename T = char>           T* begin   (void) const noexcept { return reinterpret_cast<T*>(m_data.get()); }
+  template<typename T = char> constexpr T* end     (void) const noexcept { return reinterpret_cast<T*>(m_data.get() + m_capacity); }
 
-  const uint16_t& capacity(void) const { return m_capacity; }
+  const posix::size_t& capacity(void) const { return m_capacity; }
 
 private:
   template<typename T>
@@ -160,7 +157,7 @@ private:
   std::shared_ptr<char> m_data;
   char* m_virt_begin;
   char* m_virt_end;
-  uint16_t m_capacity;
+  posix::size_t m_capacity;
   bool m_ok;
 
 // === serializer backends ===
@@ -201,6 +198,16 @@ private:
     arg.resize(data<uint16_t>()[1]);
     deserialize_arr(const_cast<T*>(arg.data()), arg.size()); // not guaranteed to work per the STL spec but should never fail catastrophically.
   }
+
+// simple types
+  template<typename T>
+  void serialize(const T arg) noexcept
+    { serialize_arr(&arg, 1); }
+
+  template<typename T>
+  void deserialize(T& arg) noexcept
+    { deserialize_arr(&arg, 1); }
+
 
 // multi-element STL containers
   template<template<class> class T, class V>
