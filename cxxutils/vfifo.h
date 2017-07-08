@@ -11,6 +11,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <utility>
 
 // PDTK
 #include <cxxutils/posix_helpers.h>
@@ -123,10 +124,7 @@ public:
     return true;
   }
 
-  //template<typename T = char> constexpr const T& front   (void) const { return *data<T>(); }
   template<typename T = char> constexpr       T& front   (void) noexcept       { return *data<T>(); }
-
-  //template<typename T = char> constexpr const T& back    (void) const { return *dataEnd<T>(); }
   template<typename T = char> constexpr       T& back    (void) noexcept       { return *dataEnd<T>(); }
 
   template<typename T = char> constexpr       T* data    (void) const noexcept { return reinterpret_cast<T*>(m_virt_begin); }
@@ -185,47 +183,78 @@ private:
   void deserialize_arr(T* arg, uint16_t length) noexcept
   {
     if(front<uint16_t>() == sizeof(T) &&  // size matches
-       pull  <uint16_t>() &&               // no buffer underflow
+       pull <uint16_t>() &&               // no buffer underflow
        front<uint16_t>() == length &&     // length matches
-       pull  <uint16_t>())                 // no buffer underflow
-      for(posix::size_t i = 0; m_ok && i < length; ++i)
-      {
+       pull <uint16_t>())                 // no buffer underflow
+      for(posix::size_t i = 0; m_ok && i < length; ++i, pull<T>())
         arg[i] = front<T>();
-        pull<T>();
-      }
-    else
-      m_ok = false;
   }
 
-// simple types
+// vector helpers
   template<typename T>
-  void serialize(const T& arg) noexcept
-  {
-    static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "compound or pointer type");
-    serialize_arr<T>(&arg, 1);
-  }
+  void serialize_arr(const std::vector<T>& arg) noexcept
+    { serialize_arr(arg.data(), arg.size()); }
 
   template<typename T>
-  void deserialize(T& arg) noexcept
+  void deserialize_arr(std::vector<T>& arg) noexcept
   {
-    static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "compound or pointer type");
-    deserialize_arr<T>(&arg, 1);
-  }
-
-// vector of simple types
-  template<typename T>
-  void serialize(const std::vector<T>& arg) noexcept
-  {
-    static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "vector of compound or pointer type");
-    serialize_arr(arg.data(), arg.size());
-  }
-
-  template<typename T>
-  void deserialize(std::vector<T>& arg) noexcept
-  {
-    static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "vector of compound or pointer type");
     arg.resize(data<uint16_t>()[1]);
-    deserialize_arr(arg.data(), arg.size());
+    deserialize_arr(const_cast<T*>(arg.data()), arg.size()); // not guaranteed to work per the STL spec but should never fail catastrophically.
+  }
+
+// multi-element STL containers
+  template<template<class> class T, class V>
+  void serialize(const T<V>& arg) noexcept
+  {
+    if(std::is_integral<V>::value || std::is_floating_point<V>::value) // if contains a simple type
+      serialize_arr(arg);
+    else if(push<uint16_t>(UINT16_MAX) && // complex element type
+            push<uint16_t>(arg.size()))
+      for(const auto& element : arg) // NOTE: this is the most compatible way to iterate an STL container
+        if(m_ok)
+          serialize(element);
+  }
+
+  template<template<class> class T, class V>
+  void deserialize(T<V>& arg) noexcept
+  {
+    if(std::is_integral<V>::value || std::is_floating_point<V>::value) // if contains a simple type
+      deserialize_arr(arg);
+    else if(front<uint16_t>() == UINT16_MAX && // complex match
+            pull <uint16_t>())                 // no buffer underflow
+    {
+      V tmp;
+      for(uint16_t i = front<uint16_t>(); pull<V>() && i > 0; --i)
+      {
+        deserialize(tmp);
+        arg.emplace(tmp); // NOTE: this is the most compatible way to add element to an STL container
+      }
+    }
+  }
+
+// pair wrapper
+  template<typename T, typename V>
+  void serialize(const std::pair<T, V>& arg) noexcept
+  {
+    if(push<uint16_t>(UINT16_MAX) && // complex element type
+       push<uint16_t>(2))
+    {
+      serialize(arg.first);
+      serialize(arg.second);
+    }
+  }
+
+  template<typename T, typename V>
+  void deserialize(std::pair<T, V>& arg) noexcept
+  {
+    if(front<uint16_t>() == UINT16_MAX && // complex match
+       pull <uint16_t>() &&               // no buffer underflow
+       front<uint16_t>() == 2 &&          // pair length
+       pull <uint16_t>())
+    {
+      deserialize(arg.first);
+      deserialize(arg.second);
+    }
   }
 
 // string literals
@@ -247,5 +276,4 @@ private:
     deserialize_arr(const_cast<T*>(arg.data()), arg.size()); // not guaranteed to work per the STL spec but should never fail catastrophically.
   }
 };
-
 #endif // VQUEUE_H
