@@ -69,11 +69,11 @@ private:
     ClientSocket client;
     posix::sockaddr_t addr;
     proccred_t creds;
-    peer_t(posix::fd_t f, posix::sockaddr_t a, proccred_t c)
+    peer_t(posix::fd_t f, posix::sockaddr_t a, proccred_t c) noexcept
       : client(f), addr(a), creds(c) { }
   };
 
-  void disconnectPeer(posix::fd_t fd);
+  void disconnectPeer(posix::fd_t fd) noexcept;
   bool read(posix::fd_t socket, EventData_t event) noexcept; // accepts socket connections and then enqueues newPeerRequest
   std::unordered_map<posix::fd_t, peer_t> m_peers;
 };
