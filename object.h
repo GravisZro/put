@@ -19,6 +19,12 @@ struct ProtoObject
 class Object : private ProtoObject
 {
 public:
+  template<class ObjType, typename RType, typename... ArgTypes>
+  using mslot_t = RType(ObjType::*)(ArgTypes...);
+
+  template<typename RType, typename... ArgTypes>
+  using fslot_t = RType(*)(ArgTypes...);
+
   template<typename... ArgTypes>
   using signal = std::unordered_multimap<ProtoObject*, std::function<void(ProtoObject*, ArgTypes...)>>;
 
@@ -27,7 +33,7 @@ public:
 
   // connect to a member of an object
   template<class ObjType, typename RType, typename... ArgTypes>
-  static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, RType(ObjType::*slot)(ArgTypes...)) noexcept
+  static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, mslot_t<ObjType, RType, ArgTypes...> slot) noexcept
   {
     sig.emplace(static_cast<ProtoObject*>(obj),
       [slot](ProtoObject* p, ArgTypes... args) noexcept
@@ -45,7 +51,7 @@ public:
 
   // connect to a function that accept the object pointer as the first argument
   template<class ObjType, typename RType, typename... ArgTypes>
-  static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, RType(*slot)(ObjType*, ArgTypes...)) noexcept
+  static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, fslot_t<RType, ObjType*, ArgTypes...> slot) noexcept
   {
     sig.emplace(static_cast<ProtoObject*>(obj),
       [slot](ProtoObject* p, ArgTypes... args) noexcept
@@ -54,7 +60,7 @@ public:
 
   // connect to a function and ignore the object
   template<typename RType, typename... ArgTypes>
-  static inline void connect(signal<ArgTypes...>& sig, RType(*slot)(ArgTypes...)) noexcept
+  static inline void connect(signal<ArgTypes...>& sig, fslot_t<RType, ArgTypes...> slot) noexcept
   {
     sig.emplace(static_cast<ProtoObject*>(nullptr),
       [slot](ProtoObject*, ArgTypes... args) noexcept
@@ -64,7 +70,7 @@ public:
 
   // connect a file descriptor event to an object member function
   template<class ObjType, typename RType>
-  static inline void connect(posix::fd_t fd, EventFlags_t flags, ObjType* obj, RType(ObjType::*slot)(posix::fd_t, EventData_t)) noexcept
+  static inline void connect(posix::fd_t fd, EventFlags_t flags, ObjType* obj, mslot_t<ObjType, RType, posix::fd_t, EventData_t> slot) noexcept
   {
     EventBackend::watch(fd, flags);
     Application::ms_fd_signals.emplace(fd, std::make_pair(flags,
@@ -73,7 +79,7 @@ public:
   }
 
   template<class ObjType, typename RType>
-  static inline void connect(posix::fd_t fd, ObjType* obj, RType(ObjType::*slot)(posix::fd_t, EventData_t)) noexcept
+  static inline void connect(posix::fd_t fd, ObjType* obj, mslot_t<ObjType, RType, posix::fd_t, EventData_t> slot) noexcept
     { connect(fd, EventFlags::Readable, obj, slot); }
 
   // connect an file descriptor event to a signal
@@ -99,7 +105,7 @@ public:
 
   // connect a file descriptor event to a function
   template<typename RType>
-  static inline void connect(posix::fd_t fd, EventFlags_t flags, RType(*slot)(posix::fd_t, EventData_t)) noexcept
+  static inline void connect(posix::fd_t fd, EventFlags_t flags, fslot_t<RType, posix::fd_t, EventData_t> slot) noexcept
   {
     EventBackend::watch(fd, flags);
     Application::ms_fd_signals.emplace(fd, std::make_pair(flags,
@@ -108,7 +114,7 @@ public:
   }
 
   template<typename RType>
-  static inline void connect(posix::fd_t fd, RType(*slot)(posix::fd_t, EventData_t)) noexcept
+  static inline void connect(posix::fd_t fd, fslot_t<RType, posix::fd_t, EventData_t> slot) noexcept
     { connect(fd, EventFlags::Readable, slot); }
 
 
