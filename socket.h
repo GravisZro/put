@@ -14,9 +14,9 @@ class GenericSocket : public Object
 {
 public:
   GenericSocket(EDomain   domain   = EDomain::local,
-               EType     type     = EType::seqpacket,
-               EProtocol protocol = EProtocol::unspec,
-               int       flags    = 0) noexcept;
+                EType     type     = EType::stream,
+                EProtocol protocol = EProtocol::unspec,
+                int       flags    = 0) noexcept;
   GenericSocket(posix::fd_t fd) noexcept;
   ~GenericSocket(void) noexcept;
 
@@ -51,7 +51,7 @@ class ServerSocket : public GenericSocket
 public:
   using GenericSocket::GenericSocket;
 
-  bool bind(const char* socket_path, int socket_backlog = SOMAXCONN) noexcept;
+  bool bind(const char* socket_path, EDomain domain = EDomain::local, int socket_backlog = SOMAXCONN) noexcept;
 
   bool peerData(posix::fd_t fd, posix::sockaddr_t* addr = nullptr, proccred_t* creds = nullptr) const noexcept;
   void acceptPeerRequest(posix::fd_t fd) noexcept;
@@ -66,16 +66,17 @@ public:
 private:
   struct peer_t
   {
-    ClientSocket client;
+    posix::fd_t fd;
     posix::sockaddr_t addr;
     proccred_t creds;
     peer_t(posix::fd_t f, posix::sockaddr_t a, proccred_t c) noexcept
-      : client(f), addr(a), creds(c) { }
+      : fd(f), addr(a), creds(c) { }
   };
 
   void disconnectPeer(posix::fd_t fd) noexcept;
   bool read(posix::fd_t socket, EventData_t event) noexcept; // accepts socket connections and then enqueues newPeerRequest
   std::unordered_map<posix::fd_t, peer_t> m_peers;
+  std::unordered_map<posix::fd_t, ClientSocket> m_connections;
 };
 
 #endif // SOCKET_H

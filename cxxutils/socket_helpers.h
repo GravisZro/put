@@ -69,7 +69,7 @@ namespace posix
   };
 
 // POSIX wrappers
-  static inline fd_t socket(EDomain domain, EType type, EProtocol protocol = EProtocol::unspec, int flags = 0) noexcept
+  static inline fd_t socket(EDomain domain, EType type, EProtocol protocol, int flags = 0) noexcept
   {
     fd_t fd = ::socket(static_cast<int>(domain),
                        static_cast<int>(type),
@@ -104,13 +104,13 @@ namespace posix
   static inline bool bind(fd_t sockfd, const sockaddr* addr, socklen_t addrlen) noexcept
     { return ::bind(sockfd, addr, addrlen) != error_response; }
 
-  static inline ssize_t send(fd_t sockfd, const void* buffer, size_t length, int flags = 0) noexcept
+  static inline ssize_t send(fd_t sockfd, const void* buffer, size_t length, int flags = MSG_NOSIGNAL) noexcept
     { return ignore_interruption(::send, sockfd, buffer, length, flags); }
 
   static inline ssize_t recv(fd_t sockfd, void* buffer, size_t length, int flags = 0) noexcept
     { return ignore_interruption(::recv, sockfd, buffer, length, flags); }
 
-  static inline ssize_t sendmsg(fd_t sockfd, const msghdr* msg, int flags = 0) noexcept
+  static inline ssize_t sendmsg(fd_t sockfd, const msghdr* msg, int flags = MSG_NOSIGNAL) noexcept
     { return ignore_interruption(::sendmsg, sockfd, msg, flags); }
 
   static inline ssize_t recvmsg(fd_t sockfd, msghdr* msg, int flags = 0) noexcept

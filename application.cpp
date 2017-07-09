@@ -5,7 +5,7 @@
 
 // STL
 #include <atomic>
-#include <algorithm> // for for_each
+#include <list>
 
 // C++
 #include <cstring> // for strerror()
@@ -86,12 +86,12 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
       else // if this was a watched FD
       {
         auto entries = ms_fd_signals.equal_range(pos.first); // get all the callback entries for that FD
-        for_each(entries.first, entries.second, // for each FD
-          [&pos](const std::pair<posix::fd_t, std::pair<EventFlags_t, vfdfunc>>& pair) // executed for each FD signal pair
-            {
-              if(pair.second.first.isSet(pos.second.flags)) // if the flags match
-                pair.second.second(pos.first, pos.second); // call the fuction with the FD and triggering EventFlag
-            });
+        std::list<std::pair<posix::fd_t, std::pair<EventFlags_t, vfdfunc>>> exec_fds(entries.first, entries.second);
+        for(auto& entry : exec_fds) // for each FD
+        {
+          if(entry.second.first.isSet(pos.second.flags)) // if the flags match
+            entry.second.second(pos.first, pos.second); // call the fuction with the FD and triggering EventFlag
+        }
       }
     }
   }

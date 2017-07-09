@@ -95,7 +95,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) noexcept
     *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = fd;
   }
 
-  flaw(posix::sendmsg(m_socket, &header, 0) == posix::error_response, posix::warning,,false,
+  flaw(posix::sendmsg(m_socket, &header) == posix::error_response, posix::warning,,false,
        "sendmsg() failure: %s", std::strerror(errno))
   return true;
 }
@@ -117,11 +117,8 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 
   posix::ssize_t byte_count = posix::recvmsg(socket, &header, 0);
 
-  flaw(byte_count > 0xFFFF, posix::severe, posix::error(std::errc::message_size), false,
-       "Socket message exceeds 64KB maximum: %li bytes", byte_count)
-
   flaw(byte_count == posix::error_response, posix::warning,, false,
-       "recvmsg() failure: %s", std::strerror(errno))
+       "recvmsg() failure: %i : %s", errno, std::strerror(errno))
 
   flaw(!byte_count, posix::information, disconnect(), false,
        "Socket disconnected.")
@@ -146,7 +143,7 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
   return true;
 }
 
-bool ServerSocket::bind(const char* socket_path, int socket_backlog) noexcept
+bool ServerSocket::bind(const char* socket_path, EDomain domain, int socket_backlog) noexcept
 {
   flaw(m_connected, posix::warning,,false,
        "Server socket is already bound!")
@@ -158,7 +155,7 @@ bool ServerSocket::bind(const char* socket_path, int socket_backlog) noexcept
        "socket_path exceeds the maximum path length, %lu bytes", sizeof(sockaddr_un::sun_path))
 
   m_selfaddr = socket_path;
-  m_selfaddr = EDomain::local;
+  m_selfaddr = domain;
 
   flaw(!posix::bind(m_socket, m_selfaddr, m_selfaddr.size()),posix::warning,,false,
        "Unable to bind to socket to %s: %s", socket_path, std::strerror(errno))
@@ -185,11 +182,11 @@ bool ServerSocket::peerData(posix::fd_t fd, posix::sockaddr_t* addr, proccred_t*
 
 void ServerSocket::acceptPeerRequest(posix::fd_t fd) noexcept
 {
-  auto peer = m_peers.find(fd);
-  if(peer != m_peers.end())
+  if(m_peers.find(fd) != m_peers.end())
   {
-    Object::connect(peer->second.client.disconnected, this, &ServerSocket::disconnectPeer);
-    Object::connect(peer->second.client.newMessage, newPeerMessage);
+    auto connection = m_connections.emplace(fd, fd).first;
+    Object::connect(connection->second.disconnected, this, &ServerSocket::disconnectPeer);
+    Object::connect(connection->second.newMessage, newPeerMessage);
     Object::enqueue(connectedPeer, fd);
   }
 }
@@ -199,21 +196,16 @@ void ServerSocket::rejectPeerRequest(posix::fd_t fd) noexcept
   auto peer = m_peers.find(fd);
   if(peer != m_peers.end())
   {
+    m_peers.erase(peer);
     posix::close(fd);
     Object::enqueue(disconnectedPeer, fd);
-    m_peers.erase(peer);
   }
 }
 
 void ServerSocket::disconnectPeer(posix::fd_t fd) noexcept
 {
-  auto peer = m_peers.find(fd);
-  if(peer != m_peers.end())
-  {
-    Object::disconnect(peer->second.client.disconnected, this);
-    Object::disconnect(peer->second.client.newMessage, this);
-    m_peers.erase(peer);
-  }
+  m_peers.erase(fd);
+  m_connections.erase(fd);
   Object::enqueue(disconnectedPeer, fd);
 }
 
@@ -240,16 +232,16 @@ bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
   flaw(!posix::peercred(fd, peercred), posix::warning,, false,
        "peercred() failure: %s", std::strerror(errno)) // get creditials of connected peer process
 
-  m_peers.emplace(socket, peer_t(socket, peeraddr, peercred));
+  m_peers.emplace(fd, peer_t(fd, peeraddr, peercred));
   Object::enqueue(newPeerRequest, fd, peeraddr, peercred);
   return true;
 }
 
 bool ServerSocket::write(posix::fd_t socket, const vfifo& buffer, posix::fd_t fd) noexcept
 {
-  auto peer = m_peers.find(socket);
-  if(peer != m_peers.end())
-    return peer->second.client.write(buffer, fd);
+  auto connection = m_connections.find(socket);
+  if(connection != m_connections.end())
+    return connection->second.write(buffer, fd);
   return false;
 }
 

@@ -130,7 +130,10 @@ public:
 
   // disconnect _all_ connections to fd
   static inline void disconnect(posix::fd_t fd)
-    { Application::ms_fd_signals.erase(fd); } // totally remove _all_ connections to fd
+  {
+    EventBackend::remove(fd, EventFlags::Any);
+    Application::ms_fd_signals.erase(fd);  // totally remove _all_ connections to fd
+  }
 
   // disconnect connections to fd for certain event flags
   static inline void disconnect(posix::fd_t fd, EventFlags_t flags) noexcept
@@ -140,7 +143,7 @@ public:
     auto pos = range.first; // pos = iterator
     while(pos != range.second) // pos is _always_ advanced within loop
     {
-      if(pos->second.first == flags) // if the flags match exactly
+      if(flags == EventFlags::Any || pos->second.first == flags) // if matching all flags or the flags match exactly
         pos = Application::ms_fd_signals.erase(pos); // completely remove and advance iterator
       else
       {
