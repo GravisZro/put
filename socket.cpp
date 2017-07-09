@@ -118,7 +118,7 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
   posix::ssize_t byte_count = posix::recvmsg(socket, &header, 0);
 
   flaw(byte_count == posix::error_response, posix::warning,, false,
-       "recvmsg() failure: %i : %s", errno, std::strerror(errno))
+       "recvmsg() failure: %s", std::strerror(errno))
 
   flaw(!byte_count, posix::information, disconnect(), false,
        "Socket disconnected.")
