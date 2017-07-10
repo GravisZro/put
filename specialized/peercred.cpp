@@ -9,12 +9,12 @@
 
 #if defined(__linux__) // Linux
 
-int peercred(int sockfd, proccred_t& cred) noexcept
+int peercred(int socket, proccred_t& cred) noexcept
 {
   struct ucred data;
   socklen_t len = sizeof(data);
 
-  int rval = getsockopt(sockfd, SOL_SOCKET, SO_PEERCRED, &data, &len);
+  int rval = getsockopt(socket, SOL_SOCKET, SO_PEERCRED, &data, &len);
 
   if(len != sizeof(data))
     rval = posix::error(std::errc::invalid_argument);
@@ -30,7 +30,7 @@ int peercred(int sockfd, proccred_t& cred) noexcept
 
 #elif defined(LOCAL_PEERCRED) // Old FreeBSD
 #include <sys/ucred.h>
-int peercred(int sockfd, proccred_t& cred) noexcept
+int peercred(int socket, proccred_t& cred) noexcept
 {
   struct xucred data;
   ACCEPT_TYPE_ARG3 len = sizeof(data);
@@ -55,16 +55,16 @@ int peercred(int sockfd, proccred_t& cred) noexcept
 // POSIX
 #include <sys/types.h>
 
-int peercred(int sockfd, proccred_t& cred) noexcept
+int peercred(int socket, proccred_t& cred) noexcept
 {
   cred.pid = -1; // FIXME?
-  return getpeereid(sockfd, &cred.uid, &cred.gid);
+  return getpeereid(socket, &cred.uid, &cred.gid);
 }
 
 #elif defined(__sun) && defined(__SVR4) // Solaris
 #include <ucred.h>
 
-int peercred(int sockfd, proccred_t& cred) noexcept
+int peercred(int socket, proccred_t& cred) noexcept
 {
   uproccred_t* data = nullptr;
 
