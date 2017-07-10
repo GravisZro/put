@@ -12,7 +12,6 @@
 #include <vector>
 #include <string>
 #include <utility>
-#include <initializer_list>
 
 // PDTK
 #include <cxxutils/posix_helpers.h>
