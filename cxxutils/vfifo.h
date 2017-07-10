@@ -12,6 +12,7 @@
 #include <vector>
 #include <string>
 #include <utility>
+#include <initializer_list>
 
 // PDTK
 #include <cxxutils/posix_helpers.h>
@@ -20,6 +21,9 @@
 class vfifo
 {
 public:
+  template<typename... ArgTypes>
+  vfifo(ArgTypes&... args) noexcept
+    : vfifo(0x000FFFFF) { serialize(args...); }
   vfifo(posix::ssize_t length = 0x0000FFFF) noexcept  // default size is 64 KiB
     : m_ok(true) { allocate(length); }
   vfifo(const vfifo& that) noexcept { operator=(that); }
