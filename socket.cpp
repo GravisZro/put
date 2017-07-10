@@ -70,7 +70,7 @@ bool ClientSocket::connect(const char *socket_path) noexcept
   return true;
 }
 
-bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) noexcept
+bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
 {
   msghdr header = {};
   iovec iov = {};
@@ -238,7 +238,7 @@ bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
   return true;
 }
 
-bool ServerSocket::write(posix::fd_t socket, const vfifo& buffer, posix::fd_t fd) noexcept
+bool ServerSocket::write(posix::fd_t socket, const vfifo& buffer, posix::fd_t fd) const noexcept
 {
   auto connection = m_connections.find(socket);
   if(connection != m_connections.end())
