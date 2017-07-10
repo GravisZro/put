@@ -6,8 +6,8 @@
 
 namespace posix
 {
-  inline bool peercred(fd_t sockfd, proccred_t& cred) noexcept
-    { return ::peercred(sockfd, cred) == posix::success_response; }
+  inline bool peercred(fd_t socket, proccred_t& cred) noexcept
+    { return ::peercred(socket, cred) == posix::success_response; }
 }
 
 GenericSocket::GenericSocket(EDomain   domain,
@@ -16,8 +16,8 @@ GenericSocket::GenericSocket(EDomain   domain,
                              int       flags) noexcept
   : GenericSocket(posix::socket(domain, type, protocol, flags)) { }
 
-GenericSocket::GenericSocket(posix::fd_t fd) noexcept
-  : m_connected(false), m_socket(fd)
+GenericSocket::GenericSocket(posix::fd_t socket) noexcept
+  : m_connected(false), m_socket(socket)
 {
   Object::connect(m_socket, EventFlags::Readable, this, &GenericSocket::read); // monitor socket connection
 }
@@ -102,6 +102,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) noexcept
 
 bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 {
+  assert(m_socket == socket);
   (void)event;
   msghdr header = {};
   iovec iov = {};
@@ -115,7 +116,7 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
   iov.iov_len = m_buffer.capacity();
   header.msg_controllen = sizeof(aux_buffer);
 
-  posix::ssize_t byte_count = posix::recvmsg(socket, &header, 0);
+  posix::ssize_t byte_count = posix::recvmsg(m_socket, &header, 0);
 
   flaw(byte_count == posix::error_response, posix::warning,, false,
        "recvmsg() failure: %s", std::strerror(errno))
@@ -166,9 +167,9 @@ bool ServerSocket::bind(const char* socket_path, EDomain domain, int socket_back
   return true;
 }
 
-bool ServerSocket::peerData(posix::fd_t fd, posix::sockaddr_t* addr, proccred_t* creds) const noexcept
+bool ServerSocket::peerData(posix::fd_t socket, posix::sockaddr_t* addr, proccred_t* creds) const noexcept
 {
-  auto peer = m_peers.find(fd);
+  auto peer = m_peers.find(socket);
   if(peer == m_peers.end())
     return false;
 
@@ -180,41 +181,41 @@ bool ServerSocket::peerData(posix::fd_t fd, posix::sockaddr_t* addr, proccred_t*
 }
 
 
-void ServerSocket::acceptPeerRequest(posix::fd_t fd) noexcept
+void ServerSocket::acceptPeerRequest(posix::fd_t socket) noexcept
 {
-  if(m_peers.find(fd) != m_peers.end())
+  if(m_peers.find(socket) != m_peers.end())
   {
-    auto connection = m_connections.emplace(fd, fd).first;
+    auto connection = m_connections.emplace(socket, socket).first;
     Object::connect(connection->second.disconnected, this, &ServerSocket::disconnectPeer);
     Object::connect(connection->second.newMessage, newPeerMessage);
-    Object::enqueue(connectedPeer, fd);
+    Object::enqueue(connectedPeer, socket);
   }
 }
 
-void ServerSocket::rejectPeerRequest(posix::fd_t fd) noexcept
+void ServerSocket::rejectPeerRequest(posix::fd_t socket) noexcept
 {
-  auto peer = m_peers.find(fd);
+  auto peer = m_peers.find(socket);
   if(peer != m_peers.end())
   {
     m_peers.erase(peer);
-    posix::close(fd);
-    Object::enqueue(disconnectedPeer, fd);
+    posix::close(socket);
+    Object::enqueue(disconnectedPeer, socket);
   }
 }
 
-void ServerSocket::disconnectPeer(posix::fd_t fd) noexcept
+void ServerSocket::disconnectPeer(posix::fd_t socket) noexcept
 {
-  m_peers.erase(fd);
-  m_connections.erase(fd);
-  Object::enqueue(disconnectedPeer, fd);
+  m_peers.erase(socket);
+  m_connections.erase(socket);
+  Object::enqueue(disconnectedPeer, socket);
 }
 
 
 // accepts socket connections and then enqueues newPeerRequest
 bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
 {
-  (void)socket;
   (void)event;
+  assert(m_socket == socket);
   proccred_t peercred;
   posix::sockaddr_t peeraddr;
   socklen_t addrlen = 0;

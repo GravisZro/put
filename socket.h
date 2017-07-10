@@ -53,9 +53,9 @@ public:
 
   bool bind(const char* socket_path, EDomain domain = EDomain::local, int socket_backlog = SOMAXCONN) noexcept;
 
-  bool peerData(posix::fd_t fd, posix::sockaddr_t* addr = nullptr, proccred_t* creds = nullptr) const noexcept;
-  void acceptPeerRequest(posix::fd_t fd) noexcept;
-  void rejectPeerRequest(posix::fd_t fd) noexcept;
+  bool peerData(posix::fd_t socket, posix::sockaddr_t* addr = nullptr, proccred_t* creds = nullptr) const noexcept;
+  void acceptPeerRequest(posix::fd_t socket) noexcept;
+  void rejectPeerRequest(posix::fd_t socket) noexcept;
 
   signal<posix::fd_t, posix::sockaddr_t, proccred_t> newPeerRequest; // peer is requesting a connection
   signal<posix::fd_t> connectedPeer;    // connection with peer was established
@@ -66,14 +66,14 @@ public:
 private:
   struct peer_t
   {
-    posix::fd_t fd;
+    posix::fd_t socket;
     posix::sockaddr_t addr;
     proccred_t creds;
-    peer_t(posix::fd_t f, posix::sockaddr_t a, proccred_t c) noexcept
-      : fd(f), addr(a), creds(c) { }
+    peer_t(posix::fd_t s, posix::sockaddr_t a, proccred_t c) noexcept
+      : socket(s), addr(a), creds(c) { }
   };
 
-  void disconnectPeer(posix::fd_t fd) noexcept;
+  void disconnectPeer(posix::fd_t socket) noexcept;
   bool read(posix::fd_t socket, EventData_t event) noexcept; // accepts socket connections and then enqueues newPeerRequest
   std::unordered_map<posix::fd_t, peer_t> m_peers;
   std::unordered_map<posix::fd_t, ClientSocket> m_connections;
