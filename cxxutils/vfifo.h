@@ -21,10 +21,9 @@ class vfifo
 {
 public:
   template<typename... ArgTypes>
-  vfifo(ArgTypes&... args) noexcept
-    : vfifo(0x000FFFFF) { serialize(args...); }
+  vfifo(ArgTypes&... args) noexcept : vfifo() { serialize(args...); }
   vfifo(posix::ssize_t length = 0x0000FFFF) noexcept  // default size is 64 KiB
-    : m_ok(true) { allocate(length); }
+    : m_capacity(0) { allocate(length); }
   vfifo(const vfifo& that) noexcept { operator=(that); }
 
   vfifo& operator=(const vfifo& other) noexcept
@@ -48,6 +47,8 @@ public:
   template<typename T>
   vfifo& operator << (const T& arg) noexcept
   {
+    if(sizeof(T) > unused())
+      allocate(capacity() * 2);
     serialize(arg);
     return *this;
   }
@@ -62,6 +63,8 @@ public:
   template<typename T, typename... ArgTypes>
   void serialize(const T& arg, ArgTypes&... args) noexcept
   {
+    if(sizeof(T) > unused())
+      allocate(capacity() * 2);
     serialize(arg);
     serialize(args...);
   }
@@ -73,23 +76,36 @@ public:
     deserialize(args...);
   }
 
-
 // === manual queue manipulators ===
-  bool allocate(posix::size_t length = 0x0000FFFF) noexcept // 64 KiB
+  bool allocate(posix::size_t length) noexcept
   {
-    m_data.reset(new char[length]);
-    std::memset(m_data.get(), 0, length);
+    if(length <= capacity()) // reducing the allocated size is not allowed!
+      return false;
+    char* new_data = new char[length];
+    std::memset(new_data, 0, length);
+    if(m_data.get() == nullptr) // if no memory allocated yet
+    {
+      m_data.reset(new_data); // assign memory
+      resize(0); // reset all the progress pointers status
+    }
+    else // expand memory
+    {
+      std::memcpy(new_data, m_data.get(), capacity()); // copy old memory to new
+      m_virt_begin = new_data + (m_virt_begin - m_data.get()); // shift the progress pointers to the new memory
+      m_virt_end   = new_data + (m_virt_end   - m_data.get());
+      delete[] m_data.get(); // delete the old memory
+      m_data.reset(new_data); // use new memory
+    }
 
     m_capacity = length;
-    resize(0);
     m_ok &= m_data.get() != nullptr;
     return m_data.get() != nullptr;
   }
 
-  bool     empty (void) const noexcept { return dataEnd() == data   (); }
-  uint16_t size  (void) const noexcept { return dataEnd() -  data   (); }
-  uint16_t used  (void) const noexcept { return data   () -  begin  (); }
-  uint16_t unused(void) const noexcept { return end    () -  dataEnd(); }
+  bool          empty (void) const noexcept { return dataEnd() == data   (); }
+  posix::size_t size  (void) const noexcept { return dataEnd() -  data   (); }
+  posix::size_t used  (void) const noexcept { return data   () -  begin  (); }
+  posix::size_t unused(void) const noexcept { return end    () -  dataEnd(); }
 
 
   void reset(void) noexcept
