@@ -11,6 +11,7 @@
 
 // STL
 #include <algorithm>
+#include <set>
 
 // C++
 #include <cstdio>
