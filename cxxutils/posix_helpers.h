@@ -53,13 +53,13 @@ namespace posix
   static inline const char* getusername(uid_t uid) noexcept
   {
     passwd* rval = posix::getpwuid(uid);
-    return rval == nullptr ? "" : rval->pw_name;
+    return rval == nullptr ? nullptr : rval->pw_name;
   }
 
   static inline const char* getgroupname(gid_t gid) noexcept
   {
     group* rval = posix::getgrgid(gid);
-    return rval == nullptr ? "" : rval->gr_name;
+    return rval == nullptr ? nullptr : rval->gr_name;
   }
 
   namespace signal
