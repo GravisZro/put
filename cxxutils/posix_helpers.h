@@ -1,10 +1,6 @@
 #ifndef POSIX_HELPERS_H
 #define POSIX_HELPERS_H
 
-// STL
-#include <string>
-#include <set>
-
 // POSIX
 #include <sys/types.h>
 #include <pwd.h>
@@ -54,13 +50,13 @@ namespace posix
     { return ignore_interruption<group, gid_t>(::getgrgid, gid); }
 
 // shortcuts
-  static inline std::string getusername(uid_t uid) noexcept
+  static inline const char* getusername(uid_t uid) noexcept
   {
     passwd* rval = posix::getpwuid(uid);
     return rval == nullptr ? "" : rval->pw_name;
   }
 
-  static inline std::string getgroupname(gid_t gid) noexcept
+  static inline const char* getgroupname(gid_t gid) noexcept
   {
     group* rval = posix::getgrgid(gid);
     return rval == nullptr ? "" : rval->gr_name;
