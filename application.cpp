@@ -20,7 +20,7 @@ static std::atomic_bool s_run (true); // quit signal
 static posix::fd_t s_pipeio[2] = { posix::invalid_descriptor }; //  execution stepper pipe
 
 lockable<std::queue<vfunc>> Application::ms_signal_queue;
-std::unordered_multimap<posix::fd_t, std::pair<EventFlags_t, vfdfunc>> Application::ms_fd_signals;
+lockable<std::unordered_multimap<posix::fd_t, std::pair<EventFlags_t, vfdfunc>>> Application::ms_fd_signals;
 
 enum {
   Read = 0,
@@ -72,8 +72,8 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
         static std::queue<vfunc> exec_queue;
         if(exec_queue.empty()) // if not currently executing (recursive or multithread exec() calls?)
         {
-          ms_signal_queue.lock(); // get exclusive access
-          exec_queue.swap(ms_signal_queue); // swap the queues to prevent race conditions and the need for constant locking/unlocking
+          ms_signal_queue.lock(); // get exclusive access (make thread-safe)
+          exec_queue.swap(ms_signal_queue); // swap the queues
           ms_signal_queue.unlock(); // access is no longer needed
 
           while(!exec_queue.empty()) // while still have object signals to execute
@@ -85,8 +85,10 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
       }
       else // if this was a watched FD
       {
+        ms_fd_signals.lock(); // get exclusive access (make thread-safe)
         auto entries = ms_fd_signals.equal_range(pos.first); // get all the callback entries for that FD
-        std::list<std::pair<posix::fd_t, std::pair<EventFlags_t, vfdfunc>>> exec_fds(entries.first, entries.second);
+        std::list<std::pair<posix::fd_t, std::pair<EventFlags_t, vfdfunc>>> exec_fds(entries.first, entries.second); // copy entries
+        ms_fd_signals.unlock(); // access is no longer needed
         for(auto& entry : exec_fds) // for each FD
         {
           if(entry.second.first.isSet(pos.second.flags)) // if the flags match
