@@ -66,7 +66,7 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
     {
       if(pos.first == s_pipeio[Read]) // if this is the execution stepper pipe (via Object::enqueue())
       {
-        while(::ioctl(pos.first, I_FLUSH, FLUSHRW) == posix::error_response && // discard the data (it's merely a trigger)
+        while(::ioctl(pos.first, I_FLUSH, FLUSHRW) == posix::error_response && // discard the data (may have been called multiple times)
               errno == std::errc::interrupted); // don't be interrupted while flushing the FD channel
         // execute queue of object signal calls
         static std::queue<vfunc> exec_queue;
