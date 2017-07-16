@@ -332,6 +332,8 @@ bool EventBackend::remove(int target, EventFlags_t flags) noexcept
 
   if(flags >= EventFlags::ExecEvent)
     return platform->procnotify.remove(target);
+#else
+  (void)flags;
 #endif
   return platform->pollnotify.remove(target);
 }
