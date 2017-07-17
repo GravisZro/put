@@ -49,6 +49,10 @@ namespace posix
   static inline group* getgrgid(gid_t gid) noexcept
     { return ignore_interruption<group, gid_t>(::getgrgid, gid); }
 
+  static inline passwd* getpwnam(const char* name) noexcept
+    { return ignore_interruption<passwd, const char*>(::getpwnam, name); }
+
+
 // shortcuts
   static inline const char* getusername(uid_t uid) noexcept
   {
@@ -60,6 +64,18 @@ namespace posix
   {
     group* rval = posix::getgrgid(gid);
     return rval == nullptr ? nullptr : rval->gr_name;
+  }
+
+  static inline uid_t getuserid(const char* name) noexcept
+  {
+    passwd* rval = posix::getpwnam(name);
+    return rval == nullptr ? error_response : rval->pw_uid;
+  }
+
+  static inline uid_t getgroupid(const char* name) noexcept
+  {
+    passwd* rval = posix::getpwnam(name);
+    return rval == nullptr ? error_response : rval->pw_gid;
   }
 
   namespace signal
