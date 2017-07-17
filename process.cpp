@@ -262,7 +262,7 @@ Process::State Process::state(void) noexcept
       break;
     default:
       process_state_t data;
-      flaw(!::procstat(processId(), data), posix::severe, m_state = State::Invalid, m_state,
+      flaw(::procstat(processId(), data) == posix::error_response, posix::severe, m_state = State::Invalid, m_state,
            "Process %i does not exist.", processId()); // process _must_ exist
       switch (data.state)
       {

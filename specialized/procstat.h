@@ -38,7 +38,6 @@ struct process_state_t
   int priority_value; // nice value
 };
 
-
-bool procstat(pid_t pid, process_state_t& data) noexcept;
+int procstat(pid_t pid, process_state_t* data) noexcept;
 
 #endif // PROCSTAT_H

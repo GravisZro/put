@@ -14,13 +14,16 @@
 #define ARG_MAX 131072
 #endif
 
-bool procstat(pid_t pid, process_state_t& data) noexcept
+int procstat(pid_t pid, process_state_t* data) noexcept
 {
   static_assert(sizeof(gid_t) == sizeof(int), "size error");
   static_assert(sizeof(uid_t) == sizeof(int), "size error");
   static_assert(sizeof(pid_t) == sizeof(int), "size error");
 
-  data.arguments.clear();
+  if(data == nullptr)
+    return posix::error(std::errc::invalid_argument);
+
+  data->arguments.clear();
 
   char buffer[ARG_MAX];
 
@@ -73,21 +76,21 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   std::sprintf(buffer, "/proc/%d/stat", pid);
 
   if(::access(buffer, R_OK) == posix::error_response)
-    return false;
+    return posix::error_response;
 
   FILE* file = std::fopen(buffer, "r");
   if(file == nullptr)
-    return false;
+    return posix::error_response;
 
   //char state;
   std::fscanf(file, "%d %s %c %d %d %d %d %d %u %u %u %u %u %d %d %d %d %d %d %u %u %d %u %u %u %u %u %u %u %u %d %d %d %d %u",
-              &data.process_id,
+              &data->process_id,
               buffer,
-              reinterpret_cast<char*>(&data.state),
-              &data.parent_process_id,
-              &data.process_group_id,
-              &data.session_id,
-              &data.tty,
+              reinterpret_cast<char*>(&data->state),
+              &data->parent_process_id,
+              &data->process_group_id,
+              &data->session_id,
+              &data->tty,
               &process.tpgid,
               &process.flags,
               &process.minflt,
@@ -99,7 +102,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
               &process.cutime,
               &process.cstime,
               &process.counter,
-              &data.priority_value,
+              &data->priority_value,
               &process.timeout,
               &process.itrealvalue,
               &process.starttime,
@@ -111,24 +114,24 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
               &process.startstack,
               &process.kstkesp,
               &process.kstkeip,
-              &data.signals_pending,
-              &data.signals_blocked,
-              &data.signals_ignored,
-              &data.signals_caught,
+              &data->signals_pending,
+              &data->signals_blocked,
+              &data->signals_ignored,
+              &data->signals_caught,
               &process.wchan);
   std::fclose(file);
 
-  data.name.assign(buffer+1);
-  data.name.pop_back();
+  data->name.assign(buffer+1);
+  data->name.pop_back();
 
   std::sprintf(buffer, "/proc/%d/cmdline", pid);
 
   if(::access(buffer, R_OK) == posix::error_response)
-    return false;
+    return posix::error_response;
 
   file = std::fopen(buffer, "r");
   if(file == nullptr)
-    return false;
+    return posix::error_response;
 
   std::memset(buffer, 0, sizeof(buffer));
 
@@ -136,12 +139,12 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   {
     std::fscanf(file, "%s ", buffer);
     if(std::strlen(buffer))
-      data.arguments.push_back(buffer);
+      data->arguments.push_back(buffer);
   }
 
   std::fclose(file);
 
-  return true;
+  return posix::success_response;
 }
 #elif defined(BSD) || defined(__MACH__) // *BSD or Apple
 
@@ -151,23 +154,23 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 // *BSD/Darwin
 #include <sys/sysctl.h>
 
-bool procstat(pid_t pid, process_t& data) noexcept
+int procstat(pid_t pid, process_state_t* data) noexcept
 {
   struct kinfo_proc info;
   posix::size_t length;
   int request[6] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid, sizeof(struct kinfo_proc), 0 };
 
   if(sysctl(request, arraylength(request), nullptr, &length, nullptr, 0) != posix::success)
-    return false;
+    return posix::error_response;
 
   request[5] = (length / sizeof(struct kinfo_proc));
 
   if(sysctl(request, arraylength(request), &info, &length, nullptr, 0) != posix::success)
-    return false;
+    return posix::error_response;
 
   // TODO: copy info.ABC to process.XYZ
 
-  return true;
+  return posix::success_response;
 }
 
 #elif defined(__unix__)
