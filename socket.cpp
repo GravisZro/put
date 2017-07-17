@@ -199,7 +199,6 @@ void ServerSocket::rejectPeerRequest(posix::fd_t socket) noexcept
   {
     m_peers.erase(peer);
     posix::close(socket);
-    Object::enqueue(disconnectedPeer, socket);
   }
 }
 
