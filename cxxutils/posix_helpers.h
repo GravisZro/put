@@ -1,6 +1,9 @@
 #ifndef POSIX_HELPERS_H
 #define POSIX_HELPERS_H
 
+// C++
+#include <cstring>
+
 // POSIX
 #include <sys/types.h>
 #include <pwd.h>
@@ -49,9 +52,11 @@ namespace posix
   static inline group* getgrgid(gid_t gid) noexcept
     { return ignore_interruption<group, gid_t>(::getgrgid, gid); }
 
-  static inline passwd* getpwnam(const char* name) noexcept
-    { return ignore_interruption<passwd, const char*>(::getpwnam, name); }
+  static inline passwd* getpwnam(const char* username) noexcept
+    { return ignore_interruption<passwd, const char*>(::getpwnam, username); }
 
+  static inline group* getgrnam(const char* groupname) noexcept
+    { return ignore_interruption<group, const char*>(::getgrnam, groupname); }
 
 // shortcuts
   static inline const char* getusername(uid_t uid) noexcept
@@ -78,6 +83,20 @@ namespace posix
     return rval == nullptr ? error_response : rval->pw_gid;
   }
 
+  static inline bool useringroup(const char* groupname, const char* username)
+  {
+    if(username == nullptr)
+      return false;
+    group* grp = posix::getgrnam(groupname);
+    if(grp == nullptr)
+      return false;
+    for(char** member = grp->gr_mem; *member != nullptr; ++member)
+      if(!std::strcmp(*member, username))
+        return true;
+    return false;
+  }
+
+// longcuts
   namespace signal
   {
     enum EId : int
