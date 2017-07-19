@@ -4,6 +4,7 @@
 // STL
 #include <ostream>
 #include <streambuf>
+#include <string>
 
 // POSIX
 #include <syslog.h>
@@ -52,8 +53,12 @@ namespace posix
     SyslogStream& operator << (priority p) { m_priority = p;  return *this; }
 
     SyslogStream& operator << (char c) { m_buffer.push_back(c); return *this; }
+    SyslogStream& operator << (char* d) { m_buffer.append(d); return *this; }
     SyslogStream& operator << (const char* d) { m_buffer.append(d); return *this; }
     SyslogStream& operator << (const std::string& d) { m_buffer.append(d);  return *this; }
+
+    template<typename T>
+    SyslogStream& operator << (T val) { m_buffer.append(std::to_string(val)); return *this; }
 
     SyslogStream& operator << (control cntl)
     {
