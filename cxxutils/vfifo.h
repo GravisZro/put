@@ -1,7 +1,7 @@
 #ifndef VQUEUE_H
 #define VQUEUE_H
 
-// C++
+// POSIX++
 #include <cstdint>
 #include <cassert>
 #include <cstring>

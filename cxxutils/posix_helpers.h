@@ -1,15 +1,15 @@
 #ifndef POSIX_HELPERS_H
 #define POSIX_HELPERS_H
 
-// C++
-#include <cstring>
-
 // POSIX
 #include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
-#include <signal.h>
 #include <unistd.h>
+
+// POSIX++
+#include <cstring>
+#include <csignal>
 
 // PDTK
 #include "error_helpers.h"
@@ -184,7 +184,7 @@ namespace posix
     };
 
     static inline bool raise(EId id) noexcept
-      { return ::raise(id) == success_response; }
+      { return std::raise(id) == success_response; }
 
     static inline bool send(pid_t pid, EId id, int value = 0) noexcept
       { return ::sigqueue(pid, id, {value}) == success_response; }

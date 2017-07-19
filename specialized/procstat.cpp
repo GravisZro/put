@@ -4,7 +4,7 @@
 #include <cxxutils/posix_helpers.h>
 
 #if defined(__linux__) // Linux
-// C++
+// POSIX++
 #include <cstdio>
 #include <cstring>
 

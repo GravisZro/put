@@ -1,7 +1,7 @@
 #ifndef ERROR_HELPERS_H
 #define ERROR_HELPERS_H
 
-// C++
+// POSIX++
 #include <cerrno>
 #include <cstdio>
 

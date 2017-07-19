@@ -1,15 +1,15 @@
 #ifndef SOCKET_HELPERS_H
 #define SOCKET_HELPERS_H
 
-// C++
-#include <cstring>
-
 // POSIX
 #include <sys/types.h>
 #include <sys/un.h>     // for struct sockaddr_un
 #include <sys/socket.h> // for socket()
 #include <poll.h>       // for poll()
 #include <fcntl.h>      // for fcntl()
+
+// POSIX++
+#include <cstring>
 
 // PDTK
 #include "error_helpers.h"

@@ -13,15 +13,16 @@
 #include <algorithm>
 #include <set>
 
-// C++
+// POSIX
+#include <sys/socket.h>
+#include <unistd.h>
+
+// POSIX++
+#include <cstdlib>
 #include <cstdio>
 #include <cassert>
 #include <climits>
 #include <cstring>
-
-// POSIX
-#include <sys/socket.h>
-#include <unistd.h>
 
 // PDTK
 #include <cxxutils/colors.h>
@@ -113,8 +114,8 @@ struct platform_dependant
       : fd(posix::invalid_descriptor), fds(EventBackend::queue)
     {
       fd = epoll_create(MAX_EVENTS);
-      flaw(fd == posix::invalid_descriptor, posix::critical, ::exit(1),,
-           "Unable to create an instance of epoll! %s", strerror(errno))
+      flaw(fd == posix::invalid_descriptor, posix::critical, std::exit(1),,
+           "Unable to create an instance of epoll! %s", std::strerror(errno))
     }
 
     ~pollnotify_t(void) noexcept
@@ -177,7 +178,7 @@ struct platform_dependant
     {
       fd = inotify_init();
       flaw(fd == posix::invalid_descriptor, posix::severe,,,
-           "Unable to create an instance of inotify!: %s", strerror(errno))
+           "Unable to create an instance of inotify!: %s", std::strerror(errno))
     }
 
     ~fsnotify_t(void) noexcept
@@ -214,7 +215,7 @@ struct platform_dependant
     {
       fd = ::socket(PF_NETLINK, SOCK_DGRAM, NETLINK_CONNECTOR);
       flaw(fd == posix::invalid_descriptor, posix::warning,,,
-           "Unable to open a netlink socket for Process Events Connector: %s", strerror(errno))
+           "Unable to open a netlink socket for Process Events Connector: %s", std::strerror(errno))
 
       sockaddr_nl sa_nl;
       sa_nl.nl_family = AF_NETLINK;
@@ -222,7 +223,7 @@ struct platform_dependant
       sa_nl.nl_pid = getpid();
       int binderr = ::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl));
       flaw(binderr == posix::error_response, posix::warning,,,
-           "Process Events Connector requires root level access: %s", strerror(errno))
+           "Process Events Connector requires root level access: %s", std::strerror(errno))
 
       struct alignas(NLMSG_ALIGNTO) // 32-bit alignment
       {
@@ -245,7 +246,7 @@ struct platform_dependant
       procconn.operation = PROC_CN_MCAST_LISTEN;
 
       flaw(::send(fd, &procconn, sizeof(procconn), 0) == posix::error_response, posix::warning,,,
-           "Failed to enable Process Events Connector notifications: %s", strerror(errno))
+           "Failed to enable Process Events Connector notifications: %s", std::strerror(errno))
     }
 
     ~procnotify_t(void) noexcept

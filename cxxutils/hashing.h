@@ -6,7 +6,7 @@
 // STL
 #include <string>
 
-// C++
+// POSIX++
 #include <cstdint>
 #include <cstring>
 
