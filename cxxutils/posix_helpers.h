@@ -3,6 +3,7 @@
 
 // POSIX
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h>
@@ -202,6 +203,14 @@ namespace posix
 
   static inline ssize_t read(fd_t fd, void* buffer, size_t length) noexcept
     { return ignore_interruption(::read, fd, buffer, length); }
+
+// POSIX wrappers
+  static inline bool chmod(const char* path, mode_t mode) noexcept
+    { return ignore_interruption(::chmod, path, mode) != error_response; }
+
+  static inline bool chown(const char* path, uid_t owner, gid_t group) noexcept
+    { return ignore_interruption(::chown, path, owner, group) != error_response; }
+
 
 /*
   // POSIX wrappers

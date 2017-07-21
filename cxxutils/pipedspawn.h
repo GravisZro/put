@@ -10,6 +10,9 @@
 // Realtime POSIX
 #include <spawn.h>
 
+// POSIX++
+#include <cassert>
+
 #ifndef SPAWN_PROGRAM_NAME
 #define SPAWN_PROGRAM_NAME "pldstub"
 #endif
@@ -92,7 +95,7 @@ protected:
   }
 
   static bool write(posix::fd_t fd, vfifo& vq) noexcept
-    { return !vq.empty() && posix::write(fd, vq.begin(), vq.size()) == vq.size(); }
+    { return !vq.empty() && posix::write(fd, vq.begin(), vq.size()) == posix::ssize_t(vq.size()); }
 
   static bool read(posix::fd_t fd, vfifo& vq) noexcept
   {

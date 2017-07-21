@@ -102,8 +102,10 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
 
 bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 {
-  assert(m_socket == socket);
   (void)event;
+  flaw(m_socket != socket, posix::critical, , std::exit(2),
+       "An 'impossible' situation has occurred.")
+
   msghdr header = {};
   iovec iov = {};
   char aux_buffer[CMSG_SPACE(sizeof(int))] = { 0 };
@@ -214,7 +216,8 @@ void ServerSocket::disconnectPeer(posix::fd_t socket) noexcept
 bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
 {
   (void)event;
-  assert(m_socket == socket);
+  flaw(m_socket != socket, posix::critical, , std::exit(2),
+       "An 'impossible' situation has occurred.")
   proccred_t peercred;
   posix::sockaddr_t peeraddr;
   socklen_t addrlen = 0;

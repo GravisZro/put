@@ -1,6 +1,5 @@
 #include "sdl.h"
 
-#include <cassert>
 #include <chrono>
 #include <thread>
 #include <map>
@@ -9,7 +8,7 @@
 #include <iostream>
 #endif
 
-#define ASSERT assert
+#include <cxxutils/error_helpers.h>
 
 static std::thread sdl_thread;
 static std::map<SDL_Window*, SDL::Window*> window_lookup;
@@ -145,7 +144,8 @@ namespace SDL
   void Events::event_thread(void) noexcept
   {
     SDL_SetMainReady();
-    ASSERT(SDL_Init(SDL_INIT_EVERYTHING) == 0);
+    flaw(SDL_Init(SDL_INIT_EVERYTHING) != posix::success_response, posix::critical, , std::exit(4),
+         "SDL could not initialize.")
     SDL_SetEventFilter(reinterpret_cast<SDL_EventFilter>(sdl_event_filter), static_cast<void*>(this));
     while(SDL_WaitEvent(nullptr) == 0); // run until there is an error
   }

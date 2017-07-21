@@ -26,6 +26,7 @@ enum class EventFlags : uint32_t
   Moved         = 0x00000100, // File/directory was moved
   Deleted       = 0x00000200, // File/directory was deleted
   Created       = 0x00000400, // File/directory was created
+  FileMod       = 0x000007C0, // Any file/directory modification event
   FileEvent     = 0x000007E0, // Any file/directory event
   ExecEvent     = 0x00000800, // Process called exec*()
   ExitEvent     = 0x00001000, // Process exited
@@ -124,7 +125,7 @@ struct EventBackend // TODO: convert to namespace
   static void init(void) noexcept;
   static void destroy(void) noexcept;
 
-  static posix::fd_t watch(const char* path, EventFlags_t flags = EventFlags::FileEvent) noexcept; // add file events to montior
+  static posix::fd_t watch(const char* path, EventFlags_t flags = EventFlags::FileMod) noexcept; // add file events to montior
   static posix::fd_t watch(int target, EventFlags_t flags = EventFlags::Readable) noexcept; // add FD or process events to montior
 
   static bool remove(int target, EventFlags_t flags = EventFlags::Readable) noexcept; // remove from watch queue

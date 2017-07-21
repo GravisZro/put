@@ -3,7 +3,6 @@
 
 // POSIX++
 #include <cstdint>
-#include <cassert>
 #include <cstring>
 #include <cwchar>
 

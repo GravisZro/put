@@ -3,12 +3,10 @@
 // POSIX
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 
 // POSIX++
-#include <cassert>
 #include <cerrno>
 #include <cstdlib>
 #include <climits>
@@ -50,10 +48,10 @@ void Process::init_once(void) noexcept
     ok = false;
     struct sigaction actions;
     actions.sa_handler = &reaper;
-    std::sigemptyset(&actions.sa_mask);
+    ::sigemptyset(&actions.sa_mask);
     actions.sa_flags = SA_RESTART | SA_NOCLDSTOP;
 
-    flaw(std::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response, posix::critical, , std::exit(1),
+    flaw(::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response, posix::critical, , std::exit(1),
          "An 'impossible' situation has occurred.")
   }
 }

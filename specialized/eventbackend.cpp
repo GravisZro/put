@@ -20,7 +20,6 @@
 // POSIX++
 #include <cstdlib>
 #include <cstdio>
-#include <cassert>
 #include <climits>
 #include <cstring>
 

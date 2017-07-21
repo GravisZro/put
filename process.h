@@ -4,6 +4,7 @@
 // POSIX
 #include <sys/types.h>
 #include <sys/resource.h>
+#include <signal.h>
 
 // POSIX++
 #include <csignal>
