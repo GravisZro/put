@@ -10,9 +10,6 @@
 // Realtime POSIX
 #include <spawn.h>
 
-// POSIX++
-#include <cassert>
-
 #ifndef SPAWN_PROGRAM_NAME
 #define SPAWN_PROGRAM_NAME "pldstub"
 #endif
@@ -34,12 +31,10 @@ public:
     posix::fd_t stderr_pipe[2];
     posix_spawn_file_actions_t action;
 
-    if(::pipe(stdin_pipe ) == posix::error_response ||
-       ::pipe(stdout_pipe) == posix::error_response ||
-       ::pipe(stderr_pipe) == posix::error_response)
-    {
-      assert(false);
-    }
+    flaw(::pipe(stdin_pipe ) == posix::error_response ||
+         ::pipe(stdout_pipe) == posix::error_response ||
+         ::pipe(stderr_pipe) == posix::error_response,
+         posix::critical, , std::exit(2), "An 'impossible' situation has occurred.")
 
     posix_spawn_file_actions_init(&action);
 
