@@ -20,7 +20,7 @@ struct node_t
 
   type_e type;
   std::string value;
-  std::unordered_map<std::string, std::shared_ptr<node_t>> values;
+  std::unordered_map<std::string, std::shared_ptr<node_t>> children;
 
   node_t(type_e t = type_e::invalid) noexcept;
   node_t(std::string& v) noexcept; // val string is erased

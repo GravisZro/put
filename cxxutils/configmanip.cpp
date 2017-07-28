@@ -20,19 +20,19 @@ node_t::node_t(type_e t) noexcept : type(t) { }
 node_t::node_t(std::string& v) noexcept : type(type_e::value), value(use_string(v)) { }
 
 std::shared_ptr<node_t> node_t::newChild(type_e t) noexcept
-  { return values.emplace(std::to_string(values.size()), std::make_shared<node_t>(t)).first->second; }
+  { return children.emplace(std::to_string(children.size()), std::make_shared<node_t>(t)).first->second; }
 
 std::shared_ptr<node_t> node_t::findChild(std::string& index) const noexcept
 {
-  auto val = values.find(use_string(index)); // find index if it exists
-  return val == values.end() ? nullptr : val->second;
+  auto val = children.find(use_string(index)); // find index if it exists
+  return val == children.end() ? nullptr : val->second;
 }
 
 std::shared_ptr<node_t> node_t::getChild(std::string& index) noexcept
 {
   if(type == type_e::invalid)
     type = type_e::section;
-  return values.emplace(use_string(index), std::make_shared<node_t>()).first->second; // insert if index does _not_ exist
+  return children.emplace(use_string(index), std::make_shared<node_t>()).first->second; // insert if index does _not_ exist
 }
 
 
@@ -181,10 +181,10 @@ bool ConfigManip::read(const std::string& data) noexcept
             {
               case node_t::type_e::section:
               {
-                std::unordered_map<std::string, std::shared_ptr<node_t>> vals = node->values;
-                node->values.clear();
+                std::unordered_map<std::string, std::shared_ptr<node_t>> vals = node->children;
+                node->children.clear();
                 node->type = node_t::type_e::multisection;
-                node->newChild(node_t::type_e::section)->values = vals;
+                node->newChild(node_t::type_e::section)->children = vals;
                 node = section_node = node->newChild(node_t::type_e::section);
                 continue;
               }
@@ -329,7 +329,7 @@ bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::mul
   if(section == sections.end())
     return bailout();
 
-  for(const std::pair<std::string, std::shared_ptr<node_t>>& entry : node->values)
+  for(const std::pair<std::string, std::shared_ptr<node_t>>& entry : node->children)
   {
     switch(entry.second->type)
     {
@@ -343,7 +343,7 @@ bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::mul
 
       case node_t::type_e::array:
         section->second += '\n' + entry.first + '=';
-        for(auto& valnode : entry.second->values)
+        for(auto& valnode : entry.second->children)
           section->second += valnode.second->value + ','; // concatinate into a list
         section->second.pop_back(); // remove final ','
         section->second += '\n'; // add endline

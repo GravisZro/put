@@ -249,7 +249,7 @@ private:
             pull <uint16_t>())                 // no buffer underflow
     {
       V tmp;
-      for(uint16_t i = front<uint16_t>(); pull<V>() && i > 0; --i)
+      for(uint16_t i = front<uint16_t>(); pull<V>() && i > 0; --i) // note: will skip empty containers
       {
         deserialize(tmp);
         arg.emplace(tmp); // NOTE: this is the most compatible way to add element to an STL container
