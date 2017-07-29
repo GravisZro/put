@@ -51,22 +51,23 @@ constexpr uint32_t operator | (EventFlags a, EventFlags b) { return static_cast<
 
 struct EventFlags_t
 {
-  // FD events
+// File descriptor events
   uint32_t Error        : 1;
   uint32_t Disconnected : 1;
   uint32_t Readable     : 1;
   uint32_t Writeable    : 1;
   uint32_t EdgeTrigger  : 1;
-  // FS events
+// File Events
   uint32_t ReadEvent    : 1;
   uint32_t WriteEvent   : 1;
   uint32_t AttributeMod : 1;
   uint32_t Moved        : 1;
   uint32_t Deleted      : 1;
+// Directory Events
   uint32_t SubCreated   : 1;
   uint32_t SubMoved     : 1;
   uint32_t SubDeleted   : 1;
-  // Proc events
+// Process Events
   uint32_t ExecEvent    : 1;
   uint32_t ExitEvent    : 1;
   uint32_t ForkEvent    : 1;
