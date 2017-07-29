@@ -14,22 +14,27 @@
 
 enum class EventFlags : uint32_t
 {
+// File descriptor events
   Invalid       = 0x00000000,
   Error         = 0x00000001, // FD encountered an error (output only)
   Disconnected  = 0x00000002, // FD has disconnected (output only)
   Readable      = 0x00000004, // FD has content to read
   Writeable     = 0x00000008, // FD is writeable
   EdgeTrigger   = 0x00000010, // FD will be edge-triggered (input only)
-  ReadEvent     = 0x00000020, // File/directory was read from
-  WriteEvent    = 0x00000040, // File/directory was written to
-  AttributeMod  = 0x00000080, // File/directory metadata was modified
-  Moved         = 0x00000100, // File/directory was moved
-  Deleted       = 0x00000200, // File/directory was deleted
+// File Events
+  ReadEvent     = 0x00000020, // File was read from
+  WriteEvent    = 0x00000040, // File was written to
+  AttributeMod  = 0x00000080, // File metadata was modified
+  Moved         = 0x00000100, // File was moved
+  Deleted       = 0x00000200, // File was deleted
+  FileMod       = 0x000003C0, // Any file modification event
+  FileEvent     = 0x000003E0, // Any file event
+// Directory Events
   SubCreated    = 0x00000400, // File/directory was created
   SubMoved      = 0x00000800, // File/directory was created
-  SubDeleted    = 0x00001000, // File/directory was created
-  FileMod       = 0x000002C0, // Any file modification event
-  FileEvent     = 0x00001FE0, // Any file/directory event
+  SubDeleted    = 0x00001000, // File/directory was created  
+  DirEvent      = 0x00001C00, // Any directory event
+// Process Events
   ExecEvent     = 0x00002000, // Process called exec*()
   ExitEvent     = 0x00004000, // Process exited
   ForkEvent     = 0x00008000, // Process forked
