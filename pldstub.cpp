@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
 
       case command::workingdir: // specify the working directory
       {
-        dprintf(STDERR_FILENO, "workingdir\n");
+        ::fprintf(stderr, "workingdir\n");
         struct stat statbuf;
         readtype(workingdir);
 
@@ -258,6 +258,6 @@ int main(int argc, char *argv[])
     ::free(arguments[i]);
     //delete[] arguments[i];
 
-  dprintf(STDERR_FILENO, "exiting\n");
+  ::fprintf(stderr, "exiting\n");
   return errno;
 }

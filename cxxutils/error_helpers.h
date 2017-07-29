@@ -12,9 +12,9 @@
 #define flaw(condition, msg_prefix, exec, rvalue, ...) \
   if(condition) \
   { \
-    dprintf(STDERR_FILENO, msg_prefix); \
-    dprintf(STDERR_FILENO, ##__VA_ARGS__); \
-    dprintf(STDERR_FILENO, "\n"); \
+    std::fprintf(stderr, msg_prefix); \
+    std::fprintf(stderr, ##__VA_ARGS__); \
+    std::fprintf(stderr, "\n"); \
     exec; \
     return rvalue; \
   }
