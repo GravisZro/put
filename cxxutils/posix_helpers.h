@@ -80,7 +80,7 @@ namespace posix
 
   static inline uid_t getgroupid(const char* name) noexcept
   {
-    passwd* rval = posix::getpwnam(name);
+    passwd* rval = posix::getgrnam(name);
     return rval == nullptr ? error_response : rval->pw_gid;
   }
 
