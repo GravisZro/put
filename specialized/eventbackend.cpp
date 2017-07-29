@@ -60,7 +60,9 @@ inline EventData_t from_native_fileflags(const uint32_t flags) noexcept
   data.flags.AttributeMod = flags & IN_ATTRIB      ? 1 : 0;
   data.flags.Moved        = flags & IN_MOVE_SELF   ? 1 : 0;
   data.flags.Deleted      = flags & IN_DELETE_SELF ? 1 : 0;
-  data.flags.Created      = flags & IN_CREATE      ? 1 : 0;
+  data.flags.SubCreated   = flags & IN_CREATE      ? 1 : 0;
+  data.flags.SubMoved     = flags & IN_MOVE        ? 1 : 0;
+  data.flags.SubDeleted   = flags & IN_DELETE      ? 1 : 0;
   return data;
 }
 
@@ -70,9 +72,11 @@ constexpr uint32_t to_native_fileflags(const EventFlags_t& flags)
       (flags.ReadEvent    ? uint32_t(IN_ACCESS     ) : 0) | // File was accessed (read) (*).
       (flags.WriteEvent   ? uint32_t(IN_MODIFY     ) : 0) | // File was modified (*).
       (flags.AttributeMod ? uint32_t(IN_ATTRIB     ) : 0) | // Metadata changed, e.g., permissions, timestamps, extended attributes, link count (since Linux 2.6.25), UID, GID, etc. (*).
-      (flags.Moved        ? uint32_t(IN_MOVE_SELF  ) : 0) | // File was moved.
-      (flags.Deleted      ? uint32_t(IN_DELETE_SELF) : 0) | // File was deleted.
-      (flags.Created      ? uint32_t(IN_CREATE     ) : 0) ; // File was created.
+      (flags.Moved        ? uint32_t(IN_MOVE_SELF  ) : 0) | // Watched File was moved.
+      (flags.Deleted      ? uint32_t(IN_DELETE_SELF) : 0) | // Watched File was deleted.
+      (flags.SubCreated   ? uint32_t(IN_CREATE     ) : 0) | // File created in watched dir.
+      (flags.SubMoved     ? uint32_t(IN_MOVE       ) : 0) | // File moved in watched dir.
+      (flags.SubDeleted   ? uint32_t(IN_DELETE     ) : 0) ; // File deleted in watched dir.
 }
 
 #ifdef ENABLE_PROCESS_EVENT_TRACKING

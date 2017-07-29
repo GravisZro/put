@@ -25,16 +25,18 @@ enum class EventFlags : uint32_t
   AttributeMod  = 0x00000080, // File/directory metadata was modified
   Moved         = 0x00000100, // File/directory was moved
   Deleted       = 0x00000200, // File/directory was deleted
-  Created       = 0x00000400, // File/directory was created
-  FileMod       = 0x000007C0, // Any file/directory modification event
-  FileEvent     = 0x000007E0, // Any file/directory event
-  ExecEvent     = 0x00000800, // Process called exec*()
-  ExitEvent     = 0x00001000, // Process exited
-  ForkEvent     = 0x00002000, // Process forked
-  UIDEvent      = 0x00004000, // Process changed its User ID
-  GIDEvent      = 0x00008000, // Process changed its Group ID
-  SIDEvent      = 0x00010000, // Process changed its Session ID
-  ProcEvent     = 0x0001F800, // Any process event
+  SubCreated    = 0x00000400, // File/directory was created
+  SubMoved      = 0x00000800, // File/directory was created
+  SubDeleted    = 0x00001000, // File/directory was created
+  FileMod       = 0x000002C0, // Any file modification event
+  FileEvent     = 0x00001FE0, // Any file/directory event
+  ExecEvent     = 0x00002000, // Process called exec*()
+  ExitEvent     = 0x00004000, // Process exited
+  ForkEvent     = 0x00008000, // Process forked
+  UIDEvent      = 0x00010000, // Process changed its User ID
+  GIDEvent      = 0x00020000, // Process changed its Group ID
+  SIDEvent      = 0x00040000, // Process changed its Session ID
+  ProcEvent     = 0x0007E000, // Any process event
 
   Any           = 0xFFFFFFFF, // any flag
 };
@@ -56,7 +58,9 @@ struct EventFlags_t
   uint32_t AttributeMod : 1;
   uint32_t Moved        : 1;
   uint32_t Deleted      : 1;
-  uint32_t Created      : 1;
+  uint32_t SubCreated   : 1;
+  uint32_t SubMoved     : 1;
+  uint32_t SubDeleted   : 1;
   // Proc events
   uint32_t ExecEvent    : 1;
   uint32_t ExitEvent    : 1;
