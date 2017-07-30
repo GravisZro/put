@@ -331,14 +331,18 @@ bool EventBackend::remove(int target, EventFlags_t flags) noexcept
 {
 #ifdef ENABLE_PROCESS_EVENT_TRACKING
   if(flags == EventFlags::Any)
-    return platform->procnotify.remove(target) ||
+    return (platform->fsnotify.remove(target) && platform->pollnotify.remove(target)) ||
+           (platform->procnotify.remove(target) && platform->pollnotify.remove(target)) ||
            platform->pollnotify.remove(target);
 
   if(flags >= EventFlags::ExecEvent)
-    return platform->procnotify.remove(target);
+    return platform->procnotify.remove(target) && platform->pollnotify.remove(target);
 #else
-  (void)flags;
+  if(flags >= EventFlags::ReadEvent)
+    return (platform->fsnotify.remove(target) && platform->pollnotify.remove(target)) ||
+           platform->pollnotify.remove(target);
 #endif
+
   return platform->pollnotify.remove(target);
 }
 
