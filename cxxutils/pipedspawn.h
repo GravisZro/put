@@ -86,7 +86,7 @@ protected:
   bool waitFDEvent(posix::fd_t fd, int16_t event, int timeout) const noexcept
   {
     pollfd fds = { fd, event, 0 };
-    return posix::ignore_interruption<int, pollfd*, nfds_t, int>(::poll, &fds, nfds_t(1), timeout) == 1;
+    return posix::ignore_interruption(::poll, &fds, nfds_t(1), timeout) == 1;
   }
 
   static bool write(posix::fd_t fd, vfifo& vq) noexcept

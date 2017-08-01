@@ -85,7 +85,7 @@ namespace posix
 
   static inline fd_t accept(fd_t sockfd, sockaddr* addr = nullptr, socklen_t* addrlen = nullptr, int flags = 0) noexcept
   {
-    fd_t fd = ignore_interruption<int, int, sockaddr*, socklen_t*>(::accept, sockfd, addr, addrlen);
+    fd_t fd = ignore_interruption(::accept, sockfd, addr, addrlen);
     if(fd != error_response)
     {
       ::fcntl(fd, F_SETFD, FD_CLOEXEC);
@@ -99,25 +99,25 @@ namespace posix
     { return ::listen(sockfd, backlog) != error_response; }
 
   static inline bool connect(fd_t sockfd, const sockaddr* addr, socklen_t addrlen) noexcept
-    { return ignore_interruption<int, int, const sockaddr*, socklen_t>(::connect, sockfd, addr, addrlen) != error_response; }
+    { return ignore_interruption(::connect, sockfd, addr, addrlen) != error_response; }
 
   static inline bool bind(fd_t sockfd, const sockaddr* addr, socklen_t addrlen) noexcept
     { return ::bind(sockfd, addr, addrlen) != error_response; }
 
   static inline ssize_t send(fd_t sockfd, const void* buffer, size_t length, int flags = MSG_NOSIGNAL) noexcept
-    { return ignore_interruption<posix::ssize_t, int, const void*, size_t, int>(::send, sockfd, buffer, length, flags); }
+    { return ignore_interruption(::send, sockfd, buffer, length, flags); }
 
   static inline ssize_t recv(fd_t sockfd, void* buffer, size_t length, int flags = 0) noexcept
-    { return ignore_interruption<posix::ssize_t, int, void*, size_t, int>(::recv, sockfd, buffer, length, flags); }
+    { return ignore_interruption(::recv, sockfd, buffer, length, flags); }
 
   static inline ssize_t sendmsg(fd_t sockfd, const msghdr* msg, int flags = MSG_NOSIGNAL) noexcept
-    { return ignore_interruption<posix::ssize_t, int, const msghdr*, int>(::sendmsg, sockfd, msg, flags); }
+    { return ignore_interruption(::sendmsg, sockfd, msg, flags); }
 
   static inline ssize_t recvmsg(fd_t sockfd, msghdr* msg, int flags = 0) noexcept
-    { return ignore_interruption<posix::ssize_t, int, msghdr*, int>(::recvmsg, sockfd, msg, flags); }
+    { return ignore_interruption(::recvmsg, sockfd, msg, flags); }
 
   static inline int poll(pollfd* fds, nfds_t nfds, int timeout = -1) noexcept
-    { return ignore_interruption<int, pollfd*, nfds_t, int>(::poll, fds, nfds, timeout); }
+    { return ignore_interruption(::poll, fds, nfds, timeout); }
 }
 
 
