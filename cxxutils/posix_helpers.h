@@ -193,23 +193,23 @@ namespace posix
 
 // POSIX wrappers
   static inline bool dup2(int a, int b) noexcept
-    { return ignore_interruption(::dup2, a, b) != error_response; }
+    { return ignore_interruption<int, int, int>(::dup2, a, b) != error_response; }
 
   static inline bool close(fd_t fd) noexcept
-    { return ignore_interruption(::close, fd) != error_response; }
+    { return ignore_interruption<int, int>(::close, fd) != error_response; }
 
   static inline ssize_t write(fd_t fd, const void* buffer, size_t length) noexcept
-    { return ignore_interruption(::write, fd, buffer, length); }
+    { return ignore_interruption<ssize_t, int, const void*, size_t>(::write, fd, buffer, length); }
 
   static inline ssize_t read(fd_t fd, void* buffer, size_t length) noexcept
-    { return ignore_interruption(::read, fd, buffer, length); }
+    { return ignore_interruption<ssize_t, int, void*, size_t>(::read, fd, buffer, length); }
 
 // POSIX wrappers
   static inline bool chmod(const char* path, mode_t mode) noexcept
-    { return ignore_interruption(::chmod, path, mode) != error_response; }
+    { return ignore_interruption<int, const char*, mode_t>(::chmod, path, mode) != error_response; }
 
   static inline bool chown(const char* path, uid_t owner, gid_t group) noexcept
-    { return ignore_interruption(::chown, path, owner, group) != error_response; }
+    { return ignore_interruption<int, const char*, uid_t, gid_t>(::chown, path, owner, group) != error_response; }
 
 
 /*

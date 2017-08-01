@@ -375,9 +375,9 @@ bool EventBackend::getevents(int timeout) noexcept
       } procnote;
 
       pollfd fds = { pos->data.fd, POLLIN, 0 };
-      while(posix::ignore_interruption(::poll, &fds, nfds_t(1), 0) > 0) // while there are messages
+      while(posix::ignore_interruption<int, pollfd*, nfds_t, int>(::poll, &fds, nfds_t(1), 0) > 0) // while there are messages
       {
-        if(posix::ignore_interruption(::recv, platform->procnotify.fd, reinterpret_cast<void*>(&procnote), sizeof(procnote), 0) > 0) // read process event message
+        if(posix::ignore_interruption<posix::size_t, int, void*, posix::size_t, int>(::recv, platform->procnotify.fd, reinterpret_cast<void*>(&procnote), sizeof(procnote), 0) > 0) // read process event message
         {
           EventFlags_t flags = from_native_procflags(procnote.event.what);
           auto entries = platform->procnotify.events.equal_range(procnote.event.event_data.id.process_pid); // get all the entries for that PID
