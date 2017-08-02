@@ -10,6 +10,9 @@
 // Realtime POSIX
 #include <spawn.h>
 
+// POSIX++
+#include <cstdlib> // for exit
+
 #ifndef SPAWN_PROGRAM_NAME
 #define SPAWN_PROGRAM_NAME "pldstub"
 #endif

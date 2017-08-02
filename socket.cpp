@@ -1,5 +1,8 @@
 #include "socket.h"
 
+// POSIX++
+#include <cstdlib> // for exit
+
 // PDTK
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/colors.h>

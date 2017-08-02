@@ -5,6 +5,7 @@
 
 // POSIX++
 #include <cstring> // for strerror()
+#include <cstdlib> // for exit
 
 // STL
 #include <atomic>

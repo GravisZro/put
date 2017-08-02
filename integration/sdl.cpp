@@ -4,6 +4,9 @@
 #include <thread>
 #include <map>
 
+// POSIX++
+#include <cstdlib> // for exit
+
 #ifdef SDL_DEBUG
 #include <iostream>
 #endif

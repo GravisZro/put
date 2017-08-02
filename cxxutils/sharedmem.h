@@ -6,6 +6,8 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
+// POSIX++
+#include <cstdlib> // for exit
 #include <cstdio>
 #include <cstdint>
 
