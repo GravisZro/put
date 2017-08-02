@@ -1,7 +1,11 @@
 #include "application.h"
 
 // POSIX
+#ifdef __APPLE__
+#include <sys/ioctl.h>
+#else
 #include <stropts.h> // for ioctl()
+#endif
 
 // POSIX++
 #include <cstring> // for strerror()
