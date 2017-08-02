@@ -15,6 +15,12 @@
 #include "error_helpers.h"
 #include "posix_helpers.h"
 
+#ifdef __APPLE__
+# ifndef MSG_NOSIGNAL
+#  define MSG_NOSIGNAL 0
+# endif
+#endif
+
 enum class EDomain : sa_family_t
 {
 // POSIX required
@@ -25,13 +31,15 @@ enum class EDomain : sa_family_t
 
 // optional
   ipx       = PF_IPX,       //  IPX - Novell protocols
+  appletalk = PF_APPLETALK, //  AppleTalk                        ddp(7)
+#ifndef __APPLE__
   netlink   = PF_NETLINK,   //  Kernel user interface device     netlink(7)
   x25       = PF_X25,       //  ITU-T X.25 / ISO-8208 protocol   x25(7)
   ax25      = PF_AX25,      //  Amateur radio AX.25 protocol
   atmpcv    = PF_ATMPVC,    //  Access to raw ATM PVCs
-  appletalk = PF_APPLETALK, //  AppleTalk                        ddp(7)
   packet    = PF_PACKET,    //  Low level packet interface       packet(7)
   alg       = PF_ALG,
+#endif
 };
 
 typedef EDomain EProtocol;
