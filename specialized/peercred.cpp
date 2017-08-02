@@ -28,21 +28,21 @@ int peercred(int socket, proccred_t& cred) noexcept
   return rval;
 }
 
-#elif defined(LOCAL_PEERCRED) // Old FreeBSD
+#elif defined(LOCAL_PEERCRED) && !defined(__APPLE__) // Old FreeBSD
 #include <sys/ucred.h>
 int peercred(int socket, proccred_t& cred) noexcept
 {
   struct xucred data;
   ACCEPT_TYPE_ARG3 len = sizeof(data);
 
-  int rval = getsockopt(sock, 0, LOCAL_PEERCRED, &data, &so_len);
+  int rval = getsockopt(socket, 0, LOCAL_PEERCRED, &data, &so_len);
 
-  if(len != sizeof(data) || data.cr_version != XUCRED_VERSION))
+  if(len != sizeof(data) || data.cr_version != XUCRED_VERSION)
     rval = posix::error(std::errc::invalid_argument);
 
   if(rval == posix::success)
   {
-    cred.pid = -1; // FIXME?
+    cred.pid = -1; // MUST be fixed
     cred.uid = data.cr_uid;
     cred.gid = data.cr_gid;
   }
@@ -50,7 +50,7 @@ int peercred(int socket, proccred_t& cred) noexcept
 }
 
 
-#elif defined(BSD) || defined(__MACH__) // *BSD or Darwin
+#elif defined(BSD) || defined(__APPLE__) // *BSD or Darwin
 
 // POSIX
 #include <sys/types.h>
@@ -68,7 +68,7 @@ int peercred(int socket, proccred_t& cred) noexcept
 {
   uproccred_t* data = nullptr;
 
-  int rval = getpeerucred(sock, &data);
+  int rval = getpeerucred(socket, &data);
 
   if(rval == posix::success)
   {
@@ -76,9 +76,9 @@ int peercred(int socket, proccred_t& cred) noexcept
     cred.uid = ucred_geteuid(data);
     cred.gid = ucred_getegid(data);
     ucred_free(data);
-    if (cred.pid == (pid_t) (-1) ||
-        cred.uid == (uid_t) (-1) ||
-        cred.gid == (gid_t) (-1))
+    if (cred.pid == pid_t(-1) ||
+        cred.uid == uid_t(-1) ||
+        cred.gid == gid_t(-1))
       rval = posix::error_response;
   }
   return rval;
