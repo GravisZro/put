@@ -412,9 +412,69 @@ bool EventBackend::getevents(int timeout) noexcept
   }
   return true;
 }
-#elif defined(__unix__)
+#elif defined(__unix__) || defined(__APPLE__) || defined(BSD)
 
-#error no code yet for your operating system. :(
+// POSIX
+#include <sys/socket.h>
+#include <unistd.h>
+
+// POSIX++
+#include <cstdlib>
+#include <cstdio>
+#include <climits>
+#include <cstring>
+
+// PDTK
+#include <cxxutils/colors.h>
+#include <cxxutils/error_helpers.h>
+
+
+std::unordered_multimap<posix::fd_t, EventFlags_t> EventBackend::queue; // watch queue
+std::unordered_multimap<posix::fd_t, EventData_t> EventBackend::results; // results from getevents()
+
+struct platform_dependant
+{
+
+};
+
+struct platform_dependant* EventBackend::platform = nullptr;
+
+void EventBackend::init(void) noexcept
+{
+  flaw(platform != nullptr, posix::warning, posix::error(std::errc::operation_not_permitted),,
+       "EventBackend::init() has been called multiple times!")
+  platform = new platform_dependant;
+}
+
+void EventBackend::destroy(void) noexcept
+{
+  flaw(platform == nullptr, posix::warning, posix::error(std::errc::operation_not_permitted),,
+       "EventBackend::destroy() has been called multiple times!")
+  delete platform;
+  platform = nullptr;
+}
+
+
+posix::fd_t EventBackend::watch(const char* path, EventFlags_t flags) noexcept
+{
+  return posix::invalid_descriptor;
+}
+
+posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
+{
+  return posix::invalid_descriptor;
+}
+
+bool EventBackend::remove(int target, EventFlags_t flags) noexcept
+{
+  return false;
+}
+
+bool EventBackend::getevents(int timeout) noexcept
+{
+  return false;
+}
+
 
 #else
 #error Unsupported platform! >:(
