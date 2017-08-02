@@ -1,11 +1,7 @@
 #include "application.h"
 
 // POSIX
-#ifdef __APPLE__
-#include <sys/ioctl.h>
-#else
-#include <stropts.h> // for ioctl()
-#endif
+#include <termios.h> // for tcflush()
 
 // POSIX++
 #include <cstring> // for strerror()
@@ -70,8 +66,8 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
     {
       if(pos.first == s_pipeio[Read]) // if this is the execution stepper pipe (via Object::enqueue())
       {
-        while(::ioctl(pos.first, I_FLUSH, FLUSHRW) == posix::error_response && // discard the data (may have been called multiple times)
-              errno == std::errc::interrupted); // don't be interrupted while flushing the FD channel
+        ::tcflush(pos.first, TCIFLUSH); // discard the data
+
         // execute queue of object signal calls
         static std::queue<vfunc> exec_queue;
         if(exec_queue.empty()) // if not currently executing (recursive or multithread exec() calls?)
