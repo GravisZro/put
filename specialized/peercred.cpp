@@ -54,6 +54,7 @@ int peercred(int socket, proccred_t& cred) noexcept
 
 // POSIX
 #include <sys/types.h>
+#include <unistd.h>
 
 int peercred(int socket, proccred_t& cred) noexcept
 {
