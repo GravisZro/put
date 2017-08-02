@@ -4,7 +4,11 @@
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/colors.h>
 
-static_assert(CMSG_SPACE(sizeof(int)) <= 64, "seriously?");
+#ifdef __APPLE__
+#define AUX_BUFFER_SIZE  256
+#else
+#define AUX_BUFFER_SIZE  CMSG_SPACE(sizeof(int))
+#endif
 
 namespace posix
 {
@@ -76,7 +80,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
 {
   msghdr header = {};
   iovec iov = {};
-  char aux_buffer[64] = { 0 };
+  char aux_buffer[AUX_BUFFER_SIZE] = { 0 };
 
   header.msg_iov = &iov;
   header.msg_iovlen = 1;
@@ -110,7 +114,7 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 
   msghdr header = {};
   iovec iov = {};
-  char aux_buffer[64] = { 0 };
+  char aux_buffer[AUX_BUFFER_SIZE] = { 0 };
 
   header.msg_iov = &iov;
   header.msg_iovlen = 1;
