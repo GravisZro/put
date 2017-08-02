@@ -122,7 +122,7 @@ namespace posix
       TTYWrite                = SIGTTOU,    // Background process attempting write.
       UserSignal1             = SIGUSR1,    // User-defined signal 1.
       UserSignal2             = SIGUSR2,    // User-defined signal 2.
-      Poll                    = SIGPOLL,    // Pollable event.
+      Poll                    = SIGIO  ,    // Pollable event.
       ProfilingTimer          = SIGPROF,    // Profiling timer expired.
       BadSystemCall           = SIGSYS,     // Bad system call.
       TraceTrap               = SIGTRAP,    // Trace/breakpoint trap.

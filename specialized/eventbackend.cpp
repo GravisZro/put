@@ -221,7 +221,7 @@ struct platform_dependant
            "Unable to open a netlink socket for Process Events Connector: %s", std::strerror(errno))
 
       sockaddr_nl sa_nl;
-      sa_nl.nl_family = AF_NETLINK;
+      sa_nl.nl_family = PF_NETLINK;
       sa_nl.nl_groups = CN_IDX_PROC;
       sa_nl.nl_pid = getpid();
       int binderr = ::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl));

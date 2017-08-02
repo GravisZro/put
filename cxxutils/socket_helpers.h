@@ -18,20 +18,20 @@
 enum class EDomain : sa_family_t
 {
 // POSIX required
-  inet      = AF_INET,      //  Internet domain sockets for use with IPv4 addresses.
-  inet6     = AF_INET6,     //  Internet domain sockets for use with IPv6 addresses.
-  local     = AF_UNIX,      //  UNIX domain sockets.
-  unspec    = AF_UNSPEC,    //  Unspecified.
+  inet      = PF_INET,      //  Internet domain sockets for use with IPv4 addresses.
+  inet6     = PF_INET6,     //  Internet domain sockets for use with IPv6 addresses.
+  local     = PF_UNIX,      //  UNIX domain sockets.
+  unspec    = PF_UNSPEC,    //  Unspecified.
 
 // optional
-  ipx       = AF_IPX,       //  IPX - Novell protocols
-  netlink   = AF_NETLINK,   //  Kernel user interface device     netlink(7)
-  x25       = AF_X25,       //  ITU-T X.25 / ISO-8208 protocol   x25(7)
-  ax25      = AF_AX25,      //  Amateur radio AX.25 protocol
-  atmpcv    = AF_ATMPVC,    //  Access to raw ATM PVCs
-  appletalk = AF_APPLETALK, //  AppleTalk                        ddp(7)
-  packet    = AF_PACKET,    //  Low level packet interface       packet(7)
-  alg       = AF_ALG,
+  ipx       = PF_IPX,       //  IPX - Novell protocols
+  netlink   = PF_NETLINK,   //  Kernel user interface device     netlink(7)
+  x25       = PF_X25,       //  ITU-T X.25 / ISO-8208 protocol   x25(7)
+  ax25      = PF_AX25,      //  Amateur radio AX.25 protocol
+  atmpcv    = PF_ATMPVC,    //  Access to raw ATM PVCs
+  appletalk = PF_APPLETALK, //  AppleTalk                        ddp(7)
+  packet    = PF_PACKET,    //  Low level packet interface       packet(7)
+  alg       = PF_ALG,
 };
 
 typedef EDomain EProtocol;
