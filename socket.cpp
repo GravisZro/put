@@ -4,6 +4,8 @@
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/colors.h>
 
+static_assert(CMSG_SPACE(sizeof(int)) <= 64, "seriously?");
+
 namespace posix
 {
   inline bool peercred(fd_t socket, proccred_t& cred) noexcept
@@ -74,7 +76,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
 {
   msghdr header = {};
   iovec iov = {};
-  char aux_buffer[CMSG_SPACE(sizeof(int))] = { 0 };
+  char aux_buffer[64] = { 0 };
 
   header.msg_iov = &iov;
   header.msg_iovlen = 1;
@@ -108,7 +110,7 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 
   msghdr header = {};
   iovec iov = {};
-  char aux_buffer[CMSG_SPACE(sizeof(int))] = { 0 };
+  char aux_buffer[64] = { 0 };
 
   header.msg_iov = &iov;
   header.msg_iovlen = 1;
@@ -116,7 +118,7 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 
   iov.iov_base = m_buffer.begin();
   iov.iov_len = m_buffer.capacity();
-  header.msg_controllen = sizeof(aux_buffer);
+  header.msg_controllen = CMSG_SPACE(sizeof(int));
 
   posix::ssize_t byte_count = posix::recvmsg(m_socket, &header, 0);
 
