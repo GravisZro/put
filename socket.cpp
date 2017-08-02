@@ -97,7 +97,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
 
   flaw(posix::sendmsg(m_socket, &header) == posix::error_response, posix::warning,,false,
        "sendmsg() failure: %s", std::strerror(errno))
-  delete aux_buffer;
+  delete[] aux_buffer;
   return true;
 }
 
@@ -144,7 +144,7 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
          "error, message flags: 0x%04x", header.msg_flags) }
 
   Object::enqueue(newMessage, m_socket, m_buffer, fd);
-  delete aux_buffer;
+  delete[] aux_buffer;
   return true;
 }
 
