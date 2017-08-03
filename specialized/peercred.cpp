@@ -9,8 +9,9 @@
 
 #if defined(__linux__) // Linux
 
-int peercred(int socket, proccred_t& cred) noexcept
+int peercred(int socket, proccred_t& cred, int timeout) noexcept
 {
+  (void)timeout;
   struct ucred data;
   socklen_t len = sizeof(data);
 
@@ -28,48 +29,16 @@ int peercred(int socket, proccred_t& cred) noexcept
   return rval;
 }
 
-#elif defined(LOCAL_PEERCRED) && !defined(__APPLE__) // Old FreeBSD
-#include <sys/ucred.h>
-int peercred(int socket, proccred_t& cred) noexcept
-{
-  struct xucred data;
-  ACCEPT_TYPE_ARG3 len = sizeof(data);
-
-  int rval = getsockopt(socket, 0, LOCAL_PEERCRED, &data, &so_len);
-
-  if(len != sizeof(data) || data.cr_version != XUCRED_VERSION)
-    rval = posix::error(std::errc::invalid_argument);
-
-  if(rval == posix::success)
-  {
-    cred.pid = -1; // MUST be fixed
-    cred.uid = data.cr_uid;
-    cred.gid = data.cr_gid;
-  }
-  return rval;
-}
-
-
-#elif defined(BSD) || defined(__APPLE__) // *BSD or Darwin
-
-// POSIX
-#include <sys/types.h>
-#include <unistd.h>
-
-int peercred(int socket, proccred_t& cred) noexcept
-{
-  cred.pid = -1; // FIXME?
-  return getpeereid(socket, &cred.uid, &cred.gid);
-}
-
 #elif defined(__sun) && defined(__SVR4) // Solaris
+
 #include <ucred.h>
 
-int peercred(int socket, proccred_t& cred) noexcept
+int peercred(int socket, proccred_t& cred, int timeout) noexcept
 {
+  (void)timeout;
   uproccred_t* data = nullptr;
 
-  int rval = getpeerucred(socket, &data);
+  int rval = ::getpeerucred(socket, &data);
 
   if(rval == posix::success)
   {
@@ -85,6 +54,40 @@ int peercred(int socket, proccred_t& cred) noexcept
   return rval;
 }
 
+#elif defined(SCM_CREDS) // *BSD/Darwin/Hurd
+
+#include <memory>
+
+int peercred(posix::fd_t socket, creds_t& creds, int timeout) noexcept
+{
+  return posix::error_response;
+  /*
+  static const int enable = 1;
+  ::setsockopt(socket, SOL_SOCKET, SO_PASSCRED, &enable, sizeof(enable));
+
+  msghdr header = {};
+  iovec iov = { nullptr, 0 };
+  std::unique_ptr<char> aux_buffer(new char[CMSG_SPACE(sizeof(creds_t))]);
+
+  header.msg_iov = &iov;
+  header.msg_iovlen = 1;
+  header.msg_control = aux_buffer.get();
+  header.msg_controllen = CMSG_SPACE(sizeof(creds_t));
+
+  posix::ssize_t byte_count = posix::recvmsg(socket, &header, 0);
+
+  if(!byte_count ||
+     byte_count == posix::error_response)
+    return false;
+
+  cmsghdr* cmsg = CMSG_FIRSTHDR(&header);
+  if(header.msg_controllen != CMSG_SPACE(sizeof(creds_t)))
+
+      cmsg->cmsg_level == SOL_SOCKET &&
+      cmsg->cmsg_type == SCM_CREDS &&
+      cmsg->cmsg_len == CMSG_LEN(sizeof(creds_t));
+      */
+}
 
 #elif defined(__unix__)
 

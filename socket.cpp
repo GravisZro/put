@@ -1,7 +1,7 @@
 #include "socket.h"
 
-// POSIX++
-#include <cstdlib> // for exit
+// STL
+#include <memory>
 
 // PDTK
 #include <cxxutils/error_helpers.h>
@@ -9,8 +9,8 @@
 
 namespace posix
 {
-  inline bool peercred(fd_t socket, proccred_t& cred) noexcept
-    { return ::peercred(socket, cred) == posix::success_response; }
+  inline bool peercred(fd_t socket, proccred_t& cred, int timeout = 100) noexcept
+    { return ::peercred(socket, cred, timeout) == posix::success_response; }
 }
 
 GenericSocket::GenericSocket(EDomain   domain,
@@ -77,11 +77,11 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
 {
   msghdr header = {};
   iovec iov = {};
-  char* aux_buffer = new char[CMSG_SPACE(sizeof(int))];
+  std::unique_ptr<char> aux_buffer(new char[CMSG_SPACE(sizeof(int))]);
 
   header.msg_iov = &iov;
   header.msg_iovlen = 1;
-  header.msg_control = aux_buffer;
+  header.msg_control = aux_buffer.get();
 
   iov.iov_base = buffer.begin();
   iov.iov_len = buffer.size();
@@ -100,7 +100,6 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
 
   flaw(posix::sendmsg(m_socket, &header) == posix::error_response, posix::warning,,false,
        "sendmsg() failure: %s", std::strerror(errno))
-  delete[] aux_buffer;
   return true;
 }
 
@@ -112,11 +111,11 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 
   msghdr header = {};
   iovec iov = {};
-  char* aux_buffer = new char[CMSG_SPACE(sizeof(int))];
+  std::unique_ptr<char> aux_buffer(new char[CMSG_SPACE(sizeof(int))]);
 
   header.msg_iov = &iov;
   header.msg_iovlen = 1;
-  header.msg_control = aux_buffer;
+  header.msg_control = aux_buffer.get();
 
   iov.iov_base = m_buffer.begin();
   iov.iov_len = m_buffer.capacity();
@@ -147,7 +146,6 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
          "error, message flags: 0x%04x", header.msg_flags) }
 
   Object::enqueue(newMessage, m_socket, m_buffer, fd);
-  delete[] aux_buffer;
   return true;
 }
 
