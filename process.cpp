@@ -96,8 +96,8 @@ Process::Process(void) noexcept
 
 Process::~Process(void) noexcept
 {
-  if(m_state == State::Running)
-    sendSignal(posix::signal::Kill);
+//  if(m_state == State::Running)
+//    sendSignal(posix::signal::Kill);
 
   Object::disconnect(getStdOut(), EventFlags::Readable);
   Object::disconnect(getStdErr(), EventFlags::Readable);
@@ -220,10 +220,12 @@ bool Process::setPriority(int nval) noexcept
   return write_then_read();
 }
 
+#if 0
 bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
 {
   return posix::signal::send(processId(), id, value);
 }
+#endif
 
 bool Process::invoke(void) noexcept
 {

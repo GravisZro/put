@@ -12,6 +12,7 @@
 #endif
 
 #include <cxxutils/error_helpers.h>
+#include <cxxutils/colors.h>
 
 static std::thread sdl_thread;
 static std::map<SDL_Window*, SDL::Window*> window_lookup;

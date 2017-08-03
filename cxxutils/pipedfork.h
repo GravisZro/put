@@ -5,6 +5,9 @@
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/vfifo.h>
 
+// POSIX++
+#include <cstdlib>
+
 // POSIX
 #include <poll.h>
 
@@ -32,7 +35,7 @@ public:
        ::pipe(err) == posix::error_response ||
        (m_pid = ::fork()) <= posix::error_response)
     {
-      assert(false);
+      std::exit(-1);
     }
     else if(m_pid) // if parent process
     {

@@ -46,7 +46,7 @@ public:
   template<typename T>
   vfifo& operator << (const T& arg) noexcept
   {
-    if(sizeof(T) > unused())
+    if(posix::ssize_t(sizeof(T)) > unused())
       allocate(capacity() * 2);
     serialize(arg);
     return *this;
@@ -76,7 +76,7 @@ public:
   }
 
 // === manual queue manipulators ===
-  bool allocate(posix::size_t length) noexcept
+  bool allocate(posix::ssize_t length) noexcept
   {
     if(length <= capacity()) // reducing the allocated size is not allowed!
       return false;
@@ -101,10 +101,10 @@ public:
     return m_data.get() != nullptr;
   }
 
-  bool          empty (void) const noexcept { return dataEnd() == data   (); }
-  posix::size_t size  (void) const noexcept { return dataEnd() -  data   (); }
-  posix::size_t used  (void) const noexcept { return data   () -  begin  (); }
-  posix::size_t unused(void) const noexcept { return end    () -  dataEnd(); }
+  bool           empty (void) const noexcept { return dataEnd() == data   (); }
+  posix::ssize_t size  (void) const noexcept { return dataEnd() -  data   (); }
+  posix::ssize_t used  (void) const noexcept { return data   () -  begin  (); }
+  posix::ssize_t unused(void) const noexcept { return end    () -  dataEnd(); }
 
 
   void reset(void) noexcept
@@ -113,16 +113,20 @@ public:
     clearError();
   }
 
-  bool resize(posix::size_t sz) noexcept
+  bool resize(posix::ssize_t sz) noexcept
   {
+    if(sz < 0)
+      return m_ok = false;
     m_virt_begin = m_data.get();
     m_virt_end   = m_data.get() + sz;
     m_ok &= m_virt_end <= end();
     return m_virt_end <= end();
   }
 
-  bool shrink(posix::size_t count) noexcept
+  bool shrink(posix::ssize_t count) noexcept
   {
+    if(count < 0)
+      return m_ok = false;
     if(m_virt_begin + count < m_virt_end)
       m_virt_begin += count;
     else
@@ -130,8 +134,10 @@ public:
     return true;
   }
 
-  bool expand(posix::size_t count) noexcept
+  bool expand(posix::ssize_t count) noexcept
   {
+    if(count < 0)
+      return m_ok = false;
     if(m_virt_end + count < end())
       m_virt_end += count;
     else
@@ -148,7 +154,7 @@ public:
   template<typename T = char>           T* begin   (void) const noexcept { return reinterpret_cast<T*>(m_data.get()); }
   template<typename T = char> constexpr T* end     (void) const noexcept { return reinterpret_cast<T*>(m_data.get() + m_capacity); }
 
-  const posix::size_t& capacity(void) const { return m_capacity; }
+  const posix::ssize_t& capacity(void) const { return m_capacity; }
 
 private:
   template<typename T>
@@ -175,7 +181,7 @@ private:
   std::shared_ptr<char> m_data;
   char* m_virt_begin;
   char* m_virt_end;
-  posix::size_t m_capacity;
+  posix::ssize_t m_capacity;
   bool m_ok;
 
 // === serializer backends ===
