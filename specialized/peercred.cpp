@@ -40,7 +40,7 @@ int peercred(int socket, proccred_t& cred, int timeout) noexcept
 
   int rval = ::getpeerucred(socket, &data);
 
-  if(rval == posix::success)
+  if(rval == posix::success_response)
   {
     cred.pid = ucred_getpid (data);
     cred.uid = ucred_geteuid(data);

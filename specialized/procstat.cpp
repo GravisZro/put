@@ -160,12 +160,12 @@ int procstat(pid_t pid, process_state_t* data) noexcept
   posix::size_t length;
   int request[6] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid, sizeof(struct kinfo_proc), 0 };
 
-  if(sysctl(request, arraylength(request), nullptr, &length, nullptr, 0) != posix::success)
+  if(sysctl(request, arraylength(request), nullptr, &length, nullptr, 0) != posix::success_response)
     return posix::error_response;
 
   request[5] = (length / sizeof(struct kinfo_proc));
 
-  if(sysctl(request, arraylength(request), &info, &length, nullptr, 0) != posix::success)
+  if(sysctl(request, arraylength(request), &info, &length, nullptr, 0) != posix::success_response)
     return posix::error_response;
 
   // TODO: copy info.ABC to process.XYZ
