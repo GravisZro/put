@@ -3,6 +3,9 @@
 // STL
 #include <memory>
 
+// POSIX++
+#include <cstdlib>
+
 // PDTK
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/colors.h>
