@@ -187,10 +187,8 @@ namespace posix
     static inline bool raise(EId id) noexcept
       { return std::raise(id) == success_response; }
 
-#if 0
     static inline bool send(pid_t pid, EId id, int value = 0) noexcept
       { return ::sigqueue(pid, id, {value}) == success_response; }
-#endif
   }
 
 // POSIX wrappers
