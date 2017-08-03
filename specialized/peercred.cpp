@@ -58,7 +58,7 @@ int peercred(int socket, proccred_t& cred, int timeout) noexcept
 
 #include <memory>
 
-int peercred(posix::fd_t socket, creds_t& creds, int timeout) noexcept
+int peercred(int socket, proccred_t& cred, int timeout) noexcept
 {
   return posix::error_response;
   /*
