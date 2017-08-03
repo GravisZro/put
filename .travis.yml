@@ -75,4 +75,6 @@ matrix:
         - COMPILER=clang++
 
 script:
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install sdl; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install libsdl1.2-dev; fi
   - make -e CXX=$COMPILER -f Makefile.travis
