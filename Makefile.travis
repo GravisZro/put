@@ -1,0 +1,69 @@
+ifneq ($(VERBOSE),true)
+  QUIET:=@
+endif
+
+ifndef CC
+  CC:=gcc
+endif
+
+ifndef CXX
+  CXX:=g++
+endif
+
+ifndef CPPSTANDARD
+  CPPSTANDARD:=-std=c++14
+endif
+
+ifndef CSTANDARD
+  CSTANDARD:=-std=c11
+endif
+
+ifndef SOURCE_PATH
+  SOURCE_PATH=.
+endif
+
+ifndef BUILD_PATH
+  BUILD_PATH=$(SOURCE_PATH)/bin
+endif
+
+INCPATH       = -I.
+CFLAGS        = -pipe -g -Wall -W -fPIC $(DEFINES) $(INCPATH)
+CXXFLAGS      = -pipe -std=c++14 -Os -fno-exceptions -fno-rtti -fno-threadsafe-statics -g -Wall -W -fPIC $(DEFINES) $(INCPATH)
+LDFLAGS       = 
+
+TARGET        = buildtest
+SOURCES       = buildtest.cpp \
+		application.cpp \
+		socket.cpp \
+		process.cpp \
+		cxxutils/configmanip.cpp \
+		integration/sdl.cpp \
+		specialized/eventbackend.cpp \
+		specialized/peercred.cpp \
+		specialized/procstat.cpp
+
+OBJS := $(SOURCES:.s=.o)
+OBJS := $(OBJS:.c=.o)
+OBJS := $(OBJS:.cpp=.o)
+OBJS := $(foreach f,$(OBJS),$(BUILD_PATH)/$(f))
+SOURCES := $(foreach f,$(SOURCES),$(SOURCE_PATH)/$(f))
+
+$(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.cpp
+	@echo [Compiling]: $<
+	$(QUIET) $(CXX) -c -o $@ $< $(CXXSTANDARD) $(CXXFLAGS)
+
+$(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.c
+	@echo [Compiling]: $<
+	$(QUIET) $(CC) -c -o $@ $< $(CSTANDARD) $(CFLAGS)
+
+$(TARGET): OUTPUT_DIR $(OBJS)
+	@echo [ Completed ]: $@
+
+OUTPUT_DIR:
+	$(QUIET) mkdir -p $(BUILD_PATH)/cxxutils
+	$(QUIET) mkdir -p $(BUILD_PATH)/integration
+	$(QUIET) mkdir -p $(BUILD_PATH)/specialized
+
+clean:
+	$(QUIET) rm -f $(TARGET)
+	$(QUIET) rm -rf $(BUILD_PATH)
