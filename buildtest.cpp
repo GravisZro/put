@@ -2,7 +2,7 @@
 #include <process.h>
 #include <application.h>
 #include <object.h>
-#include <integration/sdl.h>
+//#include <integration/sdl.h>
 #include <specialized/proclist.h>
 #include <specialized/eventbackend.h>
 #include <specialized/peercred.h>
