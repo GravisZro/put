@@ -71,6 +71,7 @@ public:
 
   bool invoke    (void) noexcept;
 
+#ifdef _XOPEN_SOURCE_EXTENDED
   bool sendSignal(posix::signal::EId id, int value = 0) const noexcept;
 
   void stop      (void) const noexcept { sendSignal(posix::signal::Stop     ); }
@@ -79,6 +80,7 @@ public:
   void quit      (void) const noexcept { sendSignal(posix::signal::Quit     ); }
   void terminate (void) const noexcept { sendSignal(posix::signal::Terminate); }
   void kill      (void) const noexcept { sendSignal(posix::signal::Kill     ); }
+#endif
 
   signal<posix::fd_t, EventData_t> stdoutMessage;
   signal<posix::fd_t, EventData_t> stderrMessage;

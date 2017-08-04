@@ -220,10 +220,12 @@ bool Process::setPriority(int nval) noexcept
   return write_then_read();
 }
 
+#ifdef _XOPEN_SOURCE_EXTENDED
 bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
 {
   return posix::signal::send(processId(), id, value);
 }
+#endif
 
 bool Process::invoke(void) noexcept
 {
