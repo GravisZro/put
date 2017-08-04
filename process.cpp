@@ -96,9 +96,11 @@ Process::Process(void) noexcept
 
 Process::~Process(void) noexcept
 {
-#ifdef _XOPEN_SOURCE_EXTENDED
   if(m_state == State::Running)
+#ifdef _XOPEN_SOURCE_EXTENDED
     sendSignal(posix::signal::Kill);
+#elif
+  ::kill(processId(), 0);
 #endif
 
   Object::disconnect(getStdOut(), EventFlags::Readable);
