@@ -99,7 +99,7 @@ Process::~Process(void) noexcept
   if(m_state == State::Running)
 #ifdef _XOPEN_SOURCE_EXTENDED
     sendSignal(posix::signal::Kill);
-#elif
+#else
   ::kill(processId(), 0);
 #endif
 
