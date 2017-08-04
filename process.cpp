@@ -51,8 +51,9 @@ void Process::init_once(void) noexcept
     sigemptyset(&actions.sa_mask);
     actions.sa_flags = SA_RESTART | SA_NOCLDSTOP;
 
-    flaw(::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response, posix::critical, , std::exit(1),
-         "An 'impossible' situation has occurred.")
+    flaw(::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response,
+         posix::critical, std::exit(errno), ,
+         "Unable assign action to a signal: %s", std::strerror(errno))
   }
 }
 
@@ -100,7 +101,7 @@ Process::~Process(void) noexcept
 #ifdef _XOPEN_SOURCE_EXTENDED
     sendSignal(posix::signal::Kill);
 #else
-  ::kill(processId(), 0);
+    ::kill(processId(), 0);
 #endif
 
   Object::disconnect(getStdOut(), EventFlags::Readable);

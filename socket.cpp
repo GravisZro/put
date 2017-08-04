@@ -109,8 +109,8 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
 bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 {
   (void)event;
-  flaw(m_socket != socket, posix::critical, std::exit(2), false,
-       "An 'impossible' situation has occurred.")
+  flaw(m_socket != socket, posix::critical, std::exit(int(std::errc::invalid_argument)), false,
+       "ClientSocket::read() was improperly called: %s", std::strerror(int(std::errc::invalid_argument)))
 
   msghdr header = {};
   iovec iov = {};
@@ -222,8 +222,8 @@ void ServerSocket::disconnectPeer(posix::fd_t socket) noexcept
 bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
 {
   (void)event;
-  flaw(m_socket != socket, posix::critical, std::exit(2), false,
-       "An 'impossible' situation has occurred.")
+  flaw(m_socket != socket, posix::critical, std::exit(int(std::errc::invalid_argument)), false,
+       "ServerSocket::read() was improperly called: %s", std::strerror(int(std::errc::invalid_argument)))
   proccred_t peercred;
   posix::sockaddr_t peeraddr;
   socklen_t addrlen = 0;

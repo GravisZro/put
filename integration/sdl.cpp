@@ -148,8 +148,8 @@ namespace SDL
   void Events::event_thread(void) noexcept
   {
     SDL_SetMainReady();
-    flaw(SDL_Init(SDL_INIT_EVERYTHING) != posix::success_response, posix::critical, , std::exit(4),
-         "SDL could not initialize.")
+    flaw(SDL_Init(SDL_INIT_EVERYTHING) != posix::success_response, posix::critical, std::exit(1), ,
+         "SDL could not initialize: %s", SDL_GetError())
     SDL_SetEventFilter(reinterpret_cast<SDL_EventFilter>(sdl_event_filter), static_cast<void*>(this));
     while(SDL_WaitEvent(nullptr) == 0); // run until there is an error
   }

@@ -117,7 +117,7 @@ struct platform_dependant
       : fd(posix::invalid_descriptor), fds(EventBackend::queue)
     {
       fd = epoll_create(MAX_EVENTS);
-      flaw(fd == posix::invalid_descriptor, posix::critical, std::exit(1),,
+      flaw(fd == posix::invalid_descriptor, posix::critical, std::exit(errno),,
            "Unable to create an instance of epoll! %s", std::strerror(errno))
     }
 
@@ -414,6 +414,12 @@ bool EventBackend::getevents(int timeout) noexcept
 }
 #elif defined(__unix__) || defined(__APPLE__) || defined(BSD)
 
+#define ENABLE_PROCESS_EVENT_TRACKING
+
+// BSD
+#include <sys/time.h>
+#include <sys/event.h>
+
 // POSIX
 #include <sys/socket.h>
 #include <unistd.h>
@@ -434,7 +440,19 @@ std::unordered_multimap<posix::fd_t, EventData_t> EventBackend::results; // resu
 
 struct platform_dependant
 {
+  posix::fd_t kq;
 
+  platform_dependant(void)
+  {
+    kq = ignore_interruption(::kqueue);
+    flaw(kq == posix::error_response, posix::critical, std::exit(errno),,
+         "Unable to create a new kqueue: %s", std::strerror(errno))
+  }
+
+  ~platform_dependant(void)
+  {
+    posix::close(kq);
+  }
 };
 
 struct platform_dependant* EventBackend::platform = nullptr;

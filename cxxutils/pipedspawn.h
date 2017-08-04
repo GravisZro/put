@@ -37,7 +37,8 @@ public:
     flaw(::pipe(stdin_pipe ) == posix::error_response ||
          ::pipe(stdout_pipe) == posix::error_response ||
          ::pipe(stderr_pipe) == posix::error_response,
-         posix::critical, std::exit(2), , "An 'impossible' situation has occurred.")
+         posix::critical, std::exit(errno), ,
+         "Unable to create a pipe: %s", std::strerror(errno))
 
     posix_spawn_file_actions_init(&action);
 
