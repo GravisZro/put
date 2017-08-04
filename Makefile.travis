@@ -37,7 +37,7 @@ SOURCES       = buildtest.cpp \
 		socket.cpp \
 		process.cpp \
 		cxxutils/configmanip.cpp \
-		integration/sdl.cpp \
+#		integration/sdl.cpp \
 		specialized/eventbackend.cpp \
 		specialized/peercred.cpp \
 		specialized/procstat.cpp
