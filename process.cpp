@@ -48,7 +48,7 @@ void Process::init_once(void) noexcept
     ok = false;
     struct sigaction actions;
     actions.sa_handler = &reaper;
-    ::sigemptyset(&actions.sa_mask);
+    ::sigemptyset((&actions.sa_mask));
     actions.sa_flags = SA_RESTART | SA_NOCLDSTOP;
 
     flaw(::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response, posix::critical, , std::exit(1),
@@ -96,8 +96,10 @@ Process::Process(void) noexcept
 
 Process::~Process(void) noexcept
 {
+#ifdef _XOPEN_SOURCE_EXTENDED
   if(m_state == State::Running)
     sendSignal(posix::signal::Kill);
+#endif
 
   Object::disconnect(getStdOut(), EventFlags::Readable);
   Object::disconnect(getStdErr(), EventFlags::Readable);
