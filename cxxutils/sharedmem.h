@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstdint>
 
+#if _XOPEN_SOURCE >= 700 || _POSIX_C_SOURCE >= 200809L
 
 class sharedmem_t
 {
@@ -42,6 +43,8 @@ private:
   uint8_t* m_mem;
   std::FILE* m_rofile;
 };
+
+#endif
 
 #endif // SHAREDMEM_H
 
