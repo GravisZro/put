@@ -15,6 +15,16 @@
 // PDTK
 #include "error_helpers.h"
 
+#ifndef SIGPOLL
+# ifdef SIGIO
+#  define SIGPOLL SIGIO
+# else
+#  error Neither SIGPOLL nor SIGIO is defined
+# endif
+#endif
+
+static_assert(sizeof(::size_t) == sizeof(std::size_t), "STL's size_t doesn't match the C standard!");
+
 namespace posix
 {
   using ::size_t;
@@ -122,7 +132,7 @@ namespace posix
       TTYWrite                = SIGTTOU,    // Background process attempting write.
       UserSignal1             = SIGUSR1,    // User-defined signal 1.
       UserSignal2             = SIGUSR2,    // User-defined signal 2.
-      Poll                    = SIGIO  ,    // Pollable event.
+      Poll                    = SIGPOLL,    // Pollable event.
       ProfilingTimer          = SIGPROF,    // Profiling timer expired.
       BadSystemCall           = SIGSYS,     // Bad system call.
       TraceTrap               = SIGTRAP,    // Trace/breakpoint trap.

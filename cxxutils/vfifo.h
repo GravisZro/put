@@ -62,7 +62,7 @@ public:
   template<typename T, typename... ArgTypes>
   void serialize(const T& arg, ArgTypes&... args) noexcept
   {
-    if(sizeof(T) > unused())
+    if(posix::ssize_t(sizeof(T)) > unused())
       allocate(capacity() * 2);
     serialize(arg);
     serialize(args...);
