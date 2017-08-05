@@ -56,10 +56,8 @@ int peercred(int socket, proccred_t& cred, int timeout) noexcept
   return rval;
 }
 
-#elif defined(LOCAL_PEEREID) // some BSDs/Darwin?
+#elif defined(LOCAL_PEEREID) // NetBSD
 #pragma message("Information: using LOCAL_PEEREID code")
-
-#include <sys/un.h>
 
 int peercred(int socket, proccred_t& cred, int timeout) noexcept
 {
