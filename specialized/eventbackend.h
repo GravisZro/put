@@ -42,8 +42,6 @@ enum class EventFlags : uint32_t
   GIDEvent      = 0x00020000, // Process changed its Group ID
   SIDEvent      = 0x00040000, // Process changed its Session ID
   ProcEvent     = 0x0007E000, // Any process event
-
-  Any           = 0xFFFFFFFF, // any flag
 };
 static_assert(sizeof(EventFlags) == sizeof(uint32_t), "EventFlags: bad size");
 
@@ -79,10 +77,11 @@ struct EventFlags_t
   EventFlags_t(EventFlags flags = EventFlags::Invalid) noexcept { *reinterpret_cast<EventFlags*>(this) = flags; }
   operator EventFlags(void) const noexcept { return *reinterpret_cast<const EventFlags*>(this); }
 
-  void unset(EventFlags flags) noexcept { return unset(static_cast<uint32_t>(flags)); }
-  void unset(uint32_t flags) noexcept { *reinterpret_cast<uint32_t*>(this) &= *reinterpret_cast<uint32_t*>(this) ^flags; }
+  bool unset(EventFlags flags) noexcept { return unset(static_cast<uint32_t>(flags)); }
+  bool unset(uint32_t flags) noexcept { return *reinterpret_cast<uint32_t*>(this) &= *reinterpret_cast<uint32_t*>(this) ^flags; }
   bool isSet(EventFlags flags) const noexcept { return isSet(static_cast<uint32_t>(flags)); }
   bool isSet(uint32_t flags) const noexcept { return *reinterpret_cast<const uint32_t*>(this) & flags; }
+  bool anySet(void) const noexcept { return *reinterpret_cast<const uint32_t*>(this); }
 
   bool operator >= (EventFlags a) const noexcept { return *reinterpret_cast<const uint32_t*>(this) >= static_cast<uint32_t>(a); }
 };

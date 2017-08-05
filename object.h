@@ -128,29 +128,23 @@ public:
   static inline void disconnect(signal<ArgTypes...>& sig, Object* obj) noexcept
     { sig.erase(obj); }
 
-  // disconnect _all_ connections to fd
-  static inline void disconnect(posix::fd_t fd)
-  {
-    EventBackend::remove(fd, EventFlags::Any);
-    Application::ms_fd_signals.erase(fd);  // totally remove _all_ connections to fd
-  }
-
   // disconnect connections to fd for certain event flags
-  static inline void disconnect(posix::fd_t fd, EventFlags_t flags) noexcept
+  static inline void disconnect(posix::fd_t fd, EventFlags_t flags = EventFlags::Readable) noexcept
   {
     EventBackend::remove(fd, flags);
     auto range = Application::ms_fd_signals.equal_range(fd);
     auto pos = range.first; // pos = iterator
     while(pos != range.second) // pos is _always_ advanced within loop
     {
-      if(flags == EventFlags::Any || pos->second.first == flags) // if matching all flags or the flags match exactly
-        pos = Application::ms_fd_signals.erase(pos); // completely remove and advance iterator
-      else
+      if(pos->second.first.isSet(flags)) // if the flags match partially
       {
-        if(pos->second.first.isSet(flags)) // if the flags match partially
-          pos->second.first.unset(flags); // remove all matching parts
-        ++pos; // advance iterator
+        if(pos->second.first.unset(flags)) // remove all matching parts and return if any flags remain
+          ++pos; // advance iterator
+        else
+          pos = Application::ms_fd_signals.erase(pos); // completely remove and advance iterator
       }
+      else
+        ++pos; // advance iterator
     }
   }
 
