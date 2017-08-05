@@ -444,7 +444,7 @@ struct platform_dependant
 
   platform_dependant(void)
   {
-    kq = ignore_interruption(::kqueue);
+    kq = posix::ignore_interruption(::kqueue);
     flaw(kq == posix::error_response, posix::critical, std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
   }
