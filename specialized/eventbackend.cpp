@@ -1,5 +1,8 @@
 #include "eventbackend.h"
 
+#define MAX_EVENTS 2048
+
+//#if 0
 #if defined(__linux__)
 
 // Linux
@@ -27,7 +30,6 @@
 #include <cxxutils/colors.h>
 #include <cxxutils/error_helpers.h>
 
-#define MAX_EVENTS 2048
 
 // FD flags
 inline EventData_t from_native_fdflags(const uint32_t flags) noexcept
@@ -317,33 +319,31 @@ posix::fd_t EventBackend::watch(const char* path, EventFlags_t flags) noexcept
 
 posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
 {
-  if(flags >= EventFlags::ExecEvent)
+  if(flags | EventFlags::ProcEvent)
 #ifdef ENABLE_PROCESS_EVENT_TRACKING
     return platform->procnotify.watch(target, flags);
 #else
     return posix::invalid_descriptor;
 #endif
-  return platform->pollnotify.watch(target, flags);
+  else if(flags | EventFlags::FDEvent)
+    return platform->pollnotify.watch(target, flags);
+  return posix::invalid_descriptor;
 }
 
 
 bool EventBackend::remove(int target, EventFlags_t flags) noexcept
 {
 #ifdef ENABLE_PROCESS_EVENT_TRACKING
-  if(flags == EventFlags::Any)
-    return (platform->fsnotify.remove(target) && platform->pollnotify.remove(target)) ||
-           (platform->procnotify.remove(target) && platform->pollnotify.remove(target)) ||
-           platform->pollnotify.remove(target);
-
-  if(flags >= EventFlags::ExecEvent)
+  if(flags | EventFlags::ProcEvent)
     return platform->procnotify.remove(target) && platform->pollnotify.remove(target);
 #else
-  if(flags >= EventFlags::ReadEvent)
+  if(flags | EventFlags::FileEvent | EventFlags::DirEvent)
     return (platform->fsnotify.remove(target) && platform->pollnotify.remove(target)) ||
            platform->pollnotify.remove(target);
 #endif
-
-  return platform->pollnotify.remove(target);
+  else if(flags | EventFlags::FDEvent)
+    return platform->pollnotify.remove(target);
+  return false;
 }
 
 #define INOTIFY_EVENT_SIZE   (sizeof(inotify_event) + NAME_MAX + 1)
@@ -412,7 +412,8 @@ bool EventBackend::getevents(int timeout) noexcept
   }
   return true;
 }
-#elif defined(__unix__) || defined(__APPLE__) || defined(BSD)
+//#elif 1
+#elif defined(__APPLE__) || defined(BSD)
 
 #define ENABLE_PROCESS_EVENT_TRACKING
 
@@ -438,9 +439,82 @@ bool EventBackend::getevents(int timeout) noexcept
 std::unordered_multimap<posix::fd_t, EventFlags_t> EventBackend::queue; // watch queue
 std::unordered_multimap<posix::fd_t, EventData_t> EventBackend::results; // results from getevents()
 
+constexpr uint32_t to_event_filter(const EventFlags_t& flags)
+{
+  if(flags.Readable ||
+     flags.Disconnected ||
+     flags.ReadEvent)
+    return EVFILT_READ;
+  if(flags.Writeable ||
+     flags.WriteEvent)
+    return EVFILT_WRITE;
+  if(flags | EventFlags::FileEvent)
+    return EVFILT_VNODE;
+  if(flags | EventFlags::ProcEvent)
+    return EVFILT_PROC;
+  return 0;
+}
+
+constexpr uint32_t to_native_flags(const EventFlags_t& flags)
+{
+  return
+#ifdef ENABLE_PROCESS_EVENT_TRACKING
+// process
+      (flags.ExecEvent    ? uint32_t(NOTE_EXEC  ) : 0) | // Process called exec*()
+      (flags.ExitEvent    ? uint32_t(NOTE_EXIT  ) : 0) | // Process exited
+      (flags.ForkEvent    ? uint32_t(NOTE_FORK  ) : 0) | // Process forked
+#endif
+// file flags
+      (flags.WriteEvent   ? uint32_t(NOTE_WRITE ) : 0) | // File was modified (*).
+      (flags.AttributeMod ? uint32_t(NOTE_ATTRIB) : 0) | // Metadata changed, e.g., permissions, timestamps, extended attributes, link count (since Linux 2.6.25), UID, GID, etc. (*).
+      (flags.Moved        ? uint32_t(NOTE_RENAME) : 0) | // Watched File was moved.
+      (flags.Deleted      ? uint32_t(NOTE_DELETE) : 0) | // Watched File was deleted.
+// directory flags
+      (flags.SubCreated   ? uint32_t(NOTE_WRITE ) : 0) | // File created in watched dir.
+      (flags.SubMoved     ? uint32_t(NOTE_RENAME) : 0) | // File moved in watched dir.
+      (flags.SubDeleted   ? uint32_t(NOTE_DELETE) : 0) ; // File deleted in watched dir.
+}
+
+
+// FD flags
+inline EventData_t from_native_fdflags(const uint32_t flags) noexcept
+{
+  EventData_t data;
+  data.flags.Error        = flags & EV_ERROR     ? 1 : 0;
+  data.flags.Disconnected = flags & EV_EOF       ? 1 : 0;
+  return data;
+}
+
+// file/directory flags
+inline EventData_t from_native_fileflags(const uint32_t flags) noexcept
+{
+  EventData_t data;
+  data.flags.WriteEvent   = flags & NOTE_WRITE  ? 1 : 0;
+  data.flags.AttributeMod = flags & NOTE_ATTRIB ? 1 : 0;
+  data.flags.Moved        = flags & NOTE_RENAME ? 1 : 0;
+  data.flags.Deleted      = flags & NOTE_DELETE ? 1 : 0;
+  data.flags.SubCreated   = flags & NOTE_WRITE  ? 1 : 0;
+  data.flags.SubMoved     = flags & NOTE_RENAME ? 1 : 0;
+  data.flags.SubDeleted   = flags & NOTE_DELETE ? 1 : 0;
+  return data;
+}
+
+// process flags
+inline EventFlags_t from_native_procflags(const uint32_t flags) noexcept
+{
+  EventFlags_t rval;
+  rval.ExecEvent = flags & NOTE_EXEC ? 1 : 0;
+  rval.ExitEvent = flags & NOTE_EXIT ? 1 : 0;
+  rval.ForkEvent = flags & NOTE_FORK ? 1 : 0;
+  return rval;
+}
+
+
 struct platform_dependant
 {
   posix::fd_t kq;
+  std::vector<kevent> kinput;   // events we want to monitor
+  kevent koutput[MAX_EVENTS];   // events that were triggered
 
   platform_dependant(void)
   {
@@ -480,7 +554,11 @@ posix::fd_t EventBackend::watch(const char* path, EventFlags_t flags) noexcept
 
 posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
 {
-  return posix::invalid_descriptor;
+  kevent ev;
+  EV_SET(&ev, target, to_event_filter(flags), EV_ADD, to_native_flags(flags), 0, nullptr);
+  platform->kinput.emplace(ev);
+  queue.emplace(target, flags);
+  return target;
 }
 
 bool EventBackend::remove(int target, EventFlags_t flags) noexcept
@@ -490,9 +568,52 @@ bool EventBackend::remove(int target, EventFlags_t flags) noexcept
 
 bool EventBackend::getevents(int timeout) noexcept
 {
-  return false;
+  uint32_t flags;
+  timespec tout;
+  tout.tv_sec = timeout / 1000;
+  tout.tv_nsec = (timeout % 1000) * 1000;
+
+  int count = 0;
+  count = kevent(platform->kq,
+             &platform->kinput.data(), platform->kinput.size(),
+             platform->koutput, MAX_EVENTS,
+             &tout);
+
+  if(count <= 0)
+    return false;
+
+  kevent* end = platform->koutput + count;
+
+  for(kevent* pos = platform->koutput; pos != end; ++pos) // iterate through results
+  {
+    flags = 0;
+    switch(pos->filter)
+    {
+      case EVFILT_READ:
+      case EVFILT_WRITE:
+        flags = from_native_fdflags(pos->filter);
+        flags = from_native_fileflags(pos->filter);
+        break;
+
+      case EVFILT_VNODE:
+        flags = from_native_fileflags(pos->flags);
+        break;
+
+      case EVFILT_PROC:
+        flags = from_native_procflags(pos->flags);
+        break;
+
+      default:
+        return false;
+    }
+    results.emplace(posix::fd_t(pos->ident), flags);
+  }
+  return true;
 }
 
+#elif defined(__unix__)
+
+#error no code yet for your operating system. :(
 
 #else
 #error Unsupported platform! >:(

@@ -21,6 +21,7 @@ enum class EventFlags : uint32_t
   Readable      = 0x00000004, // FD has content to read
   Writeable     = 0x00000008, // FD is writeable
   EdgeTrigger   = 0x00000010, // FD will be edge-triggered (input only)
+  FDEvent       = 0x0000001F, // Any FD Event
 // File Events
   ReadEvent     = 0x00000020, // File was read from
   WriteEvent    = 0x00000040, // File was written to
@@ -82,8 +83,6 @@ struct EventFlags_t
   bool isSet(EventFlags flags) const noexcept { return isSet(static_cast<uint32_t>(flags)); }
   bool isSet(uint32_t flags) const noexcept { return *reinterpret_cast<const uint32_t*>(this) & flags; }
   bool anySet(void) const noexcept { return *reinterpret_cast<const uint32_t*>(this); }
-
-  bool operator >= (EventFlags a) const noexcept { return *reinterpret_cast<const uint32_t*>(this) >= static_cast<uint32_t>(a); }
 };
 static_assert(sizeof(EventFlags_t) == sizeof(EventFlags), "EventFlags_t: bad size");
 
