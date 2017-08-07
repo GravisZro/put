@@ -77,4 +77,4 @@ matrix:
 script:
   - if false && [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install sdl2; fi
   - if false && [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install libsdl2-dev; fi
-  - make -e CXX=$COMPILER -f Makefile.travis
+  - make -e CXX=$COMPILER -e VERBOSE=true -f Makefile.travis

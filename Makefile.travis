@@ -57,7 +57,7 @@ $(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.c
 	$(QUIET) $(CC) -c -o $@ $< $(CSTANDARD) $(CFLAGS)
 
 $(TARGET): OUTPUT_DIR $(OBJS)
-	@echo [ Completed ]: $@
+	@echo [Completed]: $@
 
 OUTPUT_DIR:
 	$(QUIET) mkdir -p $(BUILD_PATH)/cxxutils
