@@ -1,18 +1,24 @@
 #include "eventbackend.h"
 
-#define MAX_EVENTS 2048
+#define MAX_EVENTS 1024
 
 //#if 0
 #if defined(__linux__)
 
+// epoll needs kernel 2.5.44 or higher
+// "process events connector" needs  kernel 2.6.15 or higher
+
 // Linux
 #include <sys/inotify.h>
 #include <sys/epoll.h>
-#include <linux/connector.h>
-#include <linux/netlink.h>
-#include <linux/cn_proc.h>
+#ifdef ENABLE_PROCESS_EVENT_TRACKING
+# include <linux/connector.h>
+# include <linux/netlink.h>
+# include <linux/cn_proc.h>
+#endif
 
 // STL
+#include <vector>
 #include <algorithm>
 #include <set>
 
@@ -85,25 +91,25 @@ constexpr uint32_t to_native_fileflags(const EventFlags_t& flags)
 // process flags
 inline EventFlags_t from_native_procflags(const uint32_t flags) noexcept
 {
-  EventFlags_t rval;
-  rval.ExecEvent = flags & proc_event::PROC_EVENT_EXEC ? 1 : 0;
-  rval.ExitEvent = flags & proc_event::PROC_EVENT_EXIT ? 1 : 0;
-  rval.ForkEvent = flags & proc_event::PROC_EVENT_FORK ? 1 : 0;
-  rval.UIDEvent  = flags & proc_event::PROC_EVENT_UID  ? 1 : 0;
-  rval.GIDEvent  = flags & proc_event::PROC_EVENT_GID  ? 1 : 0;
-  rval.SIDEvent  = flags & proc_event::PROC_EVENT_SID  ? 1 : 0;
-  return rval;
+  EventFlags_t data;
+//  data.UIDEvent  = flags & proc_event::PROC_EVENT_UID  ? 1 : 0;
+//  data.GIDEvent  = flags & proc_event::PROC_EVENT_GID  ? 1 : 0;
+//  data.SIDEvent  = flags & proc_event::PROC_EVENT_SID  ? 1 : 0;
+  data.ExecEvent = flags & proc_event::PROC_EVENT_EXEC ? 1 : 0;
+  data.ExitEvent = flags & proc_event::PROC_EVENT_EXIT ? 1 : 0;
+  data.ForkEvent = flags & proc_event::PROC_EVENT_FORK ? 1 : 0;
+  return data;
 }
 
 constexpr uint32_t to_native_procflags(const EventFlags_t& flags)
 {
   return
+//      (flags.UIDEvent  ? uint32_t(proc_event::PROC_EVENT_UID ) : 0) | // Process changed it's User ID
+//      (flags.GIDEvent  ? uint32_t(proc_event::PROC_EVENT_GID ) : 0) | // Process changed it's Group ID
+//      (flags.SIDEvent  ? uint32_t(proc_event::PROC_EVENT_SID ) : 0) | // Process changed it's Session ID
       (flags.ExecEvent ? uint32_t(proc_event::PROC_EVENT_EXEC) : 0) | // Process called exec*()
       (flags.ExitEvent ? uint32_t(proc_event::PROC_EVENT_EXIT) : 0) | // Process exited
-      (flags.ForkEvent ? uint32_t(proc_event::PROC_EVENT_FORK) : 0) | // Process forked
-      (flags.UIDEvent  ? uint32_t(proc_event::PROC_EVENT_UID ) : 0) | // Process changed it's User ID
-      (flags.GIDEvent  ? uint32_t(proc_event::PROC_EVENT_GID ) : 0) | // Process changed it's Group ID
-      (flags.SIDEvent  ? uint32_t(proc_event::PROC_EVENT_SID ) : 0);  // Process changed it's Session ID
+      (flags.ForkEvent ? uint32_t(proc_event::PROC_EVENT_FORK) : 0) ; // Process forked
 }
 #endif
 
@@ -113,12 +119,13 @@ struct platform_dependant
   {
     posix::fd_t fd;
     std::unordered_multimap<posix::fd_t, EventFlags_t>& fds;
-    struct epoll_event output[MAX_EVENTS];
+    std::vector<epoll_event> output;
 
     pollnotify_t(void) noexcept
       : fd(posix::invalid_descriptor), fds(EventBackend::queue)
     {
-      fd = epoll_create(MAX_EVENTS);
+      output.reserve(1024);
+      fd = epoll_create(INT32_MAX);
       flaw(fd == posix::invalid_descriptor, posix::critical, std::exit(errno),,
            "Unable to create an instance of epoll! %s", std::strerror(errno))
     }
@@ -131,7 +138,7 @@ struct platform_dependant
 
     int wait(int timeout) noexcept
     {
-      return ::epoll_wait(fd, output, MAX_EVENTS, timeout); // wait for new results
+      return ::epoll_wait(fd, output.data(), output.size(), timeout); // wait for new results
     }
 
     posix::fd_t watch(posix::fd_t wd, EventFlags_t flags) noexcept
@@ -358,8 +365,8 @@ bool EventBackend::getevents(int timeout) noexcept
 
   uint8_t inotifiy_buffer_data[INOTIFY_EVENT_SIZE * 16]; // queue has a minimum of size of 16 inotify events
 
-  const epoll_event* end = platform->pollnotify.output + count;
-  for(epoll_event* pos = platform->pollnotify.output; pos != end; ++pos) // iterate through results
+  const epoll_event* end = platform->pollnotify.output.data() + count;
+  for(epoll_event* pos = platform->pollnotify.output.data(); pos != end; ++pos) // iterate through results
   {
 #ifdef ENABLE_PROCESS_EVENT_TRACKING
     if(pos->data.fd == platform->procnotify.fd) // if a process event
@@ -431,6 +438,9 @@ bool EventBackend::getevents(int timeout) noexcept
 #include <climits>
 #include <cstring>
 
+// STL
+#include <vector>
+
 // PDTK
 #include <cxxutils/colors.h>
 #include <cxxutils/error_helpers.h>
@@ -442,11 +452,9 @@ std::unordered_multimap<posix::fd_t, EventData_t> EventBackend::results; // resu
 constexpr uint32_t to_event_filter(const EventFlags_t& flags)
 {
   if(flags.Readable ||
-     flags.Disconnected ||
-     flags.ReadEvent)
+     flags.Disconnected)
     return EVFILT_READ;
-  if(flags.Writeable ||
-     flags.WriteEvent)
+  if(flags.Writeable)
     return EVFILT_WRITE;
   if(flags | EventFlags::FileEvent)
     return EVFILT_VNODE;
@@ -465,6 +473,7 @@ constexpr uint32_t to_native_flags(const EventFlags_t& flags)
       (flags.ForkEvent    ? uint32_t(NOTE_FORK  ) : 0) | // Process forked
 #endif
 // file flags
+      (flags.ReadEvent    ? uint32_t(NOTE_NONE  ) : 0) | // File was read
       (flags.WriteEvent   ? uint32_t(NOTE_WRITE ) : 0) | // File was modified (*).
       (flags.AttributeMod ? uint32_t(NOTE_ATTRIB) : 0) | // Metadata changed, e.g., permissions, timestamps, extended attributes, link count (since Linux 2.6.25), UID, GID, etc. (*).
       (flags.Moved        ? uint32_t(NOTE_RENAME) : 0) | // Watched File was moved.
@@ -477,36 +486,60 @@ constexpr uint32_t to_native_flags(const EventFlags_t& flags)
 
 
 // FD flags
-inline EventData_t from_native_fdflags(const uint32_t flags) noexcept
+inline EventData_t from_kevent(const kevent& ev) noexcept
 {
   EventData_t data;
-  data.flags.Error        = flags & EV_ERROR     ? 1 : 0;
-  data.flags.Disconnected = flags & EV_EOF       ? 1 : 0;
-  return data;
-}
+  struct stat buf;
+  data.flags.Error = ev.flags & EV_ERROR ? 1 : 0;
 
-// file/directory flags
-inline EventData_t from_native_fileflags(const uint32_t flags) noexcept
-{
-  EventData_t data;
-  data.flags.WriteEvent   = flags & NOTE_WRITE  ? 1 : 0;
-  data.flags.AttributeMod = flags & NOTE_ATTRIB ? 1 : 0;
-  data.flags.Moved        = flags & NOTE_RENAME ? 1 : 0;
-  data.flags.Deleted      = flags & NOTE_DELETE ? 1 : 0;
-  data.flags.SubCreated   = flags & NOTE_WRITE  ? 1 : 0;
-  data.flags.SubMoved     = flags & NOTE_RENAME ? 1 : 0;
-  data.flags.SubDeleted   = flags & NOTE_DELETE ? 1 : 0;
-  return data;
-}
+  switch (ev.filter)
+  {
+    case EVFILT_READ:
+      data.flags.Readable     = ev.flags == 0          ? 1 : 0;
+      data.flags.Disconnected = ev.flags & EV_EOF      ? 1 : 0;
+      break;
 
-// process flags
-inline EventFlags_t from_native_procflags(const uint32_t flags) noexcept
-{
-  EventFlags_t rval;
-  rval.ExecEvent = flags & NOTE_EXEC ? 1 : 0;
-  rval.ExitEvent = flags & NOTE_EXIT ? 1 : 0;
-  rval.ForkEvent = flags & NOTE_FORK ? 1 : 0;
-  return rval;
+    case EVFILT_WRITE:
+      data.flags.Writeable    = ev.flags == 0          ? 1 : 0;
+      break;
+
+    case EVFILT_VNODE:
+      data.flags.AttributeMod = ev.flags & NOTE_ATTRIB ? 1 : 0;
+// file flags
+      data.flags.WriteEvent   = ev.flags & NOTE_WRITE  ? 1 : 0;
+      data.flags.Moved        = ev.flags & NOTE_RENAME ? 1 : 0;
+      data.flags.Deleted      = ev.flags & NOTE_DELETE ? 1 : 0;
+/*
+      ::fstat(ev.indent, &buf);
+      if(buf.st_mode & S_IFDIR)
+      {
+        // directory flags
+        data.flags.SubCreated   = ev.flags & NOTE_WRITE  ? 1 : 0;
+        data.flags.SubMoved     = ev.flags & NOTE_RENAME ? 1 : 0;
+        data.flags.SubDeleted   = ev.flags & NOTE_DELETE ? 1 : 0;
+      }
+      else
+      {
+        // file flags
+        data.flags.WriteEvent   = ev.flags & NOTE_WRITE  ? 1 : 0;
+        data.flags.Moved        = ev.flags & NOTE_RENAME ? 1 : 0;
+        data.flags.Deleted      = ev.flags & NOTE_DELETE ? 1 : 0;
+      }
+*/
+      break;
+
+#ifdef ENABLE_PROCESS_EVENT_TRACKING
+    case EVFILT_PROC:
+    // process flags
+      data.ExecEvent          = ev.flags & NOTE_EXEC   ? 1 : 0;
+      data.ExitEvent          = ev.flags & NOTE_EXIT   ? 1 : 0;
+      data.ForkEvent          = ev.flags & NOTE_FORK   ? 1 : 0;
+      break;
+#endif
+  }
+
+
+  return data;
 }
 
 
@@ -514,13 +547,15 @@ struct platform_dependant
 {
   posix::fd_t kq;
   std::vector<kevent> kinput;   // events we want to monitor
-  kevent koutput[MAX_EVENTS];   // events that were triggered
+  std::vector<kevent> koutput;   // events that were triggered
 
   platform_dependant(void)
   {
     kq = posix::ignore_interruption(::kqueue);
     flaw(kq == posix::error_response, posix::critical, std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
+    kinput .reserve(1024);
+    koutput.reserve(1024);
   }
 
   ~platform_dependant(void)
@@ -557,6 +592,7 @@ posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
   kevent ev;
   EV_SET(&ev, target, to_event_filter(flags), EV_ADD, to_native_flags(flags), 0, nullptr);
   platform->kinput.emplace(ev);
+  platform->koutput.resize(platform->kinput.size());
   queue.emplace(target, flags);
   return target;
 }
@@ -576,7 +612,7 @@ bool EventBackend::getevents(int timeout) noexcept
   int count = 0;
   count = kevent(platform->kq,
              &platform->kinput.data(), platform->kinput.size(),
-             platform->koutput, MAX_EVENTS,
+             &platform->koutput.data(), platform->koutput.size(),
              &tout);
 
   if(count <= 0)
@@ -586,30 +622,123 @@ bool EventBackend::getevents(int timeout) noexcept
 
   for(kevent* pos = platform->koutput; pos != end; ++pos) // iterate through results
   {
-    flags = 0;
-    switch(pos->filter)
-    {
-      case EVFILT_READ:
-      case EVFILT_WRITE:
-        flags = from_native_fdflags(pos->filter);
-        flags = from_native_fileflags(pos->filter);
-        break;
+    flags = from_kevent(*pos);
 
-      case EVFILT_VNODE:
-        flags = from_native_fileflags(pos->flags);
-        break;
-
-      case EVFILT_PROC:
-        flags = from_native_procflags(pos->flags);
-        break;
-
-      default:
-        return false;
-    }
     results.emplace(posix::fd_t(pos->ident), flags);
   }
   return true;
 }
+
+//#elif 1
+#elif defined(__sun) && defined(__SVR4) // Solaris
+
+#pragma message Not implemented, yet!
+#pragma message See: http://docs.oracle.com/cd/E19253-01/816-5168/port-get-3c/index.html
+
+// Solaris
+#include <port.h>
+
+// POSIX
+#include <sys/socket.h>
+#include <unistd.h>
+
+// POSIX++
+#include <cstdlib>
+#include <cstdio>
+#include <climits>
+#include <cstring>
+
+// STL
+#include <vector>
+
+// PDTK
+#include <cxxutils/colors.h>
+#include <cxxutils/error_helpers.h>
+
+
+struct platform_dependant
+{
+  posix::fd_t port;
+  std::vector<port_event_t> pinput;   // events we want to monitor
+  std::vector<port_event_t> poutput;  // events that were triggered
+
+  platform_dependant(void)
+  {
+    port = ::port_create();
+    flaw(port == posix::error_response, posix::critical, std::exit(errno),,
+         "Unable to create a new kqueue: %s", std::strerror(errno))
+   pinput .reserve(1024);
+   poutput.reserve(1024);
+  }
+
+  ~platform_dependant(void)
+  {
+    posix::close(port);
+  }
+};
+
+struct platform_dependant* EventBackend::platform = nullptr;
+
+void EventBackend::init(void) noexcept
+{
+  flaw(platform != nullptr, posix::warning, posix::error(std::errc::operation_not_permitted),,
+       "EventBackend::init() has been called multiple times!")
+  platform = new platform_dependant;
+}
+
+void EventBackend::destroy(void) noexcept
+{
+  flaw(platform == nullptr, posix::warning, posix::error(std::errc::operation_not_permitted),,
+       "EventBackend::destroy() has been called multiple times!")
+  delete platform;
+  platform = nullptr;
+}
+
+
+posix::fd_t EventBackend::watch(const char* path, EventFlags_t flags) noexcept
+{
+  return posix::invalid_descriptor;
+}
+
+posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
+{
+  port_event_t pev;
+
+  platform->pinput.emplace(pev);
+  queue.emplace(target, flags);
+  return target;
+}
+
+bool EventBackend::remove(int target, EventFlags_t flags) noexcept
+{
+  return false;
+}
+
+bool EventBackend::getevents(int timeout) noexcept
+{
+  uint32_t flags;
+  uint_t count = 0;
+  timespec tout;
+  tout.tv_sec = timeout / 1000;
+  tout.tv_nsec = (timeout % 1000) * 1000;
+
+  if(::port_getn(platform->port,
+                 &platform->pinput.data(), platform->pinput.size(),
+                 platform->poutput, MAX_EVENTS, &count
+                 &tout) == posix::error_response)
+    return false;
+
+  port_event_t* end = platform->poutput + count;
+
+  for(port_event_t* pos = platform->poutput; pos != end; ++pos) // iterate through results
+  {
+    //flags = from_kevent(*pos);
+
+    results.emplace(posix::fd_t(pos->ident), flags);
+  }
+  return true;
+}
+
 
 #elif defined(__unix__)
 

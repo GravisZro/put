@@ -39,9 +39,9 @@ enum class EventFlags : uint32_t
   ExecEvent     = 0x00002000, // Process called exec*()
   ExitEvent     = 0x00004000, // Process exited
   ForkEvent     = 0x00008000, // Process forked
-  UIDEvent      = 0x00010000, // Process changed its User ID
-  GIDEvent      = 0x00020000, // Process changed its Group ID
-  SIDEvent      = 0x00040000, // Process changed its Session ID
+//  UIDEvent      = 0x00010000, // Process changed its User ID
+//  GIDEvent      = 0x00020000, // Process changed its Group ID
+//  SIDEvent      = 0x00040000, // Process changed its Session ID
   ProcEvent     = 0x0007E000, // Any process event
 };
 static_assert(sizeof(EventFlags) == sizeof(uint32_t), "EventFlags: bad size");
@@ -71,9 +71,9 @@ struct EventFlags_t
   uint32_t ExecEvent    : 1;
   uint32_t ExitEvent    : 1;
   uint32_t ForkEvent    : 1;
-  uint32_t UIDEvent     : 1;
-  uint32_t GIDEvent     : 1;
-  uint32_t SIDEvent     : 1;
+//  uint32_t UIDEvent     : 1;
+//  uint32_t GIDEvent     : 1;
+//  uint32_t SIDEvent     : 1;
 
   EventFlags_t(uint32_t flags) : EventFlags_t(static_cast<EventFlags>(flags)) { }
   EventFlags_t(EventFlags flags = EventFlags::Invalid) noexcept { *reinterpret_cast<EventFlags*>(this) = flags; }
