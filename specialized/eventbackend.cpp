@@ -604,7 +604,7 @@ bool EventBackend::remove(int target, EventFlags_t flags) noexcept
 
 bool EventBackend::getevents(int timeout) noexcept
 {
-  uint32_t flags;
+  EventData_t data;
   timespec tout;
   tout.tv_sec = timeout / 1000;
   tout.tv_nsec = (timeout % 1000) * 1000;
@@ -622,9 +622,9 @@ bool EventBackend::getevents(int timeout) noexcept
 
   for(struct kevent* pos = platform->koutput.data(); pos != end; ++pos) // iterate through results
   {
-    flags = from_kevent(*pos);
+    data = from_kevent(*pos);
 
-    results.emplace(posix::fd_t(pos->ident), flags);
+    results.emplace(posix::fd_t(pos->ident), data);
   }
   return true;
 }
