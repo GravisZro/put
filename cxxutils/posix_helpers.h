@@ -10,6 +10,7 @@
 
 // POSIX++
 #include <cstring> // for useringroup()
+#include <csignal>
 
 // PDTK
 #include "error_helpers.h"
@@ -167,9 +168,11 @@ namespace posix
     static inline bool raise(EId id) noexcept
       { return std::raise(id) == success_response; }
 
-#ifdef _XOPEN_SOURCE_EXTENDED
     static inline bool send(pid_t pid, EId id, int value = 0) noexcept
+#if defined(_XOPEN_SOURCE_EXTENDED)
       { return ::sigqueue(pid, id, {value}) == success_response; }
+#else
+      { (void)value; return ::kill(pid, id) == success_response; }
 #endif
   }
 
