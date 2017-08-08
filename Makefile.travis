@@ -37,10 +37,10 @@ SOURCES       = buildtest.cpp \
 		socket.cpp \
 		process.cpp \
 		cxxutils/configmanip.cpp \
-#		integration/sdl.cpp \
 		specialized/eventbackend.cpp \
 		specialized/peercred.cpp \
 		specialized/procstat.cpp
+#		integration/sdl.cpp \
 
 OBJS := $(SOURCES:.s=.o)
 OBJS := $(OBJS:.c=.o)
