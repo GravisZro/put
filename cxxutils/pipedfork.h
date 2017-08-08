@@ -103,7 +103,7 @@ protected:
   bool waitFDEvent(posix::fd_t fd, int16_t event, int timeout) const noexcept
   {
     pollfd fds = { fd, event, 0 };
-    return posix::ignore_interruption(::poll, &fds, nfds_t(1), timeout) == 1;
+    return posix::poll(&fds, nfds_t(1), timeout) == 1;
   }
 
   bool redirect(posix::fd_t replacement, posix::fd_t original) const noexcept

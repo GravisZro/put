@@ -5,6 +5,7 @@
 #include <cxxutils/vfifo.h>
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/error_helpers.h>
+#include <cxxutils/socket_helpers.h>
 #include <cxxutils/colors.h>
 
 // Realtime POSIX
@@ -90,7 +91,7 @@ protected:
   bool waitFDEvent(posix::fd_t fd, int16_t event, int timeout) const noexcept
   {
     pollfd fds = { fd, event, 0 };
-    return posix::ignore_interruption(::poll, &fds, nfds_t(1), timeout) == 1;
+    return posix::poll(&fds, 1, timeout) == 1;
   }
 
   static bool write(posix::fd_t fd, vfifo& vq) noexcept

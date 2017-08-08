@@ -9,19 +9,12 @@
 #include <unistd.h>
 
 // POSIX++
-#include <cstring>
-#include <csignal>
+#include <cstring> // for useringroup()
 
 // PDTK
 #include "error_helpers.h"
+#include "signal_helpers.h"
 
-#ifndef SIGPOLL
-# ifdef SIGIO
-#  define SIGPOLL SIGIO
-# else
-#  error Neither SIGPOLL nor SIGIO is defined
-# endif
-#endif
 
 static_assert(sizeof(::size_t) == sizeof(std::size_t), "STL's size_t doesn't match the C standard!");
 
@@ -32,29 +25,6 @@ namespace posix
 
   typedef int fd_t;
   static const fd_t invalid_descriptor = -1;
-
-  template<typename RType, typename... ArgTypes>
-  using function = RType(*)(ArgTypes...);
-
-  template<typename RType, typename... ArgTypes>
-  static inline RType ignore_interruption(function<RType, ArgTypes...> func, ArgTypes... args) noexcept
-  {
-    RType rval = error_response;
-    do {
-      rval = func(args...);
-    } while(rval == error_response && errno == std::errc::interrupted);
-    return rval;
-  }
-
-  template<typename RType, typename... ArgTypes>
-  static inline RType* ignore_interruption(function<RType*, ArgTypes...> func, ArgTypes... args) noexcept
-  {
-    RType* rval = nullptr;
-    do {
-      rval = func(args...);
-    } while(rval == nullptr && errno == std::errc::interrupted);
-    return rval;
-  }
 
 // POSIX wrappers
   static inline passwd* getpwuid(uid_t uid) noexcept

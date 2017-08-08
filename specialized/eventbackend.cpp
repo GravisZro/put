@@ -35,7 +35,7 @@
 // PDTK
 #include <cxxutils/colors.h>
 #include <cxxutils/error_helpers.h>
-
+#include <cxxutils/socket_helpers.h>
 
 // FD flags
 inline EventData_t from_native_fdflags(const uint32_t flags) noexcept
@@ -382,9 +382,9 @@ bool EventBackend::getevents(int timeout) noexcept
       } procnote;
 
       pollfd fds = { pos->data.fd, POLLIN, 0 };
-      while(posix::ignore_interruption(::poll, &fds, nfds_t(1), 0) > 0) // while there are messages
+      while(posix::poll(&fds, 1, 0) > 0) // while there are messages
       {
-        if(posix::ignore_interruption(::recv, platform->procnotify.fd, reinterpret_cast<void*>(&procnote), sizeof(procnote), 0) > 0) // read process event message
+        if(posix::recv(platform->procnotify.fd, reinterpret_cast<void*>(&procnote), sizeof(procnote), 0) > 0) // read process event message
         {
           EventFlags_t flags = from_native_procflags(procnote.event.what);
           auto entries = platform->procnotify.events.equal_range(procnote.event.event_data.id.process_pid); // get all the entries for that PID
