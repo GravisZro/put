@@ -70,7 +70,7 @@ int proclist(pid_t* list, size_t max_length)
 
   struct kinfo_proc* proc_pos = proc_list.data();
   for(pid_t* pos = list; pos != list + length; ++pos, ++proc_pos)
-    *pos = proc_pos->proc.p_pid;
+    *pos = proc_pos->kp_proc.p_pid;
 
   return posix::success_response;
 }
