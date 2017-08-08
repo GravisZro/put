@@ -36,11 +36,11 @@ int proclist(pid_t* list, int max_length)
   return count;
 }
 
-#elif defined(BSD) || defined(__MACH__) // *BSD or Apple
+#elif defined(BSD) || defined(__APPLE__) // *BSD or Apple
 
 #elif defined(__unix__)
 
-system("ps -A -o pid=");
+//system("ps -A -o pid=");
 
 #error no code yet for your operating system. :(
 
