@@ -8,7 +8,7 @@
 #include <dirent.h>
 #include <cstdlib>
 
-int proclist(pid_t* list, int max_length)
+int proclist(pid_t* list, size_t max_length)
 {
   DIR* dirp = ::opendir("/proc");
   if(dirp == nullptr)
@@ -37,6 +37,40 @@ int proclist(pid_t* list, int max_length)
 }
 
 #elif defined(BSD) || defined(__APPLE__) // *BSD or Apple
+
+#include <sys/sysctl.h>
+#include <vector>
+
+int proclist(pid_t* list, size_t max_length)
+{
+  size_t length = 0;
+  std::vector<struct kinfo_proc> proc_list;
+  static const int mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
+
+  std::memset(list, 0, max_length);
+
+  if(::sysctl(mib, 4, nullptr, &length, nullptr, 0) != posix::success_response)
+    return posix::error_response;
+
+  if(lenth > max_length)
+    return posix::error(std::errc::not_enough_memory);
+
+  proc_list.resize(length + 10); // allowing 10 extra processes in case of surge
+
+  if(::sysctl(mib, 4, proc_list.data(), &length, nullptr, 0) != posix::success_response)
+    return posix::error_response;
+
+  if(proc_list.size() >= length)
+    return posix::error(std::errc::not_enough_memory);
+
+  proc_list.resize(length);
+
+  struct kinfo_proc* proc_pos = proc_list.data();
+  for(pid_t* pos = list; pos != list + length; ++pos, ++proc_pos)
+    *pos = proc_pos->p_pid;
+
+  return posix::success_response;
+}
 
 #elif defined(__unix__)
 
