@@ -486,7 +486,7 @@ constexpr uint32_t to_native_flags(const EventFlags_t& flags)
 
 
 // FD flags
-inline EventData_t from_kevent(const kevent& ev) noexcept
+inline EventData_t from_kevent(const struct kevent& ev) noexcept
 {
   EventData_t data;
   struct stat buf;
@@ -546,8 +546,8 @@ inline EventData_t from_kevent(const kevent& ev) noexcept
 struct platform_dependant
 {
   posix::fd_t kq;
-  std::vector<kevent> kinput;   // events we want to monitor
-  std::vector<kevent> koutput;   // events that were triggered
+  std::vector<struct kevent> kinput;   // events we want to monitor
+  std::vector<struct kevent> koutput;   // events that were triggered
 
   platform_dependant(void)
   {
@@ -589,7 +589,7 @@ posix::fd_t EventBackend::watch(const char* path, EventFlags_t flags) noexcept
 
 posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
 {
-  kevent ev;
+  struct kevent ev;
   EV_SET(&ev, target, to_event_filter(flags), EV_ADD, to_native_flags(flags), 0, nullptr);
   platform->kinput.emplace(ev);
   platform->koutput.resize(platform->kinput.size());
@@ -618,9 +618,9 @@ bool EventBackend::getevents(int timeout) noexcept
   if(count <= 0)
     return false;
 
-  kevent* end = platform->koutput + count;
+  struct kevent* end = platform->koutput + count;
 
-  for(kevent* pos = platform->koutput; pos != end; ++pos) // iterate through results
+  for(struct kevent* pos = platform->koutput; pos != end; ++pos) // iterate through results
   {
     flags = from_kevent(*pos);
 
