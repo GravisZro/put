@@ -39,7 +39,8 @@ SOURCES       = buildtest.cpp \
 		cxxutils/configmanip.cpp \
 		specialized/eventbackend.cpp \
 		specialized/peercred.cpp \
-		specialized/procstat.cpp
+		specialized/procstat.cpp \
+		specialized/proclist.cpp
 #		integration/sdl.cpp \
 
 OBJS := $(SOURCES:.s=.o)
