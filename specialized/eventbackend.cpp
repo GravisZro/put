@@ -531,9 +531,9 @@ inline EventData_t from_kevent(const struct kevent& ev) noexcept
 #ifdef ENABLE_PROCESS_EVENT_TRACKING
     case EVFILT_PROC:
     // process flags
-      data.ExecEvent          = ev.flags & NOTE_EXEC   ? 1 : 0;
-      data.ExitEvent          = ev.flags & NOTE_EXIT   ? 1 : 0;
-      data.ForkEvent          = ev.flags & NOTE_FORK   ? 1 : 0;
+      data.flags.ExecEvent          = ev.flags & NOTE_EXEC   ? 1 : 0;
+      data.flags.ExitEvent          = ev.flags & NOTE_EXIT   ? 1 : 0;
+      data.flags.ForkEvent          = ev.flags & NOTE_FORK   ? 1 : 0;
       break;
 #endif
   }
@@ -591,7 +591,7 @@ posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
 {
   struct kevent ev;
   EV_SET(&ev, target, to_event_filter(flags), EV_ADD, to_native_flags(flags), 0, nullptr);
-  platform->kinput.emplace(ev);
+  platform->kinput.push_back(ev);
   platform->koutput.resize(platform->kinput.size());
   queue.emplace(target, flags);
   return target;
@@ -620,7 +620,7 @@ bool EventBackend::getevents(int timeout) noexcept
 
   struct kevent* end = platform->koutput + count;
 
-  for(struct kevent* pos = platform->koutput; pos != end; ++pos) // iterate through results
+  for(struct kevent* pos = platform->koutput.data(); pos != end; ++pos) // iterate through results
   {
     flags = from_kevent(*pos);
 
@@ -704,7 +704,7 @@ posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
 {
   port_event_t pev;
 
-  platform->pinput.emplace(pev);
+  platform->pinput.push_back(pev);
   queue.emplace(target, flags);
   return target;
 }
