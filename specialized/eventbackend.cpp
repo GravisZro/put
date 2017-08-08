@@ -611,14 +611,14 @@ bool EventBackend::getevents(int timeout) noexcept
 
   int count = 0;
   count = kevent(platform->kq,
-             &platform->kinput.data(), platform->kinput.size(),
-             &platform->koutput.data(), platform->koutput.size(),
+             platform->kinput.data(), platform->kinput.size(),
+             platform->koutput.data(), platform->koutput.size(),
              &tout);
 
   if(count <= 0)
     return false;
 
-  struct kevent* end = platform->koutput + count;
+  struct kevent* end = platform->koutput.data() + count;
 
   for(struct kevent* pos = platform->koutput.data(); pos != end; ++pos) // iterate through results
   {
