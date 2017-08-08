@@ -16,7 +16,7 @@
 #endif
 
 #if defined(SA_RESTART) && !defined(INTERRUPTED_WRAPPER)
-#error All default interrupt handlers must be replaced!
+#pragma message("All default interrupt handlers need to be replaced!")
 #endif
 
 namespace posix
