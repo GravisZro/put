@@ -36,9 +36,18 @@ int proclist(pid_t* list, size_t max_length)
   return count;
 }
 
-#elif defined(BSD) || defined(__APPLE__) // *BSD or Apple
+#elif defined(BSD) || defined(__APPLE__) // *BSD/Darwin
 
+// Darwin structure documentation
+// kinfo_proc : https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/sysctl.h.auto.html
+
+// BSD structure documentation
+// kinfo_proc : http://fxr.watson.org/fxr/source/sys/user.h#L119
+
+ // *BSD/Darwin
 #include <sys/sysctl.h>
+
+// STL
 #include <vector>
 
 // PDTK
@@ -58,7 +67,7 @@ int proclist(pid_t* list, size_t max_length)
   if(length > max_length)
     return posix::error(std::errc::not_enough_memory);
 
-  proc_list.resize(length + 10); // allowing 10 extra processes in case of surge
+  proc_list.resize(length);
 
   if(::sysctl(request, arraylength(request), proc_list.data(), &length, nullptr, 0) != posix::success_response)
     return posix::error_response;
@@ -70,7 +79,11 @@ int proclist(pid_t* list, size_t max_length)
 
   struct kinfo_proc* proc_pos = proc_list.data();
   for(pid_t* pos = list; pos != list + length; ++pos, ++proc_pos)
+#if defined(__APPLE__)
     *pos = proc_pos->kp_proc.p_pid;
+#else
+    *pos = proc_pos->ki_pid;
+#endif
 
   return posix::success_response;
 }

@@ -146,19 +146,23 @@ int procstat(pid_t pid, process_state_t* data) noexcept
 
   return posix::success_response;
 }
-#elif defined(BSD) || defined(__MACH__) // *BSD or Apple
 
-// PDTK
-#include <cxxutils/misc_helpers.h>
+#elif defined(BSD) || defined(__APPLE__) // *BSD/Darwin
 
 // *BSD/Darwin
 #include <sys/sysctl.h>
+
+// PDTK
+#include <cxxutils/misc_helpers.h>
 
 int procstat(pid_t pid, process_state_t* data) noexcept
 {
   struct kinfo_proc info;
   posix::size_t length;
   int request[6] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid, sizeof(struct kinfo_proc), 0 };
+
+  if(data == nullptr)
+    return posix::error_response;
 
   if(sysctl(request, arraylength(request), nullptr, &length, nullptr, 0) != posix::success_response)
     return posix::error_response;
@@ -168,7 +172,35 @@ int procstat(pid_t pid, process_state_t* data) noexcept
   if(sysctl(request, arraylength(request), &info, &length, nullptr, 0) != posix::success_response)
     return posix::error_response;
 
-  // TODO: copy info.ABC to process.XYZ
+#if defined(__APPLE__)
+  // Darwin structure documentation
+  // kinfo_proc   : https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/sysctl.h.auto.html
+  // extern_proc  : https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/proc.h.auto.html
+
+  data->process_id        = info.kp_proc.p_pid;
+  data->parent_process_id = info.kp_eproc.e_ppid;
+  data->process_group_id  = info.kp_eproc.e_pgid;
+//  data->session_id        = info.kp_eproc.e_sess->;
+//  data->priority_value    = info.kp_eproc
+//  data->state =
+//  data->name =
+
+#else
+  // BSD structure documentation
+  // kinfo_proc : http://fxr.watson.org/fxr/source/sys/user.h#L119
+  // proc       : http://fxr.watson.org/fxr/source/sys/proc.h#L522
+  // priority   : http://fxr.watson.org/fxr/source/sys/priority.h#L126
+  // pargs      : http://fxr.watson.org/fxr/source/sys/proc.h#L110
+
+  data->process_id        = info.ki_pid;
+  data->parent_process_id = info.ki_ppid;
+  data->process_group_id  = info.ki_pgid;
+  data->session_id        = info.ki_sid;
+  data->priority_value    = info.ki_pri.pri_user;
+//  data->state             = ;
+//  data->name              = ;
+//  data->arguments
+#endif
 
   return posix::success_response;
 }
