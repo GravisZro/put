@@ -149,6 +149,7 @@ bool ConfigManip::read(const std::string& data) noexcept
           default:
             if(!std::isspace(*pos) || !str.empty())
               str.push_back(*pos);
+            continue;
           case '\n':
             continue;
 
@@ -314,6 +315,7 @@ bool ConfigManip::read(const std::string& data) noexcept
           case '\n':
             state = prev_state;
             --pos;
+            continue;
           default:
             continue;
         }
