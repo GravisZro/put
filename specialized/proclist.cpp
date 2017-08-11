@@ -15,7 +15,7 @@ int proclist(pid_t* list, size_t max_length)
     return posix::error_response;
 
   struct dirent* entry;
-  int count = 0;
+  size_t count = 0;
 
   while((entry = ::readdir(dirp)) != nullptr &&
         count < max_length)
