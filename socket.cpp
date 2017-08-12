@@ -52,11 +52,11 @@ void GenericSocket::disconnect(void) noexcept
 
 bool ClientSocket::connect(const char *socket_path) noexcept
 {
-  flaw(m_connected, posix::warning,,false,
+  flaw(m_connected, posix::warning,, false,
        "Client socket is already connected!")
 
-  flaw(std::strlen(socket_path) >= sizeof(sockaddr_un::sun_path),posix::warning,,false,
-       "socket_path exceeds the maximum path length, %lu bytes", sizeof(sockaddr_un::sun_path))
+  flaw(std::strlen(socket_path) >= sizeof(sockaddr_un::sun_path), posix::warning,, false,
+       "socket_path (%lu characters) exceeds the maximum path length (%lu characters)", std::strlen(socket_path), sizeof(sockaddr_un::sun_path))
 
   posix::sockaddr_t peeraddr;
   proccred_t peercred;
@@ -66,7 +66,7 @@ bool ClientSocket::connect(const char *socket_path) noexcept
   m_selfaddr = EDomain::unspec;
 
   flaw(!posix::connect(m_socket, peeraddr, peeraddr.size()), posix::warning,, false,
-       "connect() failure: %s", std::strerror(errno)) // connect to peer process
+       "connect() to \"%s\" failure: %s", socket_path, std::strerror(errno)) // connect to peer process
   m_connected = true;
 
   flaw(!posix::peercred(m_socket, peercred), posix::warning,, false,
@@ -101,7 +101,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
     *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = fd;
   }
 
-  flaw(posix::sendmsg(m_socket, &header) == posix::error_response, posix::warning,,false,
+  flaw(posix::sendmsg(m_socket, &header) == posix::error_response, posix::warning,, false,
        "sendmsg() failure: %s", std::strerror(errno))
   return true;
 }
@@ -154,23 +154,23 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 
 bool ServerSocket::bind(const char* socket_path, EDomain domain, int socket_backlog) noexcept
 {
-  flaw(m_connected, posix::warning,,false,
+  flaw(m_connected, posix::warning,, false,
        "Server socket is already bound!")
 
-  flaw(socket_path == nullptr,posix::warning,,false,
+  flaw(socket_path == nullptr, posix::warning,, false,
        "socket_path is a null value")
 
-  flaw(std::strlen(socket_path) >= sizeof(sockaddr_un::sun_path),posix::warning,,false,
-       "socket_path exceeds the maximum path length, %lu bytes", sizeof(sockaddr_un::sun_path))
+  flaw(std::strlen(socket_path) >= sizeof(sockaddr_un::sun_path), posix::warning,, false,
+      "socket_path (%lu characters) exceeds the maximum path length (%lu characters)", std::strlen(socket_path), sizeof(sockaddr_un::sun_path));
 
   m_selfaddr = socket_path;
   m_selfaddr = domain;
 
-  flaw(!posix::bind(m_socket, m_selfaddr, m_selfaddr.size()),posix::warning,,false,
+  flaw(!posix::bind(m_socket, m_selfaddr, m_selfaddr.size()), posix::warning,, false,
        "Unable to bind to socket to %s: %s", socket_path, std::strerror(errno))
   m_connected = true;
 
-  flaw(!posix::listen(m_socket, socket_backlog),posix::warning,,false,
+  flaw(!posix::listen(m_socket, socket_backlog), posix::warning,, false,
        "Unable to listen to server socket: %s", std::strerror(errno))
   return true;
 }
@@ -235,7 +235,7 @@ bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
   flaw(addrlen >= sizeof(sockaddr_un::sun_path), posix::severe,, false,
        "accept() implementation bug: %s", "address length exceeds availible storage");
 
-  flaw(addrlen != peeraddr.size(), posix::warning,, false,
+  flaw(addrlen != peeraddr.size(), posix::severe,, false,
        "accept() implementation bug: %s", "address length does not match string length");
 
   flaw(!posix::peercred(fd, peercred), posix::warning,, false,
