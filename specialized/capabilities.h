@@ -1,9 +1,14 @@
-#if defined(__linux__) && !defined(CAPABILITIES_H)
+#if defined(__linux__) && !defined(_POSIX_DRAFT_1E)
+#define _POSIX_DRAFT_1E
+#endif
+
+#if defined(_POSIX_DRAFT_1E) && !defined(CAPABILITIES_H)
 #define CAPABILITIES_H
 
-// Linux
 #include <sys/capability.h>
 #include <sys/prctl.h>
+
+#if defined(__linux__)
 #include <linux/capability.h>
 
 #if defined(_LINUX_CAPABILITY_VERSION_3)
@@ -21,6 +26,7 @@
 #endif
 
 #define CAPTYPE_COUNT  3
+#endif
 
 enum class capflag : uint32_t
 {
