@@ -1,10 +1,10 @@
 #include "configmanip.h"
 
-// C++
+// POSIX++
 #include <cctype>
 
-// STL
-#include <map>
+// PDTK
+#include "syslogstream.h"
 
 static inline std::string use_string(std::string& str) noexcept
 {
@@ -17,7 +17,8 @@ static inline std::string use_string(std::string& str) noexcept
 }
 
 node_t::node_t(type_e t) noexcept : type(t) { }
-node_t::node_t(std::string& v) noexcept : type(type_e::value), value(use_string(v)) { }
+node_t::node_t(std::string& val) noexcept
+  : type(type_e::value), value(use_string(v)) { }
 
 std::shared_ptr<node_t> node_t::newChild(type_e t) noexcept
   { return children.emplace(std::to_string(children.size()), std::make_shared<node_t>(t)).first->second; }
@@ -70,11 +71,9 @@ std::shared_ptr<node_t> root_node_t::lookupNode(std::string path, NodeAction fun
   return node;
 }
 
-#include <cstdlib>
-//constexpr
 bool bailout(void)
 {
-  ::abort();
+  posix::syslog << posix::priority::error << "Configuration file parser has prematurely exited." << posix::eom;
   return false;
 }
 
