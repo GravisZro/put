@@ -105,9 +105,9 @@ struct capability_data_t
   operator cap_user_data_t  (void) noexcept { return reinterpret_cast<cap_user_data_t  >(data ); }
 
   capability_data_t(void) noexcept
-    : effective  (data + 0),
-      permitted  (data + 1),
-      inheritable(data + 2)
+    : effective  (data + CAP_EFFECTIVE),
+      permitted  (data + CAP_PERMITTED),
+      inheritable(data + CAP_INHERITABLE)
   {
     std::memset(data, 0, sizeof(data)); // zero out memory
     head.version = CAPABILITY_VERSION; // set version number
