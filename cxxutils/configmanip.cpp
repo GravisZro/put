@@ -1,5 +1,8 @@
 #include "configmanip.h"
 
+// STL
+#include <map>
+
 // POSIX++
 #include <cctype>
 
@@ -18,7 +21,7 @@ static inline std::string use_string(std::string& str) noexcept
 
 node_t::node_t(type_e t) noexcept : type(t) { }
 node_t::node_t(std::string& val) noexcept
-  : type(type_e::value), value(use_string(v)) { }
+  : type(type_e::value), value(use_string(val)) { }
 
 std::shared_ptr<node_t> node_t::newChild(type_e t) noexcept
   { return children.emplace(std::to_string(children.size()), std::make_shared<node_t>(t)).first->second; }
