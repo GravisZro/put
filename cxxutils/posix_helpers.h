@@ -8,7 +8,9 @@
 #include <grp.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <stropts.h>
+
+// POSIX-esque?
+#include <sys/ioctl.h>
 
 // POSIX++
 #include <cstring> // for useringroup()
@@ -215,13 +217,17 @@ namespace posix
   }
 #endif
 
-  template<typename... ArgTypes>
+  template<typename IntType, typename... ArgTypes>
 #if defined(SA_RESTART) && !defined(INTERRUPTED_WRAPPER)
-  constexpr int ioctl(fd_t fd, int request, ArgTypes... args) noexcept
-    { return ::ioctl(fd, request, args...); }
-#else
-  static inline int ioctl(fd_t fd, int request, ArgTypes... args) noexcept
+  constexpr int ioctl(fd_t fd, IntType request, ArgTypes... args) noexcept
   {
+    static_assert(std::is_integral<IntType>::value, "Has to be an integer type!");
+    return ::ioctl(fd, request, args...);
+  }
+#else
+  static inline int ioctl(fd_t fd, IntType request, ArgTypes... args) noexcept
+  {
+    static_assert(std::is_integral<IntType>::value, "Has to be an integer type!");
     int rval = error_response;
     do {
       rval = ::ioctl(fd, request, args...);
