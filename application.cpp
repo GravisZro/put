@@ -54,7 +54,7 @@ Application::~Application(void) noexcept
 void Application::step(void) noexcept
 {
   static const uint8_t dummydata = 0; // dummy content
-  flaw(posix::write(s_pipeio[Write], &dummydata, 1) != 1, posix::critical, std::exit(errno),, // triggers execution stepper FD
+  flaw(posix::write(s_pipeio[Write], &dummydata, 1) != 1, posix::critical,,, // triggers execution stepper FD
        "Unable to trigger Object signal queue processor: %s", std::strerror(errno))
 }
 
