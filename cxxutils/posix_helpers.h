@@ -7,6 +7,8 @@
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <stropts.h>
 
 // POSIX++
 #include <cstring> // for useringroup()
@@ -195,6 +197,38 @@ namespace posix
 
   static inline bool chown(const char* path, uid_t owner, gid_t group) noexcept
     { return ignore_interruption(::chown, path, owner, group) != error_response; }
+
+
+// variadic POSIX wrappers
+  template<typename... ArgTypes>
+#if defined(SA_RESTART) && !defined(INTERRUPTED_WRAPPER)
+  constexpr fd_t open(const char *path, int oflag, ArgTypes... args) noexcept
+    { return ::open(path, oflag, args...); }
+#else
+  static inline fd_t open(const char *path, int oflag, ArgTypes... args) noexcept
+  {
+    fd_t rval = error_response;
+    do {
+      rval = ::open(path, oflag, args...);
+    } while(rval == error_response && errno == std::errc::interrupted);
+    return rval;
+  }
+#endif
+
+  template<typename... ArgTypes>
+#if defined(SA_RESTART) && !defined(INTERRUPTED_WRAPPER)
+  constexpr int ioctl(fd_t fd, int request, ArgTypes... args) noexcept
+    { return ::ioctl(fd, request, args...); }
+#else
+  static inline int ioctl(fd_t fd, int request, ArgTypes... args) noexcept
+  {
+    int rval = error_response;
+    do {
+      rval = ::ioctl(fd, request, args...);
+    } while(rval == error_response && errno == std::errc::interrupted);
+    return rval;
+  }
+#endif
 
 
 /*
