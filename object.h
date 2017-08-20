@@ -20,10 +20,10 @@ class Object : private ProtoObject
 {
 public:
   template<class ObjType, typename RType, typename... ArgTypes>
-  using mslot_t = RType(ObjType::*)(ArgTypes...);
+  using mslot_t = RType(ObjType::*)(ArgTypes...); // member slot
 
   template<typename RType, typename... ArgTypes>
-  using fslot_t = RType(*)(ArgTypes...);
+  using fslot_t = RType(*)(ArgTypes...); // function slot
 
   template<typename... ArgTypes>
   using signal = std::unordered_multimap<ProtoObject*, std::function<void(ProtoObject*, ArgTypes...)>>;
@@ -67,7 +67,6 @@ public:
         { slot(args...); });
   }
 
-
   // connect a file descriptor event to an object member function
   template<class ObjType, typename RType>
   static inline void connect(posix::fd_t fd, EventFlags_t flags, ObjType* obj, mslot_t<ObjType, RType, posix::fd_t, EventData_t> slot) noexcept
@@ -102,7 +101,6 @@ public:
   static inline void connect(posix::fd_t fd, signal<posix::fd_t, EventData_t>& sig) noexcept
     { connect(fd, EventFlags::Readable, sig); }
 
-
   // connect a file descriptor event to a function
   template<typename RType>
   static inline void connect(posix::fd_t fd, EventFlags_t flags, fslot_t<RType, posix::fd_t, EventData_t> slot) noexcept
@@ -117,6 +115,19 @@ public:
   static inline void connect(posix::fd_t fd, fslot_t<RType, posix::fd_t, EventData_t> slot) noexcept
     { connect(fd, EventFlags::Readable, slot); }
 
+  // connect a file location to a function
+  template<typename RType>
+  static inline void connect(const char* path, EventFlags_t flags, fslot_t<RType, posix::fd_t, EventData_t> slot) noexcept
+  {
+    posix::fd_t fd = EventBackend::watch(path, flags);
+    Application::ms_fd_signals.emplace(fd, std::make_pair(flags,
+      [slot](posix::fd_t fd, EventData_t data) noexcept
+        { slot(fd, data); }));
+  }
+
+  template<typename RType>
+  static inline void connect(const char* path, fslot_t<RType, posix::fd_t, EventData_t> slot) noexcept
+    { connect(path, EventFlags::FileMod, slot); }
 
   // disconnect all connections from signal
   template<typename... ArgTypes>
@@ -128,10 +139,14 @@ public:
   static inline void disconnect(signal<ArgTypes...>& sig, Object* obj) noexcept
     { sig.erase(obj); }
 
+  // disconnect connections to file for all event flags
+  static inline void disconnect(const char* path) noexcept
+    { disconnect(EventBackend::lookup(path), EventFlags::FileEvent | EventFlags::DirEvent); }
+
   // disconnect connections to fd for certain event flags
   static inline void disconnect(posix::fd_t fd, EventFlags_t flags = EventFlags::Readable) noexcept
   {
-    EventBackend::remove(fd, flags);
+    EventBackend::remove(fd, flags); // allowed to fail
     auto range = Application::ms_fd_signals.equal_range(fd);
     auto pos = range.first; // pos = iterator
     while(pos != range.second) // pos is _always_ advanced within loop
