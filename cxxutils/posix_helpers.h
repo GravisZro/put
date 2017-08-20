@@ -15,6 +15,7 @@
 // POSIX++
 #include <cstring> // for useringroup()
 #include <csignal>
+#include <cstdio>
 
 // PDTK
 #include "error_helpers.h"
@@ -29,7 +30,7 @@ namespace posix
   using ::ssize_t;
 
   typedef int fd_t;
-  static const fd_t invalid_descriptor = -1;
+  static const fd_t invalid_descriptor = error_response;
 
 // POSIX wrappers
   static inline passwd* getpwuid(uid_t uid) noexcept
@@ -236,21 +237,18 @@ namespace posix
   }
 #endif
 
-
-/*
   // POSIX wrappers
-  static inline FILE* fopen(const char* filename, const char* mode) noexcept
-    { return ignore_interruption(::fopen, filename, mode); }
+  static inline std::FILE* fopen(const char* filename, const char* mode) noexcept
+    { return ignore_interruption<std::FILE, const char*, const char*>(std::fopen, filename, mode); }
 
-  static inline bool fclose(FILE* stream) noexcept
-    { return ignore_interruption(::fclose, stream); }
+  static inline bool fclose(std::FILE* stream) noexcept
+    { return ignore_interruption(std::fclose, stream) != error_response; }
 
-  static inline bool fgets(char* s, int n, FILE* stream) noexcept
-    { return ignore_interruption(::fgets, s, n, stream); }
+  static inline bool fgets(char* s, int n, std::FILE* stream) noexcept
+    { return ignore_interruption<char, char*, int, std::FILE*>(std::fgets, s, n, stream) != nullptr; }
 
   static inline int fgetc(FILE* stream) noexcept
-    { return ignore_interruption(::fgetc, stream); }
-*/
+    { return ignore_interruption(std::fgetc, stream); }
 }
 
 #endif // POSIX_HELPERS_H
