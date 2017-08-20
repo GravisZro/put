@@ -8,6 +8,9 @@
 // POSIX
 #include <sys/types.h>
 
+// POSIX++
+#include <cstdint>
+
 enum ExecutionState : char
 {
   Running = 'R',                // actively executing
@@ -16,7 +19,7 @@ enum ExecutionState : char
   Zombie = 'Z',                 // zombie process
   Stopped = 'T',                // stopped/tracing execution
 };
-typedef int signals_t;
+typedef uint32_t signals_t;
 
 struct process_state_t
 {
