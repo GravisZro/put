@@ -134,9 +134,10 @@ struct EventBackend // TODO: convert to namespace
   static void init(void) noexcept;
   static void destroy(void) noexcept;
 
+  static posix::fd_t lookup(const char* path) noexcept;
+
   static posix::fd_t watch(const char* path, EventFlags_t flags = EventFlags::FileMod) noexcept; // add file events to montior
   static posix::fd_t watch(int target, EventFlags_t flags = EventFlags::Readable) noexcept; // add FD or process events to montior
-
   static bool remove(int target, EventFlags_t flags = EventFlags::Readable) noexcept; // remove from watch queue
 
   static bool getevents(int timeout = -1) noexcept;

@@ -20,7 +20,6 @@
 // STL
 #include <vector>
 #include <algorithm>
-#include <set>
 
 // POSIX
 #include <sys/socket.h>
@@ -183,7 +182,8 @@ struct platform_dependant
   struct fsnotify_t // file notification (inotify)
   {
     posix::fd_t fd;
-    std::set<posix::fd_t> fds;
+    std::unordered_map<std::string, posix::fd_t> path2fds;
+    std::unordered_map<posix::fd_t, std::string> fds2path;
 
     fsnotify_t(void) noexcept
       : fd(posix::invalid_descriptor)
@@ -204,14 +204,24 @@ struct platform_dependant
       posix::fd_t wd = inotify_add_watch(fd, path, to_native_fileflags(flags));
       if(wd < 0)
         return wd;
-      fds.emplace(wd);
+      path2fds.emplace(path, wd);
+      fds2path.emplace(wd, path);
       return wd;
+    }
+
+    posix::fd_t lookup(const char* path)
+    {
+      auto iter = path2fds.find(path);
+      return iter == path2fds.end() ? posix::invalid_descriptor : iter->second;
     }
 
     bool remove(posix::fd_t wd) noexcept
     {
-      if(!fds.erase(wd)) // if erased zero
+      auto iter = fds2path.find(wd);
+      if(iter == fds2path.end())
         return false;
+      path2fds.erase(iter->second);
+      fds2path.erase(iter);
       return inotify_rm_watch(fd, wd) == posix::success_response;
     }
   } fsnotify;
@@ -337,6 +347,11 @@ posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
   return posix::invalid_descriptor;
 }
 
+posix::fd_t EventBackend::lookup(const char* path) noexcept
+{
+  auto iter = platform->fsnotify.path2fds.find(path);
+  return iter == platform->fsnotify.path2fds.end() ? posix::invalid_descriptor : iter->second;
+}
 
 bool EventBackend::remove(int target, EventFlags_t flags) noexcept
 {
@@ -404,7 +419,7 @@ bool EventBackend::getevents(int timeout) noexcept
     }
     else
 #endif
-    if(platform->fsnotify.fds.find(pos->data.fd) != platform->fsnotify.fds.end()) // if an inotify event
+    if(platform->fsnotify.fds2path.find(pos->data.fd) != platform->fsnotify.fds2path.end()) // if an inotify event
     {
       union {
         uint8_t* inpos;
