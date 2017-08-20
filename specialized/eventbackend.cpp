@@ -20,6 +20,7 @@
 // STL
 #include <vector>
 #include <algorithm>
+#include <string>
 
 // POSIX
 #include <sys/socket.h>
