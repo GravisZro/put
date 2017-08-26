@@ -10,9 +10,8 @@
 #if defined(SO_PEERCRED) // Linux
 #pragma message("Information: using SO_PEERCRED code")
 
-int peercred(int socket, proccred_t& cred, int timeout) noexcept
+int peercred(int socket, proccred_t& cred) noexcept
 {
-  (void)timeout;
   struct ucred data;
   socklen_t len = sizeof(data);
 
@@ -35,9 +34,8 @@ int peercred(int socket, proccred_t& cred, int timeout) noexcept
 
 #include <ucred.h>
 
-int peercred(int socket, proccred_t& cred, int timeout) noexcept
+int peercred(int socket, proccred_t& cred) noexcept
 {
-  (void)timeout;
   uproccred_t* data = nullptr;
 
   int rval = ::getpeerucred(socket, &data);
@@ -59,9 +57,8 @@ int peercred(int socket, proccred_t& cred, int timeout) noexcept
 #elif defined(LOCAL_PEEREID) // NetBSD
 #pragma message("Information: using LOCAL_PEEREID code")
 
-int peercred(int socket, proccred_t& cred, int timeout) noexcept
+int peercred(int socket, proccred_t& cred) noexcept
 {
-  (void)timeout;
   struct unpcbid data;
   socklen_t len = sizeof(data);
 
@@ -104,7 +101,7 @@ typedef cred creds_t;
 
 // size = SOCKCREDSIZE(((creds_t*)CMSG_DATA(cmptr))->sc_ngroups);
 
-int peercred(int socket, proccred_t& cred, int timeout) noexcept
+int peercred(int socket, proccred_t& cred) noexcept
 {
   return posix::error_response;
   /*
