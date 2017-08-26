@@ -58,7 +58,7 @@ struct platform_dependant
       return data;
     }
 
-    constexpr uint32_t to_native_flags(const EventFlags_t& flags)
+    static constexpr uint32_t to_native_flags(const EventFlags_t& flags) noexcept
     {
       return
           (flags.Error        ? uint32_t(EPOLLERR) : 0) |
@@ -153,7 +153,7 @@ struct platform_dependant
       return data;
     }
 
-    constexpr uint32_t to_native_flags(const EventFlags_t& flags)
+    static constexpr uint32_t to_native_flags(const EventFlags_t& flags) noexcept
     {
       return
           (flags.ReadEvent    ? uint32_t(IN_ACCESS     ) : 0) | // File was accessed (read) (*).
@@ -330,7 +330,7 @@ struct platform_dependant
       return data;
     }
 
-    constexpr uint32_t to_native_flags(const EventFlags_t& flags)
+    static constexpr uint32_t to_native_flags(const EventFlags_t& flags) noexcept
     {
       return
     //      (flags.UIDEvent  ? uint32_t(proc_event::PROC_EVENT_UID ) : 0) | // Process changed it's User ID
