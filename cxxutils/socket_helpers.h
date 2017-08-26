@@ -20,6 +20,9 @@
 #  define MSG_NOSIGNAL 0
 # endif
 #endif
+#ifdef __linux__
+#include <linux/netlink.h>
+#endif
 
 enum class EDomain : sa_family_t
 {
@@ -42,7 +45,30 @@ enum class EDomain : sa_family_t
 #endif
 };
 
-typedef EDomain EProtocol;
+enum class EProtocol : sa_family_t
+{
+// POSIX required
+  inet      = PF_INET,      //  Internet domain sockets for use with IPv4 addresses.
+  inet6     = PF_INET6,     //  Internet domain sockets for use with IPv6 addresses.
+  local     = PF_UNIX,      //  UNIX domain sockets.
+  unspec    = PF_UNSPEC,    //  Unspecified.
+
+// optional
+  ipx       = PF_IPX,       //  IPX - Novell protocols
+  appletalk = PF_APPLETALK, //  AppleTalk                        ddp(7)
+#ifndef __APPLE__
+  netlink   = PF_NETLINK,   //  Kernel user interface device     netlink(7)
+  x25       = PF_X25,       //  ITU-T X.25 / ISO-8208 protocol   x25(7)
+  ax25      = PF_AX25,      //  Amateur radio AX.25 protocol
+  atmpcv    = PF_ATMPVC,    //  Access to raw ATM PVCs
+  packet    = PF_PACKET,    //  Low level packet interface       packet(7)
+  alg       = PF_ALG,
+#endif
+#ifdef __linux__
+  uevent    = NETLINK_KOBJECT_UEVENT,
+  connector = NETLINK_CONNECTOR,
+#endif
+};
 
 enum class EType : int
 {
@@ -104,13 +130,13 @@ namespace posix
   }
 
   static inline bool listen(fd_t sockfd, int backlog = SOMAXCONN) noexcept
-    { return ::listen(sockfd, backlog) != error_response; }
+    { return ::listen(sockfd, backlog) == success_response; }
 
   static inline bool connect(fd_t sockfd, const sockaddr* addr, socklen_t addrlen) noexcept
-    { return ignore_interruption(::connect, sockfd, addr, addrlen) != error_response; }
+    { return ignore_interruption(::connect, sockfd, addr, addrlen) == success_response; }
 
   static inline bool bind(fd_t sockfd, const sockaddr* addr, socklen_t addrlen) noexcept
-    { return ::bind(sockfd, addr, addrlen) != error_response; }
+    { return ::bind(sockfd, addr, addrlen) == success_response; }
 
   static inline ssize_t send(fd_t sockfd, const void* buffer, size_t length, int flags = MSG_NOSIGNAL) noexcept
     { return ignore_interruption(::send, sockfd, buffer, length, flags); }
