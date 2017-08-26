@@ -10,11 +10,6 @@
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/colors.h>
 
-namespace posix
-{
-  inline bool peercred(fd_t socket, proccred_t& cred, int timeout = 100) noexcept
-    { return ::peercred(socket, cred, timeout) == posix::success_response; }
-}
 
 GenericSocket::GenericSocket(EDomain   domain,
                              EType     type,
@@ -59,7 +54,7 @@ bool ClientSocket::connect(const char *socket_path) noexcept
        "socket_path (%lu characters) exceeds the maximum path length (%lu characters)", std::strlen(socket_path), sizeof(sockaddr_un::sun_path))
 
   posix::sockaddr_t peeraddr;
-  proccred_t peercred;
+  proccred_t cred;
 
   peeraddr = socket_path;
   peeraddr = EDomain::local;
@@ -69,10 +64,10 @@ bool ClientSocket::connect(const char *socket_path) noexcept
        "connect() to \"%s\" failure: %s", socket_path, std::strerror(errno)) // connect to peer process
   m_connected = true;
 
-  flaw(!posix::peercred(m_socket, peercred), posix::warning,, false,
+  flaw(::peercred(m_socket, cred) != posix::success_response, posix::warning,, false,
        "peercred() failure: %s", std::strerror(errno)) // get creditials of connected peer process
 
-  Object::enqueue(connected, m_socket, peeraddr, peercred);
+  Object::enqueue(connected, m_socket, peeraddr, cred);
   return true;
 }
 
@@ -224,7 +219,7 @@ bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
   (void)event;
   flaw(m_socket != socket, posix::critical, std::exit(int(std::errc::invalid_argument)), false,
        "ServerSocket::read() was improperly called: %s", std::strerror(int(std::errc::invalid_argument)))
-  proccred_t peercred;
+  proccred_t cred;
   posix::sockaddr_t peeraddr;
   socklen_t addrlen = 0;
   posix::fd_t fd = posix::accept(m_socket, peeraddr, &addrlen); // accept a new socket connection
@@ -238,11 +233,11 @@ bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
   flaw(addrlen != peeraddr.size(), posix::severe,, false,
        "accept() implementation bug: %s", "address length does not match string length");
 
-  flaw(!posix::peercred(fd, peercred), posix::warning,, false,
+  flaw(::peercred(fd, cred) != posix::success_response, posix::warning,, false,
        "peercred() failure: %s", std::strerror(errno)) // get creditials of connected peer process
 
-  m_peers.emplace(fd, peer_t(fd, peeraddr, peercred));
-  Object::enqueue(newPeerRequest, fd, peeraddr, peercred);
+  m_peers.emplace(fd, peer_t(fd, peeraddr, cred));
+  Object::enqueue(newPeerRequest, fd, peeraddr, cred);
   return true;
 }
 
