@@ -7,7 +7,7 @@
 
 // STL
 #include <functional>
-#include <unordered_map>
+#include <map>
 
 struct ProtoObject
 {
@@ -26,7 +26,7 @@ public:
   using fslot_t = RType(*)(ArgTypes...); // function slot
 
   template<typename... ArgTypes>
-  using signal = std::unordered_multimap<ProtoObject*, std::function<void(ProtoObject*, ArgTypes...)>>;
+  using signal = std::multimap<ProtoObject*, std::function<void(ProtoObject*, ArgTypes...)>>;
 
   inline  Object(void) noexcept { }
   inline ~Object(void) noexcept { }
@@ -161,6 +161,14 @@ public:
       else
         ++pos; // advance iterator
     }
+  }
+
+  template<class ObjType, typename RType, typename... ArgTypes>
+  static inline void singleShot(ObjType* obj, mslot_t<ObjType, RType, ArgTypes...> slot, ArgTypes&... args) noexcept
+  {
+    std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::ms_signal_queue); // multithread protection
+    Application::ms_signal_queue.emplace(std::bind(slot, obj, std::forward<ArgTypes>(args)...));
+    Application::step(); // inform execution stepper
   }
 
   // enqueue a call to the functions connected to the signal
