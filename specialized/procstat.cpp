@@ -23,6 +23,7 @@ int procstat(pid_t pid, process_state_t* data) noexcept
   if(data == nullptr)
     return posix::error(std::errc::invalid_argument);
 
+  data->state = Invalid;
   data->arguments.clear();
 
   char buffer[ARG_MAX];

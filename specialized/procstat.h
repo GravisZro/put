@@ -13,6 +13,7 @@
 
 enum ExecutionState : char
 {
+  Invalid = 0,                  // invalid state (only used internally)
   Running = 'R',                // actively executing
   WaitingInterruptable = 'S',   // sleeping in an interruptible wait
   WaitingUninterruptable = 'D', // sleeping in an uninterruptible wait

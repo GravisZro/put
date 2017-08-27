@@ -262,8 +262,8 @@ Process::State Process::state(void) noexcept
       break;
     default:
       process_state_t data;
-      flaw(::procstat(processId(), &data) == posix::error_response, posix::severe, m_state = State::Invalid, m_state,
-           "Process %i does not exist.", processId()); // process _must_ exist
+      flaw(::procstat(processId(), &data) == posix::error_response && m_state != State::Finished, posix::severe, m_state = State::Invalid, m_state,
+           "Process %i does not exist.", processId()); // process must exist (rare case where process could exit durring this call is handled)
       switch (data.state)
       {
         case WaitingInterruptable:
@@ -272,6 +272,7 @@ Process::State Process::state(void) noexcept
         case Zombie : m_state = State::Zombie ; break;
         case Stopped: m_state = State::Stopped; break;
         case Running: m_state = State::Running; break;
+        default: break; // invalid state (process exited before it could be stat'd
       }
   }
   return m_state;
