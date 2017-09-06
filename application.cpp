@@ -32,7 +32,7 @@ Application::Application(void) noexcept
 {
   if(s_pipeio[Read] == posix::invalid_descriptor) // if execution stepper pipe  hasn't been initialized yet
   {
-    flaw(::pipe(s_pipeio) == posix::error_response, vterm::critical, std::exit(errno),,
+    flaw(::pipe(s_pipeio) == posix::error_response, terminal::critical, std::exit(errno),,
          "Unable to create pipe for execution stepper: %s", std::strerror(errno))
     EventBackend::init(); // initialize event backend
     EventBackend::watch(s_pipeio[Read], EventFlags::Readable); // watch for when execution stepper pipe has been triggered
@@ -54,7 +54,7 @@ Application::~Application(void) noexcept
 void Application::step(void) noexcept
 {
   static const uint8_t dummydata = 0; // dummy content
-  flaw(posix::write(s_pipeio[Write], &dummydata, 1) != 1, vterm::critical, /*std::exit(errno)*/,, // triggers execution stepper FD
+  flaw(posix::write(s_pipeio[Write], &dummydata, 1) != 1, terminal::critical, /*std::exit(errno)*/,, // triggers execution stepper FD
        "Unable to trigger Object signal queue processor: %s", std::strerror(errno))
 }
 

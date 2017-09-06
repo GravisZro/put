@@ -38,7 +38,7 @@ public:
     flaw(::pipe(stdin_pipe ) == posix::error_response ||
          ::pipe(stdout_pipe) == posix::error_response ||
          ::pipe(stderr_pipe) == posix::error_response,
-         vterm::critical, /*std::exit(errno)*/, ,
+         terminal::critical, /*std::exit(errno)*/, ,
          "Unable to create a pipe: %s", std::strerror(errno))
 
     posix_spawn_file_actions_init(&action);
@@ -61,7 +61,7 @@ public:
 
     const char* args[2] = { SPAWN_PROGRAM_NAME, nullptr };
 
-    flaw(posix_spawnp(&m_pid, SPAWN_PROGRAM_NAME, &action, nullptr, static_cast<char* const*>(const_cast<char**>(args)), nullptr) != posix::success_response, vterm::severe,,,
+    flaw(posix_spawnp(&m_pid, SPAWN_PROGRAM_NAME, &action, nullptr, static_cast<char* const*>(const_cast<char**>(args)), nullptr) != posix::success_response, terminal::severe,,,
       "posix_spawnp failed with error: %s", std::strerror(errno))
   }
 

@@ -76,7 +76,7 @@ struct platform_dependant
     {
       output.reserve(1024);
       fd = epoll_create(INT32_MAX);
-      flaw(fd == posix::invalid_descriptor, vterm::critical, std::exit(errno),,
+      flaw(fd == posix::invalid_descriptor, terminal::critical, std::exit(errno),,
            "Unable to create an instance of epoll! %s", std::strerror(errno))
     }
 
@@ -173,7 +173,7 @@ struct platform_dependant
       : fd(posix::invalid_descriptor)
     {
       fd = inotify_init();
-      flaw(fd == posix::invalid_descriptor, vterm::severe,,,
+      flaw(fd == posix::invalid_descriptor, terminal::severe,,,
            "Unable to create an instance of inotify!: %s", std::strerror(errno))
     }
 
@@ -244,10 +244,10 @@ struct platform_dependant
       sa_nl.nl_pid = getpid();
 
       fd = posix::socket(EDomain::netlink, EType::datagram, EProtocol::uevent);
-      flaw(fd == posix::invalid_descriptor, vterm::warning,,,
+      flaw(fd == posix::invalid_descriptor, terminal::warning,,,
            "Unable to open a socket for uevent netlink: %s", std::strerror(errno))
 
-      flaw(!posix::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl)), vterm::warning,,,
+      flaw(!posix::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl)), terminal::warning,,,
            "uevent netlink requires root level access: %s", std::strerror(errno))
     }
 
@@ -352,7 +352,7 @@ struct platform_dependant
       : fd(posix::invalid_descriptor)
     {
       fd = posix::socket(EDomain::netlink, EType::datagram, EProtocol::connector);
-      flaw(fd == posix::invalid_descriptor, vterm::warning,,,
+      flaw(fd == posix::invalid_descriptor, terminal::warning,,,
            "Unable to open a netlink socket for Process Events Connector: %s", std::strerror(errno))
 
       sockaddr_nl sa_nl;
@@ -360,7 +360,7 @@ struct platform_dependant
       sa_nl.nl_groups = CN_IDX_PROC;
       sa_nl.nl_pid = getpid();
 
-      flaw(!posix::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl)), vterm::warning,,,
+      flaw(!posix::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl)), terminal::warning,,,
            "Process Events Connector requires root level access: %s", std::strerror(errno))
 
       struct alignas(NLMSG_ALIGNTO) // 32-bit alignment
@@ -383,7 +383,7 @@ struct platform_dependant
       procconn.message.len = sizeof(proc_cn_mcast_op);
       procconn.operation = PROC_CN_MCAST_LISTEN;
 
-      flaw(posix::send(fd, &procconn, sizeof(procconn)) == posix::error_response, vterm::warning,,,
+      flaw(posix::send(fd, &procconn, sizeof(procconn)) == posix::error_response, terminal::warning,,,
            "Failed to enable Process Events Connector notifications: %s", std::strerror(errno))
     }
 
@@ -458,7 +458,7 @@ struct platform_dependant* EventBackend::platform = nullptr;
 
 void EventBackend::init(void) noexcept
 {
-  flaw(platform != nullptr, vterm::warning, posix::error(std::errc::operation_not_permitted),,
+  flaw(platform != nullptr, terminal::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::init() has been called multiple times!")
   platform = new platform_dependant;
 #ifdef MOUNT_NOTIFICATIONS
@@ -471,7 +471,7 @@ void EventBackend::init(void) noexcept
 
 void EventBackend::destroy(void) noexcept
 {
-  flaw(platform == nullptr, vterm::warning, posix::error(std::errc::operation_not_permitted),,
+  flaw(platform == nullptr, terminal::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::destroy() has been called multiple times!")
   delete platform;
   platform = nullptr;
@@ -728,7 +728,7 @@ struct platform_dependant
   platform_dependant(void)
   {
     kq = posix::ignore_interruption(::kqueue);
-    flaw(kq == posix::error_response, vterm::critical, std::exit(errno),,
+    flaw(kq == posix::error_response, terminal::critical, std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
     kinput .reserve(1024);
     koutput.reserve(1024);
@@ -744,14 +744,14 @@ struct platform_dependant* EventBackend::platform = nullptr;
 
 void EventBackend::init(void) noexcept
 {
-  flaw(platform != nullptr, vterm::warning, posix::error(std::errc::operation_not_permitted),,
+  flaw(platform != nullptr, terminal::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::init() has been called multiple times!")
   platform = new platform_dependant;
 }
 
 void EventBackend::destroy(void) noexcept
 {
-  flaw(platform == nullptr, vterm::warning, posix::error(std::errc::operation_not_permitted),,
+  flaw(platform == nullptr, terminal::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::destroy() has been called multiple times!")
   delete platform;
   platform = nullptr;
@@ -840,7 +840,7 @@ struct platform_dependant
   platform_dependant(void)
   {
     port = ::port_create();
-    flaw(port == posix::error_response, vterm::critical, std::exit(errno),,
+    flaw(port == posix::error_response, terminal::critical, std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
    pinput .reserve(1024);
    poutput.reserve(1024);
@@ -856,14 +856,14 @@ struct platform_dependant* EventBackend::platform = nullptr;
 
 void EventBackend::init(void) noexcept
 {
-  flaw(platform != nullptr, vterm::warning, posix::error(std::errc::operation_not_permitted),,
+  flaw(platform != nullptr, terminal::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::init() has been called multiple times!")
   platform = new platform_dependant;
 }
 
 void EventBackend::destroy(void) noexcept
 {
-  flaw(platform == nullptr, vterm::warning, posix::error(std::errc::operation_not_permitted),,
+  flaw(platform == nullptr, terminal::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::destroy() has been called multiple times!")
   delete platform;
   platform = nullptr;

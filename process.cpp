@@ -52,14 +52,14 @@ void Process::init_once(void) noexcept
     actions.sa_flags = SA_RESTART | SA_NOCLDSTOP;
 
     flaw(::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response,
-         vterm::critical, std::exit(errno), ,
+         terminal::critical, std::exit(errno), ,
          "Unable assign action to a signal: %s", std::strerror(errno))
   }
 }
 
 void Process::reaper(int sig) noexcept
 {
-  flaw(sig != SIGCHLD, vterm::warning, posix::error(std::errc::invalid_argument),,
+  flaw(sig != SIGCHLD, terminal::warning, posix::error(std::errc::invalid_argument),,
        "Process::reaper() has been called improperly")
 
   pid_t pid = posix::error_response; // set value just in case
@@ -230,7 +230,7 @@ bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
 
 bool Process::invoke(void) noexcept
 {
-  flaw(m_state != State::Initializing, vterm::severe, posix::error(std::errc::device_or_resource_busy), false,
+  flaw(m_state != State::Initializing, terminal::severe, posix::error(std::errc::device_or_resource_busy), false,
        "Called Process::invoke() on an active process!")
 
   m_iobuf.reset();
@@ -262,7 +262,7 @@ Process::State Process::state(void) noexcept
       break;
     default:
       process_state_t data;
-      flaw(::procstat(processId(), &data) == posix::error_response && m_state != State::Finished, vterm::severe, m_state = State::Invalid, m_state,
+      flaw(::procstat(processId(), &data) == posix::error_response && m_state != State::Finished, terminal::severe, m_state = State::Invalid, m_state,
            "Process %i does not exist.", processId()); // process must exist (rare case where process could exit durring this call is handled)
       switch (data.state)
       {

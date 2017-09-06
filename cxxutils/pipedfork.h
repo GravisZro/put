@@ -35,11 +35,11 @@ public:
          ::pipe(ipc_cipo) == posix::error_response ||
          ::pipe(out) == posix::error_response ||
          ::pipe(err) == posix::error_response,
-         vterm::critical, /*std::exit(errno)*/, ,
+         terminal::critical, /*std::exit(errno)*/, ,
          "Unable to create a pipe: %s", std::strerror(errno))
 
     flaw((m_pid = ::fork()) <= posix::error_response,
-         vterm::critical, /*std::exit(errno)*/, ,
+         terminal::critical, /*std::exit(errno)*/, ,
          "Unable to create a fork: %s", std::strerror(errno))
 
     if(m_pid) // if parent process
