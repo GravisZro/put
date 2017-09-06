@@ -16,7 +16,7 @@
 #include <specialized/procstat.h>
 #include <specialized/eventbackend.h>
 #include <cxxutils/error_helpers.h>
-#include <cxxutils/colors.h>
+#include <cxxutils/vterm.h>
 
 
 enum class command : uint8_t
@@ -52,14 +52,14 @@ void Process::init_once(void) noexcept
     actions.sa_flags = SA_RESTART | SA_NOCLDSTOP;
 
     flaw(::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response,
-         posix::critical, std::exit(errno), ,
+         vterm::critical, std::exit(errno), ,
          "Unable assign action to a signal: %s", std::strerror(errno))
   }
 }
 
 void Process::reaper(int sig) noexcept
 {
-  flaw(sig != SIGCHLD, posix::warning, posix::error(std::errc::invalid_argument),,
+  flaw(sig != SIGCHLD, vterm::warning, posix::error(std::errc::invalid_argument),,
        "Process::reaper() has been called improperly")
 
   pid_t pid = posix::error_response; // set value just in case
@@ -70,7 +70,7 @@ void Process::reaper(int sig) noexcept
     if(process_map_iter != process_map.end()) // if the dead process exists...
     {
       Process* p = process_map_iter->second;
-#ifndef ENABLE_PROCESS_EVENT_TRACKING
+#ifndef GLOBAL_PROCESS_EVENT_TRACKING
       Object::enqueue_copy(p->finished, posix::invalid_descriptor, EventData_t(EventFlags::ExitEvent, p->processId(), p->processId(), status, sig));
 #endif
       EventBackend::remove(p->getStdOut());
@@ -89,7 +89,7 @@ Process::Process(void) noexcept
 {
   init_once();
   process_map.emplace(processId(), this); // add self to process map
-#ifdef ENABLE_PROCESS_EVENT_TRACKING
+#ifdef GLOBAL_PROCESS_EVENT_TRACKING
   Object::connect(processId(), EventFlags::ExecEvent, started);
   Object::connect(processId(), EventFlags::ExitEvent, finished);
 #endif
@@ -230,7 +230,7 @@ bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
 
 bool Process::invoke(void) noexcept
 {
-  flaw(m_state != State::Initializing, posix::severe, posix::error(std::errc::device_or_resource_busy), false,
+  flaw(m_state != State::Initializing, vterm::severe, posix::error(std::errc::device_or_resource_busy), false,
        "Called Process::invoke() on an active process!")
 
   m_iobuf.reset();
@@ -242,7 +242,7 @@ bool Process::invoke(void) noexcept
   m_state = State::Invalid;
   state();
 
-#ifndef ENABLE_PROCESS_EVENT_TRACKING
+#ifndef GLOBAL_PROCESS_EVENT_TRACKING
   Object::enqueue_copy(started, posix::invalid_descriptor, EventData_t(EventFlags::ExecEvent, processId(), processId()));
 #endif
 
@@ -262,7 +262,7 @@ Process::State Process::state(void) noexcept
       break;
     default:
       process_state_t data;
-      flaw(::procstat(processId(), &data) == posix::error_response && m_state != State::Finished, posix::severe, m_state = State::Invalid, m_state,
+      flaw(::procstat(processId(), &data) == posix::error_response && m_state != State::Finished, vterm::severe, m_state = State::Invalid, m_state,
            "Process %i does not exist.", processId()); // process must exist (rare case where process could exit durring this call is handled)
       switch (data.state)
       {

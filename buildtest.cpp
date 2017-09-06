@@ -17,7 +17,7 @@
 #include <cxxutils/socket_helpers.h>
 #include <cxxutils/ranged.h>
 #include <cxxutils/error_helpers.h>
-#include <cxxutils/colors.h>
+#include <cxxutils/vterm.h>
 #include <cxxutils/sharedmem.h>
 #include <cxxutils/syslogstream.h>
 #include <cxxutils/nullable.h>

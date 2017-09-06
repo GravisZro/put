@@ -8,7 +8,7 @@
 
 // PDTK
 #include <cxxutils/error_helpers.h>
-#include <cxxutils/colors.h>
+#include <cxxutils/vterm.h>
 
 
 GenericSocket::GenericSocket(EDomain   domain,
@@ -47,10 +47,10 @@ void GenericSocket::disconnect(void) noexcept
 
 bool ClientSocket::connect(const char *socket_path) noexcept
 {
-  flaw(m_connected, posix::warning,, false,
+  flaw(m_connected, vterm::warning,, false,
        "Client socket is already connected!")
 
-  flaw(std::strlen(socket_path) >= sizeof(sockaddr_un::sun_path), posix::warning,, false,
+  flaw(std::strlen(socket_path) >= sizeof(sockaddr_un::sun_path), vterm::warning,, false,
        "socket_path (%lu characters) exceeds the maximum path length (%lu characters)", std::strlen(socket_path), sizeof(sockaddr_un::sun_path))
 
   posix::sockaddr_t peeraddr;
@@ -60,11 +60,11 @@ bool ClientSocket::connect(const char *socket_path) noexcept
   peeraddr = EDomain::local;
   m_selfaddr = EDomain::unspec;
 
-  flaw(!posix::connect(m_socket, peeraddr, peeraddr.size()), posix::warning,, false,
+  flaw(!posix::connect(m_socket, peeraddr, peeraddr.size()), vterm::warning,, false,
        "connect() to \"%s\" failure: %s", socket_path, std::strerror(errno)) // connect to peer process
   m_connected = true;
 
-  flaw(::peercred(m_socket, cred) != posix::success_response, posix::warning,, false,
+  flaw(::peercred(m_socket, cred) != posix::success_response, vterm::warning,, false,
        "peercred() failure: %s", std::strerror(errno)) // get creditials of connected peer process
 
   Object::enqueue(connected, m_socket, peeraddr, cred);
@@ -96,7 +96,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
     *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = fd;
   }
 
-  flaw(posix::sendmsg(m_socket, &header) == posix::error_response, posix::warning,, false,
+  flaw(posix::sendmsg(m_socket, &header) == posix::error_response, vterm::warning,, false,
        "sendmsg() failure: %s", std::strerror(errno))
   return true;
 }
@@ -104,7 +104,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
 bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 {
   (void)event;
-  flaw(m_socket != socket, posix::critical, std::exit(int(std::errc::invalid_argument)), false,
+  flaw(m_socket != socket, vterm::critical, std::exit(int(std::errc::invalid_argument)), false,
        "ClientSocket::read() was improperly called: %s", std::strerror(int(std::errc::invalid_argument)))
 
   msghdr header = {};
@@ -121,13 +121,13 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 
   posix::ssize_t byte_count = posix::recvmsg(m_socket, &header, 0);
 
-  flaw(byte_count == posix::error_response, posix::warning,, false,
+  flaw(byte_count == posix::error_response, vterm::warning,, false,
        "recvmsg() failure: %s", std::strerror(errno))
 
-  flaw(!byte_count, posix::information, disconnect(), false,
+  flaw(!byte_count, vterm::information, disconnect(), false,
        "Socket disconnected.")
 
-  flaw(!m_buffer.resize(byte_count), posix::severe, posix::error(std::errc::not_enough_memory), false,
+  flaw(!m_buffer.resize(byte_count), vterm::severe, posix::error(std::errc::not_enough_memory), false,
        "Failed to resize buffer to %li bytes", byte_count)
 
   posix::fd_t fd = posix::invalid_descriptor;
@@ -140,7 +140,7 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
       fd = *reinterpret_cast<int*>(CMSG_DATA(cmsg));
   }
   else
-  { flaw(header.msg_flags, posix::warning,, false,
+  { flaw(header.msg_flags, vterm::warning,, false,
          "error, message flags: 0x%04x", header.msg_flags) }
 
   Object::enqueue(newMessage, m_socket, m_buffer, fd);
@@ -149,23 +149,23 @@ bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
 
 bool ServerSocket::bind(const char* socket_path, EDomain domain, int socket_backlog) noexcept
 {
-  flaw(m_connected, posix::warning,, false,
+  flaw(m_connected, vterm::warning,, false,
        "Server socket is already bound!")
 
-  flaw(socket_path == nullptr, posix::warning,, false,
+  flaw(socket_path == nullptr, vterm::warning,, false,
        "socket_path is a null value")
 
-  flaw(std::strlen(socket_path) >= sizeof(sockaddr_un::sun_path), posix::warning,, false,
+  flaw(std::strlen(socket_path) >= sizeof(sockaddr_un::sun_path), vterm::warning,, false,
       "socket_path (%lu characters) exceeds the maximum path length (%lu characters)", std::strlen(socket_path), sizeof(sockaddr_un::sun_path));
 
   m_selfaddr = socket_path;
   m_selfaddr = domain;
 
-  flaw(!posix::bind(m_socket, m_selfaddr, m_selfaddr.size()), posix::warning,, false,
+  flaw(!posix::bind(m_socket, m_selfaddr, m_selfaddr.size()), vterm::warning,, false,
        "Unable to bind to socket to %s: %s", socket_path, std::strerror(errno))
   m_connected = true;
 
-  flaw(!posix::listen(m_socket, socket_backlog), posix::warning,, false,
+  flaw(!posix::listen(m_socket, socket_backlog), vterm::warning,, false,
        "Unable to listen to server socket: %s", std::strerror(errno))
   return true;
 }
@@ -217,23 +217,23 @@ void ServerSocket::disconnectPeer(posix::fd_t socket) noexcept
 bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
 {
   (void)event;
-  flaw(m_socket != socket, posix::critical, std::exit(int(std::errc::invalid_argument)), false,
+  flaw(m_socket != socket, vterm::critical, std::exit(int(std::errc::invalid_argument)), false,
        "ServerSocket::read() was improperly called: %s", std::strerror(int(std::errc::invalid_argument)))
   proccred_t cred;
   posix::sockaddr_t peeraddr;
   socklen_t addrlen = 0;
   posix::fd_t fd = posix::accept(m_socket, peeraddr, &addrlen); // accept a new socket connection
 
-  flaw(fd == posix::error_response, posix::warning,, false,
+  flaw(fd == posix::error_response, vterm::warning,, false,
        "accept() failure: %s", std::strerror(errno))
 
-  flaw(addrlen >= sizeof(sockaddr_un::sun_path), posix::severe,, false,
+  flaw(addrlen >= sizeof(sockaddr_un::sun_path), vterm::severe,, false,
        "accept() implementation bug: %s", "address length exceeds availible storage");
 
-  flaw(addrlen != peeraddr.size(), posix::severe,, false,
+  flaw(addrlen != peeraddr.size(), vterm::severe,, false,
        "accept() implementation bug: %s", "address length does not match string length");
 
-  flaw(::peercred(fd, cred) != posix::success_response, posix::warning,, false,
+  flaw(::peercred(fd, cred) != posix::success_response, vterm::warning,, false,
        "peercred() failure: %s", std::strerror(errno)) // get creditials of connected peer process
 
   m_peers.emplace(fd, peer_t(fd, peeraddr, cred));

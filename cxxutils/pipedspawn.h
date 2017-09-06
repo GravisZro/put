@@ -6,7 +6,7 @@
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/socket_helpers.h>
-#include <cxxutils/colors.h>
+#include <cxxutils/vterm.h>
 
 // Realtime POSIX
 #include <spawn.h>
@@ -38,7 +38,7 @@ public:
     flaw(::pipe(stdin_pipe ) == posix::error_response ||
          ::pipe(stdout_pipe) == posix::error_response ||
          ::pipe(stderr_pipe) == posix::error_response,
-         posix::critical, /*std::exit(errno)*/, ,
+         vterm::critical, /*std::exit(errno)*/, ,
          "Unable to create a pipe: %s", std::strerror(errno))
 
     posix_spawn_file_actions_init(&action);
@@ -61,7 +61,7 @@ public:
 
     const char* args[2] = { SPAWN_PROGRAM_NAME, nullptr };
 
-    flaw(posix_spawnp(&m_pid, SPAWN_PROGRAM_NAME, &action, nullptr, static_cast<char* const*>(const_cast<char**>(args)), nullptr) != posix::success_response, posix::severe,,,
+    flaw(posix_spawnp(&m_pid, SPAWN_PROGRAM_NAME, &action, nullptr, static_cast<char* const*>(const_cast<char**>(args)), nullptr) != posix::success_response, vterm::severe,,,
       "posix_spawnp failed with error: %s", std::strerror(errno))
   }
 

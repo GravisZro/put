@@ -4,7 +4,7 @@
 // PDTK
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/error_helpers.h>
-#include <cxxutils/colors.h>
+#include <cxxutils/vterm.h>
 #include <cxxutils/vfifo.h>
 
 // POSIX++
@@ -35,11 +35,11 @@ public:
          ::pipe(ipc_cipo) == posix::error_response ||
          ::pipe(out) == posix::error_response ||
          ::pipe(err) == posix::error_response,
-         posix::critical, /*std::exit(errno)*/, ,
+         vterm::critical, /*std::exit(errno)*/, ,
          "Unable to create a pipe: %s", std::strerror(errno))
 
     flaw((m_pid = ::fork()) <= posix::error_response,
-         posix::critical, /*std::exit(errno)*/, ,
+         vterm::critical, /*std::exit(errno)*/, ,
          "Unable to create a fork: %s", std::strerror(errno))
 
     if(m_pid) // if parent process
