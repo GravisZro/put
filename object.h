@@ -141,7 +141,7 @@ public:
 
   // disconnect connections to file for all event flags
   static inline void disconnect(const char* path) noexcept
-    { disconnect(EventBackend::lookup(path), EventFlags::FileEvent | EventFlags::DirEvent); }
+    { disconnect(EventBackend::lookup(path), EventFlags::FileEvent | EventFlags::DirEvent /*| EventFlags::FilesystemEvent*/); }
 
   // disconnect connections to fd for certain event flags
   static inline void disconnect(posix::fd_t fd, EventFlags_t flags = EventFlags::Readable) noexcept
@@ -168,6 +168,14 @@ public:
   {
     std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::ms_signal_queue); // multithread protection
     Application::ms_signal_queue.emplace(std::bind(slot, obj, std::forward<ArgTypes>(args)...));
+    Application::step(); // inform execution stepper
+  }
+
+  template<typename RType, typename... ArgTypes>
+  static inline void singleShot(fslot_t<RType, ArgTypes...> slot, ArgTypes&... args) noexcept
+  {
+    std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::ms_signal_queue); // multithread protection
+    Application::ms_signal_queue.emplace(std::bind(slot, std::forward<ArgTypes>(args)...));
     Application::step(); // inform execution stepper
   }
 

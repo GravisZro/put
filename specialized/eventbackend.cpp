@@ -2,17 +2,19 @@
 
 #define MAX_EVENTS 1024
 
-//#if 0
 #if defined(__linux__)
 
-// epoll needs kernel 2.5.44 or higher
-// "process events connector" needs  kernel 2.6.15 or higher
+// epoll needs kernel 2.5.44
+// "process events connector" needs  kernel 2.6.15
+// uevents needs kernel 2.6.10
+// eventfd needs kernel 2.6.22
 
 // Linux
 #include <sys/inotify.h>
 #include <sys/epoll.h>
-# include <linux/netlink.h>
-#ifdef ENABLE_PROCESS_EVENT_TRACKING
+#include <sys/eventfd.h>
+#include <linux/netlink.h>
+#ifdef GLOBAL_PROCESS_EVENT_TRACKING
 # include <linux/connector.h>
 # include <linux/cn_proc.h>
 #endif
@@ -21,6 +23,7 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <unordered_set>
 
 // POSIX
 #include <sys/socket.h>
@@ -33,7 +36,7 @@
 #include <cstring>
 
 // PDTK
-#include <cxxutils/colors.h>
+#include <cxxutils/vterm.h>
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/socket_helpers.h>
 
@@ -73,7 +76,7 @@ struct platform_dependant
     {
       output.reserve(1024);
       fd = epoll_create(INT32_MAX);
-      flaw(fd == posix::invalid_descriptor, posix::critical, std::exit(errno),,
+      flaw(fd == posix::invalid_descriptor, vterm::critical, std::exit(errno),,
            "Unable to create an instance of epoll! %s", std::strerror(errno))
     }
 
@@ -170,14 +173,14 @@ struct platform_dependant
       : fd(posix::invalid_descriptor)
     {
       fd = inotify_init();
-      flaw(fd == posix::invalid_descriptor, posix::severe,,,
+      flaw(fd == posix::invalid_descriptor, vterm::severe,,,
            "Unable to create an instance of inotify!: %s", std::strerror(errno))
     }
 
     ~fsnotify_t(void) noexcept
     {
       posix::close(fd);
-      fd = posix::error_response;
+      fd = posix::invalid_descriptor;
     }
 
     posix::fd_t watch(const char* path, EventFlags_t flags) noexcept
@@ -206,11 +209,11 @@ struct platform_dependant
       return inotify_rm_watch(fd, wd) == posix::success_response;
     }
 
-    bool owns(posix::fd_t somefd) const noexcept
-      { return fds2path.find(somefd) != fds2path.end(); }
+    bool owns(posix::fd_t wd) const noexcept
+      { return fds2path.find(wd) != fds2path.end(); }
 
 #define INOTIFY_EVENT_SIZE   (sizeof(inotify_event) + NAME_MAX + 1)
-    void read(posix::fd_t filefd, uint32_t watchedflags, std::unordered_multimap<posix::fd_t, EventData_t>& results)
+    void read(posix::fd_t wd, uint32_t watchedflags, std::unordered_multimap<posix::fd_t, EventData_t>& results)
     {
       (void)watchedflags;
       static uint8_t inotifiy_buffer_data[INOTIFY_EVENT_SIZE * 16]; // queue has a minimum of size of 16 inotify events
@@ -218,100 +221,110 @@ struct platform_dependant
         uint8_t* inpos;
         inotify_event* incur;
       };
-      uint8_t* inend = inotifiy_buffer_data + posix::read(filefd, inotifiy_buffer_data, sizeof(inotifiy_buffer_data)); // read data and locate it's end
+      uint8_t* inend = inotifiy_buffer_data + posix::read(wd, inotifiy_buffer_data, sizeof(inotifiy_buffer_data)); // read data and locate it's end
       for(inpos = inotifiy_buffer_data; inpos < inend; inpos += sizeof(inotify_event) + incur->len) // iterate through the inotify events
-        results.emplace(filefd, from_native_flags(incur->mask)); // save result (in non-native format)
+        results.emplace(wd, from_native_flags(incur->mask)); // save result (in non-native format)
     }
 
   } fsnotify;
-
-#ifdef ENABLE_UEVENT_TRACKING
-  struct eventnotify_t // event notifications (via netlink)
+#ifdef MOUNT_NOTIFICATIONS
+  struct mountnotify_t // event notifications (via netlink)
   {
     posix::fd_t fd;
+    std::unordered_map<std::string, posix::fd_t> mount2fds; // mountpoint/device -> eventfd
+    std::unordered_map<posix::fd_t, std::pair<std::string, EventFlags_t>> fds2mount; // eventfd -> mountpoint/device
 
-    eventnotify_t(void) noexcept
+    mountnotify_t(void) noexcept
       : fd(posix::invalid_descriptor)
     {
-      fd = posix::socket(EDomain::netlink, EType::datagram, EProtocol::uevent);
-      flaw(fd == posix::invalid_descriptor, posix::warning,,,
-           "Unable to open a socket for uevent netlink: %s", std::strerror(errno))
-
-//      flaw(::setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buf_sz, sizeof(buf_sz)) != posix::success_response, posix::warning,,,
-//           "Unable to set socket option \"SO_RCVBUF\" for uevent netlink: %s", std::strerror(errno))
-
-      const int enable = 1;
-      flaw(::setsockopt(fd, SOL_SOCKET, SO_PASSCRED, &enable, sizeof(enable)) != posix::success_response, posix::warning,,,
-           "Unable to set socket option \"SO_PASSCRED\" for uevent netlink: %s", std::strerror(errno))
-
       sockaddr_nl sa_nl;
+      std::memset(&sa_nl, 0, sizeof(struct sockaddr_nl));
       sa_nl.nl_family = PF_NETLINK;
       sa_nl.nl_groups = UINT32_MAX;
       sa_nl.nl_pid = getpid();
 
-      flaw(!posix::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl)), posix::warning,,,
+      fd = posix::socket(EDomain::netlink, EType::datagram, EProtocol::uevent);
+      flaw(fd == posix::invalid_descriptor, vterm::warning,,,
+           "Unable to open a socket for uevent netlink: %s", std::strerror(errno))
+
+      flaw(!posix::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl)), vterm::warning,,,
            "uevent netlink requires root level access: %s", std::strerror(errno))
     }
 
-    ~eventnotify_t(void) noexcept
+    ~mountnotify_t(void) noexcept
     {
       posix::close(fd);
-      fd = posix::error_response;
+      fd = posix::invalid_descriptor;
     }
 
     posix::fd_t watch(const char* device, EventFlags_t flags) noexcept
     {
       // add filter installation code here
-
-      return 0;
+      posix::fd_t wd = ::eventfd(0, 0);
+      fds2mount.emplace(wd, std::make_pair(device, flags));
+      mount2fds.emplace(device, wd);
+      return wd;
     }
 
-    bool remove(const char* device) noexcept
+    posix::fd_t lookup(const char* path)
+    {
+      auto iter = mount2fds.find(path);
+      return iter == mount2fds.end() ? posix::invalid_descriptor : iter->second;
+    }
+
+    bool remove(posix::fd_t wd) noexcept
     {
       // add filter removal code here
-
-      return true;
+      auto iter = fds2mount.find(wd);
+      if(iter == fds2mount.end())
+        return false;
+      mount2fds.erase(iter->second.first); // erase by name
+      fds2mount.erase(iter); // erase iterator
+      return posix::close(wd);
     }
 
-    bool owns(posix::fd_t somefd) const noexcept
-      { return somefd == fd; }
+    bool owns(posix::fd_t wd) const noexcept
+      { return fds2mount.find(wd) != fds2mount.end(); }
 
-    void read(posix::fd_t eventfd, uint32_t watchedflags, std::unordered_multimap<posix::fd_t, EventData_t>& results)
+    void read(posix::fd_t wd, uint32_t watchedflags, std::unordered_multimap<posix::fd_t, EventData_t>& results)
     {
       (void)watchedflags;
-      void* buffer;
-      size_t length = 10;
-      struct iovec iov = { buffer, length };
-      struct sockaddr_nl addr;
-      char control[CMSG_SPACE(sizeof(struct ucred))];
-      struct msghdr hdr = {
-          &addr,
-          sizeof(addr),
-          &iov,
-          1,
-          control,
-          sizeof(control),
-          0,
-      };
+      char buffer[4096] = {0};
 
-      ssize_t n = posix::recvmsg(eventfd, &hdr, 0);
+      ssize_t n = posix::recv(wd, &buffer, sizeof(buffer), 0);
       if (n > 0)
       {
-        struct cmsghdr *cmsg = CMSG_FIRSTHDR(&hdr);
-        if (cmsg == nullptr || // no idea how any of these could happen
-            cmsg->cmsg_type != SCM_CREDENTIALS ||
-            reinterpret_cast<struct ucred*>(CMSG_DATA(cmsg))->uid != 0 || // ignoring netlink message from non-root user
-            addr.nl_pid != 0) // ignore non-kernel
+        bool do_add    = std::strncmp("add@", buffer, sizeof("add@")) == posix::success_response;
+        bool do_remove = std::strncmp("remove@", buffer, sizeof("remove@")) == posix::success_response;
+        if(do_add || do_remove)
         {
-          std::memset(buffer, 0, length); // clear potentially malicious data
-          errno = EIO;
+          char mountpoint[PATH_MAX] = {0};
+          const char* majmin = std::strrchr(buffer, '/'); // find last '/'
+          if(majmin == nullptr) // if invalid
+            return; // exit function
+          ++majmin; // get the next character
+
+
+          auto name_iter = mount2fds.find(mountpoint);
+          if(name_iter != mount2fds.end())
+          {
+            auto fd_iter = fds2mount.find(name_iter->second);
+            const std::string& device = fd_iter->second.first;
+            const EventFlags_t& flags = fd_iter->second.second;
+
+            if(flags.isSet(EventFlags::MountEvent))
+            {
+            }
+            else if(flags.isSet(EventFlags::UnmountEvent))
+            {
+            }
+          }
         }
       }
     }
-  } eventnotify;
+  } mountnotify;
 #endif
-
-#ifdef ENABLE_PROCESS_EVENT_TRACKING
+#ifdef GLOBAL_PROCESS_EVENT_TRACKING
   struct procnotify_t // process notification (process events connector)
   {
     posix::fd_t fd;
@@ -321,9 +334,6 @@ struct platform_dependant
     static EventFlags_t from_native_flags(const uint32_t flags) noexcept
     {
       EventFlags_t data;
-    //  data.UIDEvent  = flags & proc_event::PROC_EVENT_UID  ? 1 : 0;
-    //  data.GIDEvent  = flags & proc_event::PROC_EVENT_GID  ? 1 : 0;
-    //  data.SIDEvent  = flags & proc_event::PROC_EVENT_SID  ? 1 : 0;
       data.ExecEvent = flags & proc_event::PROC_EVENT_EXEC ? 1 : 0;
       data.ExitEvent = flags & proc_event::PROC_EVENT_EXIT ? 1 : 0;
       data.ForkEvent = flags & proc_event::PROC_EVENT_FORK ? 1 : 0;
@@ -333,9 +343,6 @@ struct platform_dependant
     static constexpr uint32_t to_native_flags(const EventFlags_t& flags) noexcept
     {
       return
-    //      (flags.UIDEvent  ? uint32_t(proc_event::PROC_EVENT_UID ) : 0) | // Process changed it's User ID
-    //      (flags.GIDEvent  ? uint32_t(proc_event::PROC_EVENT_GID ) : 0) | // Process changed it's Group ID
-    //      (flags.SIDEvent  ? uint32_t(proc_event::PROC_EVENT_SID ) : 0) | // Process changed it's Session ID
           (flags.ExecEvent ? uint32_t(proc_event::PROC_EVENT_EXEC) : 0) | // Process called exec*()
           (flags.ExitEvent ? uint32_t(proc_event::PROC_EVENT_EXIT) : 0) | // Process exited
           (flags.ForkEvent ? uint32_t(proc_event::PROC_EVENT_FORK) : 0) ; // Process forked
@@ -345,7 +352,7 @@ struct platform_dependant
       : fd(posix::invalid_descriptor)
     {
       fd = posix::socket(EDomain::netlink, EType::datagram, EProtocol::connector);
-      flaw(fd == posix::invalid_descriptor, posix::warning,,,
+      flaw(fd == posix::invalid_descriptor, vterm::warning,,,
            "Unable to open a netlink socket for Process Events Connector: %s", std::strerror(errno))
 
       sockaddr_nl sa_nl;
@@ -353,7 +360,7 @@ struct platform_dependant
       sa_nl.nl_groups = CN_IDX_PROC;
       sa_nl.nl_pid = getpid();
 
-      flaw(!posix::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl)), posix::warning,,,
+      flaw(!posix::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl)), vterm::warning,,,
            "Process Events Connector requires root level access: %s", std::strerror(errno))
 
       struct alignas(NLMSG_ALIGNTO) // 32-bit alignment
@@ -376,14 +383,14 @@ struct platform_dependant
       procconn.message.len = sizeof(proc_cn_mcast_op);
       procconn.operation = PROC_CN_MCAST_LISTEN;
 
-      flaw(posix::send(fd, &procconn, sizeof(procconn)) == posix::error_response, posix::warning,,,
+      flaw(posix::send(fd, &procconn, sizeof(procconn)) == posix::error_response, vterm::warning,,,
            "Failed to enable Process Events Connector notifications: %s", std::strerror(errno))
     }
 
     ~procnotify_t(void) noexcept
     {
       posix::close(fd);
-      fd = posix::error_response;
+      fd = posix::invalid_descriptor;
     }
 
     posix::fd_t watch(pid_t pid, EventFlags_t flags) noexcept
@@ -451,20 +458,20 @@ struct platform_dependant* EventBackend::platform = nullptr;
 
 void EventBackend::init(void) noexcept
 {
-  flaw(platform != nullptr, posix::warning, posix::error(std::errc::operation_not_permitted),,
+  flaw(platform != nullptr, vterm::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::init() has been called multiple times!")
   platform = new platform_dependant;
-#ifdef ENABLE_PROCESS_EVENT_TRACKING
-  watch(platform->procnotify.fd, EventFlags::Readable);
+#ifdef MOUNT_NOTIFICATIONS
+  watch(platform->mountnotify.fd, EventFlags::Readable);
 #endif
-#ifdef ENABLE_UEVENT_TRACKING
-  watch(platform->eventnotify.fd, EventFlags::Readable);
+#ifdef GLOBAL_PROCESS_EVENT_TRACKING
+  watch(platform->procnotify.fd, EventFlags::Readable);
 #endif
 }
 
 void EventBackend::destroy(void) noexcept
 {
-  flaw(platform == nullptr, posix::warning, posix::error(std::errc::operation_not_permitted),,
+  flaw(platform == nullptr, vterm::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::destroy() has been called multiple times!")
   delete platform;
   platform = nullptr;
@@ -473,47 +480,80 @@ void EventBackend::destroy(void) noexcept
 
 posix::fd_t EventBackend::watch(const char* path, EventFlags_t flags) noexcept
 {
-  posix::fd_t fd = platform->fsnotify.watch(path, flags);
-  if(fd > 0 && watch(fd, EventFlags::Readable) <= 0)
+  posix::fd_t fd = posix::invalid_descriptor;
+  if(flags.isSet(EventFlags::FileEvent | EventFlags::DirEvent))
   {
-    platform->fsnotify.remove(fd);
-    fd = posix::invalid_descriptor;
+    fd = platform->fsnotify.watch(path, flags);
+    if(fd > 0 && watch(fd, EventFlags::Readable) <= 0)
+    {
+      platform->fsnotify.remove(fd);
+      fd = posix::invalid_descriptor;
+    }
   }
+#ifdef MOUNT_NOTIFICATIONS
+  else if(flags.isSet(EventFlags::FilesystemEvent))
+  {
+    fd = platform->mountnotify.watch(path, flags);
+    if(fd > 0 && watch(fd, EventFlags::Readable) <= 0)
+    {
+      platform->mountnotify.remove(fd);
+      fd = posix::invalid_descriptor;
+    }
+  }
+#endif
   return fd;
 }
 
 posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
 {
-  if(flags | EventFlags::ProcEvent)
-#ifdef ENABLE_PROCESS_EVENT_TRACKING
+  if(flags.isSet(EventFlags::ProcEvent))
+#ifdef GLOBAL_PROCESS_EVENT_TRACKING
     return platform->procnotify.watch(target, flags);
 #else
     return posix::invalid_descriptor;
 #endif
-  else if(flags | EventFlags::FDEvent)
+  else if(flags.isSet(EventFlags::FDEvent))
     return platform->pollnotify.watch(target, flags);
   return posix::invalid_descriptor;
 }
 
 posix::fd_t EventBackend::lookup(const char* path) noexcept
 {
-  auto iter = platform->fsnotify.path2fds.find(path);
-  return iter == platform->fsnotify.path2fds.end() ? posix::invalid_descriptor : iter->second;
+  auto iterpath = platform->fsnotify.path2fds.find(path);
+  if(iterpath != platform->fsnotify.path2fds.end())
+    return iterpath->second;
+
+#ifdef MOUNT_NOTIFICATIONS
+  auto itermount = platform->mountnotify.mount2fds.find(path);
+  if(itermount != platform->mountnotify.mount2fds.end())
+    return itermount->second;
+#endif
+
+  return posix::invalid_descriptor;
 }
 
 bool EventBackend::remove(int target, EventFlags_t flags) noexcept
 {
-#ifdef ENABLE_PROCESS_EVENT_TRACKING
-  if(flags | EventFlags::ProcEvent)
-    return platform->procnotify.remove(target) && platform->pollnotify.remove(target);
-#else
-  if(flags | EventFlags::FileEvent | EventFlags::DirEvent)
-    return (platform->fsnotify.remove(target) && platform->pollnotify.remove(target)) ||
-           platform->pollnotify.remove(target);
+  bool result = false;
+  if(flags.isSet(EventFlags::FileEvent | EventFlags::DirEvent))
+  {
+    flags.set(EventFlags::FDEvent);
+    result |= platform->fsnotify.remove(target);
+  }
+#ifdef MOUNT_NOTIFICATIONS
+  if(flags.isSet(EventFlags::FilesystemEvent))
+  {
+    flags.set(EventFlags::FDEvent);
+    result |= platform->mountnotify.remove(target);
+  }
 #endif
-  else if(flags | EventFlags::FDEvent)
-    return platform->pollnotify.remove(target);
-  return false;
+  if(flags.isSet(EventFlags::FDEvent))
+    result |= platform->pollnotify.remove(target);
+#ifdef GLOBAL_PROCESS_EVENT_TRACKING
+  if(flags.isSet(EventFlags::ProcEvent))
+    result |= platform->procnotify.remove(target);
+#endif
+  return result;
 }
 
 bool EventBackend::getevents(int timeout) noexcept
@@ -527,26 +567,26 @@ bool EventBackend::getevents(int timeout) noexcept
   const epoll_event* end = platform->pollnotify.output.data() + count;
   for(epoll_event* pos = platform->pollnotify.output.data(); pos != end; ++pos) // iterate through results
   {
-#ifdef ENABLE_PROCESS_EVENT_TRACKING
-    if(platform->procnotify.owns(pos->data.fd)) // if a process event
-      platform->procnotify.read(pos->data.fd, pos->events, results);
-    else
+    const posix::fd_t fd = pos->data.fd;
+    const uint32_t events = pos->events;
+    if(platform->fsnotify.owns(fd)) // if an inotify event
+      platform->fsnotify.read(fd, events, results);
+#ifdef MOUNT_NOTIFICATIONS
+    else if(platform->mountnotify.owns(fd)) // if a process event
+      platform->mountnotify.read(fd, events, results);
 #endif
-#ifdef ENABLE_UEVENT_TRACKING
-    if(platform->eventnotify.owns(pos->data.fd)) // if a process event
-      platform->eventnotify.read(pos->data.fd, pos->events, results);
-    else
-#endif
-    if(platform->fsnotify.owns(pos->data.fd)) // if an inotify event
-      platform->fsnotify.read(pos->data.fd, pos->events, results);
+#ifdef GLOBAL_PROCESS_EVENT_TRACKING
+    else if(platform->procnotify.owns(fd)) // if a process event
+      platform->procnotify.read(fd, events, results);
+#endif    
     else // normal file descriptor event
-      platform->pollnotify.read(pos->data.fd, pos->events, results);
+      platform->pollnotify.read(fd, events, results);
   }
   return true;
 }
 #elif defined(__APPLE__) || defined(BSD)
 
-#define ENABLE_PROCESS_EVENT_TRACKING
+#define GLOBAL_PROCESS_EVENT_TRACKING
 
 // BSD
 #include <sys/time.h>
@@ -566,7 +606,7 @@ bool EventBackend::getevents(int timeout) noexcept
 #include <vector>
 
 // PDTK
-#include <cxxutils/colors.h>
+#include <cxxutils/vterm.h>
 #include <cxxutils/error_helpers.h>
 
 
@@ -580,32 +620,37 @@ constexpr uint32_t to_event_filter(const EventFlags_t& flags)
     return EVFILT_READ;
   if(flags.Writeable)
     return EVFILT_WRITE;
-  if(flags | EventFlags::FileEvent)
+  if(flags & (EventFlags::FileEvent | EventFlags::DirEvent))
     return EVFILT_VNODE;
-  if(flags | EventFlags::ProcEvent)
+  if(flags & EventFlags::ProcEvent)
     return EVFILT_PROC;
+  if(flags & EventFlags::FilesystemEvent)
+    return EVFILT_FS;
   return 0;
 }
 
 constexpr uint32_t to_native_flags(const EventFlags_t& flags)
 {
   return
-#ifdef ENABLE_PROCESS_EVENT_TRACKING
+#ifdef GLOBAL_PROCESS_EVENT_TRACKING
 // process
-      (flags.ExecEvent    ? uint32_t(NOTE_EXEC  ) : 0) | // Process called exec*()
-      (flags.ExitEvent    ? uint32_t(NOTE_EXIT  ) : 0) | // Process exited
-      (flags.ForkEvent    ? uint32_t(NOTE_FORK  ) : 0) | // Process forked
+      (flags.ExecEvent    ? uint32_t(NOTE_EXEC    ) : 0) | // Process called exec*()
+      (flags.ExitEvent    ? uint32_t(NOTE_EXIT    ) : 0) | // Process exited
+      (flags.ForkEvent    ? uint32_t(NOTE_FORK    ) : 0) | // Process forked
 #endif
 // file flags
-      (flags.ReadEvent    ? uint32_t(NOTE_NONE  ) : 0) | // File was read
-      (flags.WriteEvent   ? uint32_t(NOTE_WRITE ) : 0) | // File was modified (*).
-      (flags.AttributeMod ? uint32_t(NOTE_ATTRIB) : 0) | // Metadata changed, e.g., permissions, timestamps, extended attributes, link count (since Linux 2.6.25), UID, GID, etc. (*).
-      (flags.Moved        ? uint32_t(NOTE_RENAME) : 0) | // Watched File was moved.
-      (flags.Deleted      ? uint32_t(NOTE_DELETE) : 0) | // Watched File was deleted.
+      (flags.ReadEvent    ? uint32_t(NOTE_NONE    ) : 0) | // File was read
+      (flags.WriteEvent   ? uint32_t(NOTE_WRITE   ) : 0) | // File was modified (*).
+      (flags.AttributeMod ? uint32_t(NOTE_ATTRIB  ) : 0) | // Metadata changed, e.g., permissions, timestamps, extended attributes, link count (since Linux 2.6.25), UID, GID, etc. (*).
+      (flags.Moved        ? uint32_t(NOTE_RENAME  ) : 0) | // Watched File was moved.
+      (flags.Deleted      ? uint32_t(NOTE_DELETE  ) : 0) | // Watched File was deleted.
 // directory flags
-      (flags.SubCreated   ? uint32_t(NOTE_WRITE ) : 0) | // File created in watched dir.
-      (flags.SubMoved     ? uint32_t(NOTE_RENAME) : 0) | // File moved in watched dir.
-      (flags.SubDeleted   ? uint32_t(NOTE_DELETE) : 0) ; // File deleted in watched dir.
+      (flags.SubCreated   ? uint32_t(NOTE_WRITE   ) : 0) | // File created in watched dir.
+      (flags.SubMoved     ? uint32_t(NOTE_RENAME  ) : 0) | // File moved in watched dir.
+      (flags.SubDeleted   ? uint32_t(NOTE_DELETE  ) : 0) | // File deleted in watched dir.
+// filesystem flags
+      (flags.MountEvent   ? uint32_t(NOTE_MOUNTED ) : 0) | // Filesystem mounted
+      (flags.UnmountEvent ? uint32_t(NOTE_UMOUNTED) : 0) ; // Filesystem unmounted
 }
 
 
@@ -614,50 +659,57 @@ inline EventData_t from_kevent(const struct kevent& ev) noexcept
 {
   EventData_t data;
   struct stat buf;
-  data.flags.Error = ev.flags & EV_ERROR ? 1 : 0;
+  data.flags.Error              = ev.flags & EV_ERROR       ? 1 : 0;
 
   switch (ev.filter)
   {
     case EVFILT_READ:
-      data.flags.Readable     = ev.flags == 0          ? 1 : 0;
-      data.flags.Disconnected = ev.flags & EV_EOF      ? 1 : 0;
+      data.flags.Readable       = ev.flags == 0             ? 1 : 0;
+      data.flags.Disconnected   = ev.flags & EV_EOF         ? 1 : 0;
       break;
 
     case EVFILT_WRITE:
-      data.flags.Writeable    = ev.flags == 0          ? 1 : 0;
+      data.flags.Writeable      = ev.flags == 0             ? 1 : 0;
+      break;
+
+    case EVFILT_FS:
+      data.flags.MountEvent     = ev.flags & NOTE_MOUNTED   ? 1 : 0;
+      data.flags.UnmountEvent   = ev.flags & NOTE_UMOUNTED  ? 1 : 0;
+
+
       break;
 
     case EVFILT_VNODE:
-      data.flags.AttributeMod = ev.flags & NOTE_ATTRIB ? 1 : 0;
+      data.flags.AttributeMod   = ev.flags & NOTE_ATTRIB    ? 1 : 0;
 // file flags
-      data.flags.WriteEvent   = ev.flags & NOTE_WRITE  ? 1 : 0;
-      data.flags.Moved        = ev.flags & NOTE_RENAME ? 1 : 0;
-      data.flags.Deleted      = ev.flags & NOTE_DELETE ? 1 : 0;
+      data.flags.WriteEvent     = ev.flags & NOTE_WRITE     ? 1 : 0;
+      data.flags.Moved          = ev.flags & NOTE_RENAME    ? 1 : 0;
+      data.flags.Deleted        = ev.flags & NOTE_DELETE    ? 1 : 0;
 /*
       ::fstat(ev.indent, &buf);
       if(buf.st_mode & S_IFDIR)
       {
         // directory flags
-        data.flags.SubCreated   = ev.flags & NOTE_WRITE  ? 1 : 0;
-        data.flags.SubMoved     = ev.flags & NOTE_RENAME ? 1 : 0;
-        data.flags.SubDeleted   = ev.flags & NOTE_DELETE ? 1 : 0;
+        data.flags.SubCreated   = ev.flags & NOTE_WRITE     ? 1 : 0;
+        data.flags.SubMoved     = ev.flags & NOTE_RENAME    ? 1 : 0;
+        data.flags.SubDeleted   = ev.flags & NOTE_DELETE    ? 1 : 0;
       }
       else
       {
         // file flags
-        data.flags.WriteEvent   = ev.flags & NOTE_WRITE  ? 1 : 0;
-        data.flags.Moved        = ev.flags & NOTE_RENAME ? 1 : 0;
-        data.flags.Deleted      = ev.flags & NOTE_DELETE ? 1 : 0;
+        data.flags.WriteEvent   = ev.flags & NOTE_WRITE     ? 1 : 0;
+        data.flags.Moved        = ev.flags & NOTE_RENAME    ? 1 : 0;
+        data.flags.Deleted      = ev.flags & NOTE_DELETE    ? 1 : 0;
       }
 */
       break;
 
-#ifdef ENABLE_PROCESS_EVENT_TRACKING
+#ifdef GLOBAL_PROCESS_EVENT_TRACKING
     case EVFILT_PROC:
     // process flags
-      data.flags.ExecEvent          = ev.flags & NOTE_EXEC   ? 1 : 0;
-      data.flags.ExitEvent          = ev.flags & NOTE_EXIT   ? 1 : 0;
-      data.flags.ForkEvent          = ev.flags & NOTE_FORK   ? 1 : 0;
+      data.flags.ExecEvent      = ev.flags & NOTE_EXEC      ? 1 : 0;
+      data.flags.ExitEvent      = ev.flags & NOTE_EXIT      ? 1 : 0;
+      data.flags.ForkEvent      = ev.flags & NOTE_FORK      ? 1 : 0;
       break;
 #endif
   }
@@ -676,7 +728,7 @@ struct platform_dependant
   platform_dependant(void)
   {
     kq = posix::ignore_interruption(::kqueue);
-    flaw(kq == posix::error_response, posix::critical, std::exit(errno),,
+    flaw(kq == posix::error_response, vterm::critical, std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
     kinput .reserve(1024);
     koutput.reserve(1024);
@@ -692,14 +744,14 @@ struct platform_dependant* EventBackend::platform = nullptr;
 
 void EventBackend::init(void) noexcept
 {
-  flaw(platform != nullptr, posix::warning, posix::error(std::errc::operation_not_permitted),,
+  flaw(platform != nullptr, vterm::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::init() has been called multiple times!")
   platform = new platform_dependant;
 }
 
 void EventBackend::destroy(void) noexcept
 {
-  flaw(platform == nullptr, posix::warning, posix::error(std::errc::operation_not_permitted),,
+  flaw(platform == nullptr, vterm::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::destroy() has been called multiple times!")
   delete platform;
   platform = nullptr;
@@ -775,7 +827,7 @@ bool EventBackend::getevents(int timeout) noexcept
 #include <vector>
 
 // PDTK
-#include <cxxutils/colors.h>
+#include <cxxutils/vterm.h>
 #include <cxxutils/error_helpers.h>
 
 
@@ -788,7 +840,7 @@ struct platform_dependant
   platform_dependant(void)
   {
     port = ::port_create();
-    flaw(port == posix::error_response, posix::critical, std::exit(errno),,
+    flaw(port == posix::error_response, vterm::critical, std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
    pinput .reserve(1024);
    poutput.reserve(1024);
@@ -804,14 +856,14 @@ struct platform_dependant* EventBackend::platform = nullptr;
 
 void EventBackend::init(void) noexcept
 {
-  flaw(platform != nullptr, posix::warning, posix::error(std::errc::operation_not_permitted),,
+  flaw(platform != nullptr, vterm::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::init() has been called multiple times!")
   platform = new platform_dependant;
 }
 
 void EventBackend::destroy(void) noexcept
 {
-  flaw(platform == nullptr, posix::warning, posix::error(std::errc::operation_not_permitted),,
+  flaw(platform == nullptr, vterm::warning, posix::error(std::errc::operation_not_permitted),,
        "EventBackend::destroy() has been called multiple times!")
   delete platform;
   platform = nullptr;

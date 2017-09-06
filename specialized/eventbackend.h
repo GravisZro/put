@@ -15,34 +15,37 @@
 enum class EventFlags : uint32_t
 {
 // File descriptor events
-  Invalid       = 0x00000000,
-  Error         = 0x00000001, // FD encountered an error (output only)
-  Disconnected  = 0x00000002, // FD has disconnected (output only)
-  Readable      = 0x00000004, // FD has content to read
-  Writeable     = 0x00000008, // FD is writeable
-  EdgeTrigger   = 0x00000010, // FD will be edge-triggered (input only)
-  FDEvent       = 0x0000001F, // Any FD Event
+  Invalid         = 0x00000000,
+  Error           = 0x00000001, // FD encountered an error (output only)
+  Disconnected    = 0x00000002, // FD has disconnected (output only)
+  Readable        = 0x00000004, // FD has content to read
+  Writeable       = 0x00000008, // FD is writeable
+  EdgeTrigger     = 0x00000010, // FD will be edge-triggered (input only)
+  FDEvent         = 0x0000001F, // Any FD Event
 // File Events
-  ReadEvent     = 0x00000020, // File was read from
-  WriteEvent    = 0x00000040, // File was written to
-  AttributeMod  = 0x00000080, // File metadata was modified
-  Moved         = 0x00000100, // File was moved
-  Deleted       = 0x00000200, // File was deleted
-  FileMod       = 0x000003C0, // Any file modification event
-  FileEvent     = 0x000003E0, // Any file event
+  ReadEvent       = 0x00000020, // File was read from
+  WriteEvent      = 0x00000040, // File was written to
+  AttributeMod    = 0x00000080, // File metadata was modified
+  Moved           = 0x00000100, // File was moved
+  Deleted         = 0x00000200, // File was deleted
+  FileMod         = 0x000003C0, // Any file modification event
+  FileEvent       = 0x000003E0, // Any file event
 // Directory Events
-  SubCreated    = 0x00000400, // File/directory was created
-  SubMoved      = 0x00000800, // File/directory was created
-  SubDeleted    = 0x00001000, // File/directory was created  
-  DirEvent      = 0x00001C00, // Any directory event
+  SubCreated      = 0x00000400, // File/directory was created
+  SubMoved        = 0x00000800, // File/directory was created
+  SubDeleted      = 0x00001000, // File/directory was created
+  DirEvent        = 0x00001C00, // Any directory event
 // Process Events
-  ExecEvent     = 0x00002000, // Process called exec*()
-  ExitEvent     = 0x00004000, // Process exited
-  ForkEvent     = 0x00008000, // Process forked
-//  UIDEvent      = 0x00010000, // Process changed its User ID
-//  GIDEvent      = 0x00020000, // Process changed its Group ID
-//  SIDEvent      = 0x00040000, // Process changed its Session ID
-  ProcEvent     = 0x0007E000, // Any process event
+  ExecEvent       = 0x00002000, // Process called exec*()
+  ExitEvent       = 0x00004000, // Process exited
+  ForkEvent       = 0x00008000, // Process forked
+  ProcEvent       = 0x0000E000, // Any process event
+#ifdef MOUNT_NOTIFICATIONS
+// Filesystem Events
+  MountEvent      = 0x00010000, // Filesystem mounted
+  UnmountEvent    = 0x00020000, // Filesystem unmounted
+  FilesystemEvent = 0x00030000, // Any filesystem event
+#endif
 };
 static_assert(sizeof(EventFlags) == sizeof(uint32_t), "EventFlags: bad size");
 
@@ -71,17 +74,22 @@ struct EventFlags_t
   uint32_t ExecEvent    : 1;
   uint32_t ExitEvent    : 1;
   uint32_t ForkEvent    : 1;
-//  uint32_t UIDEvent     : 1;
-//  uint32_t GIDEvent     : 1;
-//  uint32_t SIDEvent     : 1;
+#ifdef MOUNT_NOTIFICATIONS
+// Filesystem Events
+  uint32_t MountEvent   : 1;
+  uint32_t UnmountEvent : 1;
+#endif
 
   EventFlags_t(uint32_t flags) : EventFlags_t(static_cast<EventFlags>(flags)) { }
   EventFlags_t(EventFlags flags = EventFlags::Invalid) noexcept { *reinterpret_cast<EventFlags*>(this) = flags; }
   operator EventFlags(void) const noexcept { return *reinterpret_cast<const EventFlags*>(this); }
 
-  bool unset(EventFlags flags) noexcept { return unset(static_cast<uint32_t>(flags)); }
-  bool unset(uint32_t flags) noexcept { return *reinterpret_cast<uint32_t*>(this) &= *reinterpret_cast<uint32_t*>(this) ^flags; }
+  bool set  (EventFlags flags)       noexcept { return set  (static_cast<uint32_t>(flags)); }
+  bool unset(EventFlags flags)       noexcept { return unset(static_cast<uint32_t>(flags)); }
   bool isSet(EventFlags flags) const noexcept { return isSet(static_cast<uint32_t>(flags)); }
+
+  bool set  (uint32_t flags)       noexcept { return *reinterpret_cast<uint32_t*>(this) |= *reinterpret_cast<uint32_t*>(this) ^flags; }
+  bool unset(uint32_t flags)       noexcept { return *reinterpret_cast<uint32_t*>(this) &= *reinterpret_cast<uint32_t*>(this) ^flags; }
   bool isSet(uint32_t flags) const noexcept { return *reinterpret_cast<const uint32_t*>(this) & flags; }
   bool anySet(void) const noexcept { return *reinterpret_cast<const uint32_t*>(this); }
 };
