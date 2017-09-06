@@ -1,5 +1,5 @@
-#ifndef STREAMCOLORS_H
-#define STREAMCOLORS_H
+#ifndef VTERM_H
+#define VTERM_H
 
 // POSIX++
 #include <cstdint>
