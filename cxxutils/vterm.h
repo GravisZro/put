@@ -15,12 +15,12 @@ namespace terminal
   inline void hideCursor(void) noexcept { std::fprintf(stdout, CSI "?25l"); }
   inline void showCursor(void) noexcept { std::fprintf(stdout, CSI "?25h"); }
 
-  inline void moveCursorUp   (uint8_t rows) noexcept { std::fprintf(stdout, CSI "%uhhA", rows); }
-  inline void moveCursorDown (uint8_t rows) noexcept { std::fprintf(stdout, CSI "%uhhB", rows); }
-  inline void moveCursorLeft (uint8_t cols) noexcept { std::fprintf(stdout, CSI "%uhhC", cols); }
-  inline void moveCursorRight(uint8_t cols) noexcept { std::fprintf(stdout, CSI "%uhhD", cols); }
+  inline void moveCursorUp   (uint8_t rows) noexcept { std::fprintf(stdout, CSI "%hhuA", rows); }
+  inline void moveCursorDown (uint8_t rows) noexcept { std::fprintf(stdout, CSI "%hhuB", rows); }
+  inline void moveCursorLeft (uint8_t cols) noexcept { std::fprintf(stdout, CSI "%hhuC", cols); }
+  inline void moveCursorRight(uint8_t cols) noexcept { std::fprintf(stdout, CSI "%hhuD", cols); }
 
-  inline void setCursorPosition(uint8_t row, uint8_t column) noexcept { std::fprintf(stdout, CSI "%uhh;%uhhH", row, column); }
+  inline void setCursorPosition(uint8_t row, uint8_t column) noexcept { std::fprintf(stdout, CSI "%hhu;%hhuH", row, column); }
 
   inline void clearScreenAfter  (void) noexcept { std::fprintf(stdout, CSI "0J"); }
   inline void clearScreenBefore (void) noexcept { std::fprintf(stdout, CSI "1J"); }
