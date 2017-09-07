@@ -620,12 +620,14 @@ constexpr uint32_t to_event_filter(const EventFlags_t& flags)
     return EVFILT_READ;
   if(flags.Writeable)
     return EVFILT_WRITE;
-  if(flags & (EventFlags::FileEvent | EventFlags::DirEvent))
+  if(flags.isSet(EventFlags::FileEvent | EventFlags::DirEvent))
     return EVFILT_VNODE;
-  if(flags & EventFlags::ProcEvent)
+  if(flags.isSet(EventFlags::ProcEvent))
     return EVFILT_PROC;
-  if(flags & EventFlags::FilesystemEvent)
+#ifdef MOUNT_NOTIFICATIONS
+  if(flags.isSet(EventFlags::FilesystemEvent))
     return EVFILT_FS;
+#endif
   return 0;
 }
 
@@ -648,9 +650,11 @@ constexpr uint32_t to_native_flags(const EventFlags_t& flags)
       (flags.SubCreated   ? uint32_t(NOTE_WRITE   ) : 0) | // File created in watched dir.
       (flags.SubMoved     ? uint32_t(NOTE_RENAME  ) : 0) | // File moved in watched dir.
       (flags.SubDeleted   ? uint32_t(NOTE_DELETE  ) : 0) | // File deleted in watched dir.
+#ifdef MOUNT_NOTIFICATIONS
 // filesystem flags
       (flags.MountEvent   ? uint32_t(NOTE_MOUNTED ) : 0) | // Filesystem mounted
       (flags.UnmountEvent ? uint32_t(NOTE_UMOUNTED) : 0) ; // Filesystem unmounted
+#endif
 }
 
 
@@ -672,12 +676,12 @@ inline EventData_t from_kevent(const struct kevent& ev) noexcept
       data.flags.Writeable      = ev.flags == 0             ? 1 : 0;
       break;
 
+#ifdef MOUNT_NOTIFICATIONS
     case EVFILT_FS:
       data.flags.MountEvent     = ev.flags & NOTE_MOUNTED   ? 1 : 0;
       data.flags.UnmountEvent   = ev.flags & NOTE_UMOUNTED  ? 1 : 0;
-
-
       break;
+#endif
 
     case EVFILT_VNODE:
       data.flags.AttributeMod   = ev.flags & NOTE_ATTRIB    ? 1 : 0;
