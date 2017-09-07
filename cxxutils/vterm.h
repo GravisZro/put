@@ -21,13 +21,13 @@ namespace terminal
   inline void hideCursor(void) noexcept { write(CSI "?25l"); }
   inline void showCursor(void) noexcept { write(CSI "?25h"); }
 
-  inline void moveCursorUp   (uint8_t rows = 1) noexcept { write(CSI "%hhuA", rows); }
-  inline void moveCursorDown (uint8_t rows = 1) noexcept { write(CSI "%hhuB", rows); }
-  inline void moveCursorLeft (uint8_t cols = 1) noexcept { write(CSI "%hhuC", cols); }
-  inline void moveCursorRight(uint8_t cols = 1) noexcept { write(CSI "%hhuD", cols); }
+  inline void moveCursorUp   (uint16_t rows = 1) noexcept { write(CSI "%huA", rows); }
+  inline void moveCursorDown (uint16_t rows = 1) noexcept { write(CSI "%huB", rows); }
+  inline void moveCursorLeft (uint16_t cols = 1) noexcept { write(CSI "%huC", cols); }
+  inline void moveCursorRight(uint16_t cols = 1) noexcept { write(CSI "%huD", cols); }
 
-  inline void setCursorHorizontalPosition(uint8_t column) noexcept { write(CSI "%hhuG", column); }
-  inline void setCursorPosition(uint8_t row, uint8_t column) noexcept { write(CSI "%hhu;%hhuH", row, column); }
+  inline void setCursorHorizontalPosition(uint16_t column) noexcept { write(CSI "%huG", column); }
+  inline void setCursorPosition(uint16_t row, uint16_t column) noexcept { write(CSI "%hu;%huH", row, column); }
 
   inline void clearScreenAfter  (void) noexcept { write(CSI "0J"); }
   inline void clearScreenBefore (void) noexcept { write(CSI "1J"); }
