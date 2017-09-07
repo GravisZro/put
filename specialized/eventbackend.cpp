@@ -640,6 +640,11 @@ constexpr uint32_t to_native_flags(const EventFlags_t& flags)
       (flags.ExitEvent    ? uint32_t(NOTE_EXIT    ) : 0) | // Process exited
       (flags.ForkEvent    ? uint32_t(NOTE_FORK    ) : 0) | // Process forked
 #endif
+#ifdef MOUNT_NOTIFICATIONS
+// filesystem flags
+      (flags.MountEvent   ? uint32_t(NOTE_MOUNTED ) : 0) | // Filesystem mounted
+      (flags.UnmountEvent ? uint32_t(NOTE_UMOUNTED) : 0) | // Filesystem unmounted
+#endif
 // file flags
       (flags.ReadEvent    ? uint32_t(NOTE_NONE    ) : 0) | // File was read
       (flags.WriteEvent   ? uint32_t(NOTE_WRITE   ) : 0) | // File was modified (*).
@@ -649,12 +654,7 @@ constexpr uint32_t to_native_flags(const EventFlags_t& flags)
 // directory flags
       (flags.SubCreated   ? uint32_t(NOTE_WRITE   ) : 0) | // File created in watched dir.
       (flags.SubMoved     ? uint32_t(NOTE_RENAME  ) : 0) | // File moved in watched dir.
-      (flags.SubDeleted   ? uint32_t(NOTE_DELETE  ) : 0) | // File deleted in watched dir.
-#ifdef MOUNT_NOTIFICATIONS
-// filesystem flags
-      (flags.MountEvent   ? uint32_t(NOTE_MOUNTED ) : 0) | // Filesystem mounted
-      (flags.UnmountEvent ? uint32_t(NOTE_UMOUNTED) : 0) ; // Filesystem unmounted
-#endif
+      (flags.SubDeleted   ? uint32_t(NOTE_DELETE  ) : 0) ; // File deleted in watched dir.
 }
 
 
