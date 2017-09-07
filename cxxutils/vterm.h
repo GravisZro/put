@@ -5,6 +5,9 @@
 #include <cstdint>
 #include <cstdio>
 
+// POSIX
+#include <unistd.h>
+
 typedef const char* const string_literal;
 
 #undef CSI
@@ -12,23 +15,27 @@ typedef const char* const string_literal;
 
 namespace terminal
 {
-  inline void hideCursor(void) noexcept { std::fprintf(stdout, CSI "?25l"); }
-  inline void showCursor(void) noexcept { std::fprintf(stdout, CSI "?25h"); }
+  template<typename... Args>
+  inline void write(const char* fmt, Args... args) noexcept { ::dprintf(STDOUT_FILENO, fmt, args...); }
 
-  inline void moveCursorUp   (uint8_t rows) noexcept { std::fprintf(stdout, CSI "%hhuA", rows); }
-  inline void moveCursorDown (uint8_t rows) noexcept { std::fprintf(stdout, CSI "%hhuB", rows); }
-  inline void moveCursorLeft (uint8_t cols) noexcept { std::fprintf(stdout, CSI "%hhuC", cols); }
-  inline void moveCursorRight(uint8_t cols) noexcept { std::fprintf(stdout, CSI "%hhuD", cols); }
+  inline void hideCursor(void) noexcept { write(CSI "?25l"); }
+  inline void showCursor(void) noexcept { write(CSI "?25h"); }
 
-  inline void setCursorPosition(uint8_t row, uint8_t column) noexcept { std::fprintf(stdout, CSI "%hhu;%hhuH", row, column); }
+  inline void moveCursorUp   (uint8_t rows = 1) noexcept { write(CSI "%hhuA", rows); }
+  inline void moveCursorDown (uint8_t rows = 1) noexcept { write(CSI "%hhuB", rows); }
+  inline void moveCursorLeft (uint8_t cols = 1) noexcept { write(CSI "%hhuC", cols); }
+  inline void moveCursorRight(uint8_t cols = 1) noexcept { write(CSI "%hhuD", cols); }
 
-  inline void clearScreenAfter  (void) noexcept { std::fprintf(stdout, CSI "0J"); }
-  inline void clearScreenBefore (void) noexcept { std::fprintf(stdout, CSI "1J"); }
-  inline void clearScreen       (void) noexcept { std::fprintf(stdout, CSI "2J"); }
+  inline void setCursorHorizontalPosition(uint8_t column) noexcept { write(CSI "%hhuG", column); }
+  inline void setCursorPosition(uint8_t row, uint8_t column) noexcept { write(CSI "%hhu;%hhuH", row, column); }
 
-  inline void clearLineAfter    (void) noexcept { std::fprintf(stdout, CSI "0K"); }
-  inline void clearLineBefore   (void) noexcept { std::fprintf(stdout, CSI "1K"); }
-  inline void clearLine         (void) noexcept { std::fprintf(stdout, CSI "2K"); }
+  inline void clearScreenAfter  (void) noexcept { write(CSI "0J"); }
+  inline void clearScreenBefore (void) noexcept { write(CSI "1J"); }
+  inline void clearScreen       (void) noexcept { write(CSI "2J"); }
+
+  inline void clearLineAfter    (void) noexcept { write(CSI "0K"); }
+  inline void clearLineBefore   (void) noexcept { write(CSI "1K"); }
+  inline void clearLine         (void) noexcept { write(CSI "2K"); }
 
   namespace text
   {
