@@ -12,25 +12,28 @@ typedef const char* const string_literal;
 
 namespace terminal
 {
-  inline void moveCursorUp   (uint8_t rows) { std::fprintf(stdout, CSI "%uhhA", rows); }
-  inline void moveCursorDown (uint8_t rows) { std::fprintf(stdout, CSI "%uhhB", rows); }
-  inline void moveCursorLeft (uint8_t cols) { std::fprintf(stdout, CSI "%uhhC", cols); }
-  inline void moveCursorRight(uint8_t cols) { std::fprintf(stdout, CSI "%uhhD", cols); }
+  inline void hideCursor(void) noexcept { std::fprintf(stdout, CSI "?25l"); }
+  inline void showCursor(void) noexcept { std::fprintf(stdout, CSI "?25h"); }
 
-  inline void setCursorPosition(uint8_t row, uint8_t column) { std::fprintf(stdout, CSI "%uhh;%uhhH", row, column); }
+  inline void moveCursorUp   (uint8_t rows) noexcept { std::fprintf(stdout, CSI "%uhhA", rows); }
+  inline void moveCursorDown (uint8_t rows) noexcept { std::fprintf(stdout, CSI "%uhhB", rows); }
+  inline void moveCursorLeft (uint8_t cols) noexcept { std::fprintf(stdout, CSI "%uhhC", cols); }
+  inline void moveCursorRight(uint8_t cols) noexcept { std::fprintf(stdout, CSI "%uhhD", cols); }
 
-  inline void clearScreenAfter  (void) { std::fprintf(stdout, CSI "0J"); }
-  inline void clearScreenBefore (void) { std::fprintf(stdout, CSI "1J"); }
-  inline void clearScreen       (void) { std::fprintf(stdout, CSI "2J"); }
+  inline void setCursorPosition(uint8_t row, uint8_t column) noexcept { std::fprintf(stdout, CSI "%uhh;%uhhH", row, column); }
 
-  inline void clearLineAfter    (void) { std::fprintf(stdout, CSI "0K"); }
-  inline void clearLineBefore   (void) { std::fprintf(stdout, CSI "1K"); }
-  inline void clearLine         (void) { std::fprintf(stdout, CSI "2K"); }
+  inline void clearScreenAfter  (void) noexcept { std::fprintf(stdout, CSI "0J"); }
+  inline void clearScreenBefore (void) noexcept { std::fprintf(stdout, CSI "1J"); }
+  inline void clearScreen       (void) noexcept { std::fprintf(stdout, CSI "2J"); }
+
+  inline void clearLineAfter    (void) noexcept { std::fprintf(stdout, CSI "0K"); }
+  inline void clearLineBefore   (void) noexcept { std::fprintf(stdout, CSI "1K"); }
+  inline void clearLine         (void) noexcept { std::fprintf(stdout, CSI "2K"); }
 
   namespace text
   {
-    string_literal reset          = CSI "0m";
-    string_literal bold           = CSI "1m";
+    string_literal reset          = CSI "0m" ;
+    string_literal bold           = CSI "1m" ;
     string_literal bold_off       = CSI "22m";
     string_literal underline      = CSI "4m" ;
     string_literal underline_off  = CSI "24m";
