@@ -47,7 +47,7 @@ struct platform_dependant
   {
     posix::fd_t fd;
     std::unordered_multimap<posix::fd_t, EventFlags_t>& fds;
-    std::vector<epoll_event> output;
+    struct epoll_event output[MAX_EVENTS];
 
     // FD flags
     static EventData_t from_native_flags(const uint32_t flags) noexcept
@@ -74,8 +74,7 @@ struct platform_dependant
     pollnotify_t(void) noexcept
       : fd(posix::invalid_descriptor), fds(EventBackend::queue)
     {
-      output.reserve(1024);
-      fd = epoll_create(INT32_MAX);
+      fd = epoll_create(MAX_EVENTS);
       flaw(fd == posix::invalid_descriptor, terminal::critical, std::exit(errno),,
            "Unable to create an instance of epoll! %s", std::strerror(errno))
     }
@@ -88,7 +87,7 @@ struct platform_dependant
 
     int wait(int timeout) noexcept
     {
-      return ::epoll_wait(fd, output.data(), output.size(), timeout); // wait for new results
+      return ::epoll_wait(fd, output, MAX_EVENTS, timeout); // wait for new results
     }
 
     posix::fd_t watch(posix::fd_t wd, EventFlags_t flags) noexcept
@@ -564,8 +563,8 @@ bool EventBackend::getevents(int timeout) noexcept
   if(count == posix::error_response) // if error/timeout occurred
     return false; //fail
 
-  const epoll_event* end = platform->pollnotify.output.data() + count;
-  for(epoll_event* pos = platform->pollnotify.output.data(); pos != end; ++pos) // iterate through results
+  const epoll_event* end = platform->pollnotify.output + count;
+  for(epoll_event* pos = platform->pollnotify.output; pos != end; ++pos) // iterate through results
   {
     const posix::fd_t fd = pos->data.fd;
     const uint32_t events = pos->events;

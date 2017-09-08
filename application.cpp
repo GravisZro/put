@@ -1,7 +1,7 @@
 #include "application.h"
 
 // POSIX
-#include <termios.h> // for tcflush()
+#include <fcntl.h>
 
 // POSIX++
 #include <cstring> // for strerror()
@@ -34,6 +34,8 @@ Application::Application(void) noexcept
   {
     flaw(::pipe(s_pipeio) == posix::error_response, terminal::critical, std::exit(errno),,
          "Unable to create pipe for execution stepper: %s", std::strerror(errno))
+    ::fcntl(s_pipeio[Read], F_SETFD, FD_CLOEXEC);
+    ::fcntl(s_pipeio[Read], F_SETFL, O_NONBLOCK);
     EventBackend::init(); // initialize event backend
     EventBackend::watch(s_pipeio[Read], EventFlags::Readable); // watch for when execution stepper pipe has been triggered
   }
@@ -67,7 +69,8 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
     {
       if(pos.first == s_pipeio[Read]) // if this is the execution stepper pipe (via Object::enqueue())
       {
-        ::tcflush(pos.first, TCIFLUSH); // discard the data
+        uint64_t discard;
+        while(posix::read(pos.first, &discard, sizeof(discard)) != posix::error_response);
 
         // execute queue of object signal calls
         static std::queue<vfunc> exec_queue;
