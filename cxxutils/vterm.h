@@ -12,7 +12,7 @@ typedef const char* const string_literal;
 namespace terminal
 {
   template<typename... Args>
-  inline void write(const char* fmt, Args... args) noexcept { ::dprintf(STDOUT_FILENO, fmt, args...); }
+  inline int write(const char* fmt, Args... args) noexcept { return ::dprintf(STDOUT_FILENO, fmt, args...); }
 
   inline void getWindowSize(uint16_t& rows, uint16_t& columns) noexcept
   {
