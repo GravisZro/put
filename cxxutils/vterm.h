@@ -14,7 +14,7 @@ namespace terminal
   template<typename... Args>
   inline void write(const char* fmt, Args... args) noexcept { ::dprintf(STDOUT_FILENO, fmt, args...); }
 
-  inline void getWindowSize(uint16_t& rows, uint16_t& columns)
+  inline void getWindowSize(uint16_t& rows, uint16_t& columns) noexcept
   {
 #if defined(TIOCGWINSZ)
     struct winsize w;
