@@ -1,12 +1,8 @@
 #ifndef VTERM_H
 #define VTERM_H
 
-// POSIX++
-#include <cstdint>
-#include <cstdio>
-
-// POSIX
-#include <unistd.h>
+// PDTK
+#include <cxxutils/posix_helpers.h>
 
 typedef const char* const string_literal;
 
@@ -17,6 +13,31 @@ namespace terminal
 {
   template<typename... Args>
   inline void write(const char* fmt, Args... args) noexcept { ::dprintf(STDOUT_FILENO, fmt, args...); }
+
+  inline void getWindowSize(uint16_t& rows, uint16_t& columns)
+  {
+#if defined(TIOCGWINSZ)
+    struct winsize w;
+    if(posix::ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == posix::success_response)
+    {
+      rows = w.ws_row;
+      columns = w.ws_col;
+    }
+#elif defined(WIOCGETD)
+    struct uwdata w;
+    if(posix::ioctl(STDOUT_FILENO, WIOCGETD, &w) == posix::success_response)
+    {
+      if(w.uw_vs)
+        rows = w.uw_height / w.uw_vs;
+      if(w.uw_hs)
+        columns = w.uw_width / w.uw_hs;
+    }
+#else
+# pragma message("Incapable of get the terminal window size!  Using default values.")
+    rows = 24;
+    columns = 80;
+#endif
+  }
 
   inline void hideCursor(void) noexcept { write(CSI "?25l"); }
   inline void showCursor(void) noexcept { write(CSI "?25h"); }
