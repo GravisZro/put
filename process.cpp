@@ -64,7 +64,7 @@ void Process::reaper(int sig) noexcept
 
   pid_t pid = posix::error_response; // set value just in case
   int status = 0;
-  while((pid = ::waitpid(pid_t(-1), &status, WNOHANG)) != posix::error_response) // get the next dead process (if there is one)... while the currently reaped process was valid
+  while((pid = ::waitpid(pid_t(-1), &status, WNOHANG)) > 0) // get the next dead process (if there is one)... while the currently reaped process was valid
   {
     auto process_map_iter = process_map.find(pid); // find dead process
     if(process_map_iter != process_map.end()) // if the dead process exists...
