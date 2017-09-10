@@ -9,6 +9,10 @@ typedef const char* const string_literal;
 #undef CSI
 #define CSI "\x1b["
 
+constexpr bool strings_equal(string_literal a, string_literal b)
+  { return *a == *b && (*a == '\0' || strings_equal(a + 1, b + 1)); }
+static_assert(strings_equal(CSI, "\x1b["), "Preprocessor variable \"CSI\" must equal \"\\x1b[\"");
+
 namespace terminal
 {
   template<typename... Args>
