@@ -38,7 +38,10 @@
 // PDTK
 #include <cxxutils/vterm.h>
 #include <cxxutils/error_helpers.h>
+
+#ifdef GLOBAL_PROCESS_EVENT_TRACKING
 #include <cxxutils/socket_helpers.h>
+#endif
 
 
 struct platform_dependant
