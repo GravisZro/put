@@ -12,13 +12,8 @@
 #include <list>
 
 // PDTK
+#include <cxxutils/vterm.h>
 #include <cxxutils/error_helpers.h>
-
-#ifndef VTERM_H
-namespace terminal
-{ const char* const critical = "\x1b[0;41;37;1mCRITICAL ERROR:\x1b[0m "; }
-#endif
-
 
 // atomic vars are to avoid race conditions
 static std::atomic_int  s_return_value (0);
