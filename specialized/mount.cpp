@@ -1,11 +1,13 @@
 #include "mount.h"
 
-#include <sys/param.h>
-#include	<sys/mount.h>
-
+//PDTK
 #include <cxxutils/posix_helpers.h>
 
 #if defined(__linux__)
+
+// Linux
+#include <sys/param.h>
+#include <sys/mount.h>
 
 // POSIX++
 #include <cstring>
@@ -16,6 +18,7 @@
 
 //PDTK
 #include <cxxutils/hashing.h>
+
 
 int mount(const char* device,
           const char* path,
@@ -37,6 +40,7 @@ int mount(const char* device,
     else // not end of string
       fslist.emplace_back(pos, posix::size_t(next - pos));
   }
+
   for(const char* pos = options, *next = nullptr; pos != nullptr; pos = next)
   {
     if(*pos == ',')
@@ -52,11 +56,13 @@ int mount(const char* device,
     {
       case "defaults"_hash: break;
       case "ro"_hash        : mountflags |= MS_RDONLY     ; break;
+      case "rw"_hash        : mountflags &= 0^MS_RDONLY   ; break;
       case "noatime"_hash   : mountflags |= MS_NOATIME    ; break;
       case "nodiratime"_hash: mountflags |= MS_NODIRATIME ; break;
       case "nodev"_hash     : mountflags |= MS_NODEV      ; break;
       case "nosuid"_hash    : mountflags |= MS_NOSUID     ; break;
       case "noexec"_hash    : mountflags |= MS_NOEXEC     ; break;
+      case "move"_hash      : mountflags |= MS_MOVE       ; break;
       default:
         optionlist.append(option).append(1, ',');
     }
@@ -72,7 +78,13 @@ int mount(const char* device,
   return posix::error_response;
 }
 
+int unmount(const char* path) noexcept { return umount(path); }
+
 #elif defined(NETBSD)
+// NetBSD
+#include <sys/param.h>
+#include <sys/mount.h>
+
 int mount(const char* device,
           const char* path,
           const char* filesystem,
@@ -82,13 +94,23 @@ int mount(const char* device,
   return posix::error_response;
 }
 
+int unmount(const char* path) noexcept { return unmount(path, 0); }
+
 #elif defined(BSD) || defined(__APPLE__)
+// *BSD or Darwin
+#include <sys/param.h>
+#include <sys/mount.h>
+
 int mount(const char* device,
           const char* path,
           const char* filesystem,
           const char* options) noexcept
 {
-// int mount(const char* type, const char* dir, int flags, void* data);
+// int mount(filesystem, path, int flags, void* data);
   return posix::error_response;
 }
+
+
+int unmount(const char* path) noexcept { return unmount(path, 0); }
+
 #endif
