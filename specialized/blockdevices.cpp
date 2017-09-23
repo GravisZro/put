@@ -18,45 +18,29 @@
 #define DEVFS_PATH          "/dev"
 #endif
 
+// s_magic
 #define EXT_MAGIC_NUMBER                  0xEF53
-#define EXT_COMPAT_FLAG_HAS_JOURNAL       0x00000004
-#define EXT_INCOMPAT_FLAG_JOURNAL_DEV     0x00000008
 
-/* for s_flags */
-#define EXT_FLAGS_TEST_FILESYS              0x0004
+// s_feature_compat flags
+#define EXT_FLAG_COMPAT_HAS_JOURNAL       0x00000004
 
-/* for s_feature_compat */
-#define EXT3_FEATURE_COMPAT_HAS_JOURNAL     0x0004
+// s_feature_incompat flags
+#define EXT_FLAG_INCOMPAT_FILETYPE        0x00000002
+#define EXT_FLAG_INCOMPAT_JOURNAL_DEV     0x00000008
+#define EXT_FLAG_INCOMPAT_META_BG         0x00000010
 
-/* for s_feature_ro_compat */
-#define EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER 0x0001
-#define EXT2_FEATURE_RO_COMPAT_LARGE_FILE   0x0002
-#define EXT2_FEATURE_RO_COMPAT_BTREE_DIR    0x0004
-#define EXT4_FEATURE_RO_COMPAT_HUGE_FILE    0x0008
-#define EXT4_FEATURE_RO_COMPAT_GDT_CSUM     0x0010
-#define EXT4_FEATURE_RO_COMPAT_DIR_NLINK    0x0020
-#define EXT4_FEATURE_RO_COMPAT_EXTRA_ISIZE  0x0040
+// s_feature_ro_compat flags
+#define EXT_FLAG_RO_COMPAT_SPARSE_SUPER   0x00000001
+#define EXT_FLAG_RO_COMPAT_LARGE_FILE     0x00000002
+#define EXT_FLAG_RO_COMPAT_BTREE_DIR      0x00000004
 
-/* for s_feature_incompat */
-#define EXT2_FEATURE_INCOMPAT_FILETYPE      0x0002
-#define EXT3_FEATURE_INCOMPAT_RECOVER       0x0004
-#define EXT3_FEATURE_INCOMPAT_JOURNAL_DEV   0x0008
-#define EXT2_FEATURE_INCOMPAT_META_BG       0x0010
-#define EXT4_FEATURE_INCOMPAT_EXTENTS       0x0040 // extents support
-#define EXT4_FEATURE_INCOMPAT_64BIT         0x0080
-#define EXT4_FEATURE_INCOMPAT_MMP           0x0100
-#define EXT4_FEATURE_INCOMPAT_FLEX_BG       0x0200
+// s_flags flags
+#define EXT_FLAG_MISC_DEV_FILESYSTEM      0x00000004
 
-#define EXT2_FEATURE_RO_COMPAT_SUPP           (EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER | EXT2_FEATURE_RO_COMPAT_LARGE_FILE | EXT2_FEATURE_RO_COMPAT_BTREE_DIR)
-#define EXT2_FEATURE_INCOMPAT_SUPP            (EXT2_FEATURE_INCOMPAT_FILETYPE | EXT2_FEATURE_INCOMPAT_META_BG)
-#define EXT2_FEATURE_INCOMPAT_UNSUPPORTED     ~EXT2_FEATURE_INCOMPAT_SUPP
-#define EXT2_FEATURE_RO_COMPAT_UNSUPPORTED    ~EXT2_FEATURE_RO_COMPAT_SUPP
-
-#define EXT3_FEATURE_RO_COMPAT_SUPP           (EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER | EXT2_FEATURE_RO_COMPAT_LARGE_FILE | EXT2_FEATURE_RO_COMPAT_BTREE_DIR)
-#define EXT3_FEATURE_INCOMPAT_SUPP            (EXT2_FEATURE_INCOMPAT_FILETYPE | EXT3_FEATURE_INCOMPAT_RECOVER | EXT2_FEATURE_INCOMPAT_META_BG)
-#define EXT3_FEATURE_INCOMPAT_UNSUPPORTED     ~EXT3_FEATURE_INCOMPAT_SUPP
-#define EXT3_FEATURE_RO_COMPAT_UNSUPPORTED    ~EXT3_FEATURE_RO_COMPAT_SUPP
-
+// composite flags
+constexpr uint32_t EXT2_RO_compat_flags = EXT_FLAG_RO_COMPAT_SPARSE_SUPER | EXT_FLAG_RO_COMPAT_LARGE_FILE | EXT_FLAG_RO_COMPAT_BTREE_DIR;
+constexpr uint32_t EXT2_incompat_flags  = EXT_FLAG_INCOMPAT_FILETYPE | EXT_FLAG_INCOMPAT_META_BG;
+constexpr uint32_t EXT3_incompat_flags  = EXT2_incompat_flags | EXT_FLAG_INCOMPAT_META_BG;
 
 #define EXT_BLOCK_COUNT_OFFSET            (superblock + 0x0004)
 #define EXT_BLOCK_SIZE_OFFSET             (superblock + 0x0018)
@@ -84,7 +68,7 @@ uint64_t read(posix::fd_t fd, off_t offset, uint8_t* buffer, uint64_t length)
 }
 
 #ifndef BLOCK_SIZE
-#define BLOCK_SIZE 0x400
+#define BLOCK_SIZE 0x00000400
 #endif
 
 struct uintle16_t
@@ -258,6 +242,7 @@ namespace blockdevices
     return nullptr;
   }
 
+  // detection code: https://git.kernel.org/pub/scm/utils/util-linux/util-linux.git/tree/libblkid/src/superblocks
   void detect(void)
   {
     uint8_t superblock[BLOCK_SIZE];
@@ -299,35 +284,35 @@ namespace blockdevices
       std::memset(superblock, 0, BLOCK_SIZE);
       if(read(fd, BLOCK_SIZE, superblock, BLOCK_SIZE) == BLOCK_SIZE) // if read filesystem superblock
       {
-        // see "struct ext2_super_block" in https://github.com/torvalds/linux/blob/master/fs/ext2/ext2.h
-        // see "struct ext4_super_block" in https://github.com/torvalds/linux/blob/master/fs/ext4/ext4.h
+        // https://github.com/torvalds/linux/blob/master/fs/ext2/ext2.h
+        // https://github.com/torvalds/linux/blob/master/fs/ext4/ext4.h
         // https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#The_Super_Block
         if(getLE16(EXT_MAGIC_NUMBER_OFFSET) == EXT_MAGIC_NUMBER) // test if Ext2/3/4
         {
           blockcount = getLE32(EXT_BLOCK_COUNT_OFFSET);
           blocksize  = BLOCK_SIZE << getLE32(EXT_BLOCK_SIZE_OFFSET);
 
-          if(flagsAreSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT3_FEATURE_INCOMPAT_JOURNAL_DEV))
+          if(flagsAreSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT_FLAG_INCOMPAT_JOURNAL_DEV))
             std::strcpy(dev.fstype, "jbd");
 
-          if(flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT3_FEATURE_INCOMPAT_JOURNAL_DEV) &&
-             flagsAreSet(EXT_MISC_FLAGS_OFFSET      , EXT_FLAGS_TEST_FILESYS))
+          if(flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT_FLAG_INCOMPAT_JOURNAL_DEV) &&
+             flagsAreSet(EXT_MISC_FLAGS_OFFSET      , EXT_FLAG_MISC_DEV_FILESYSTEM))
             std::strcpy(dev.fstype, "ext4dev");
 
-          if(flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT3_FEATURE_INCOMPAT_JOURNAL_DEV) &&
-             (flagsSet(EXT_RO_COMPAT_FLAGS_OFFSET, EXT3_FEATURE_RO_COMPAT_UNSUPPORTED) ||
-              flagsSet(EXT_INCOMPAT_FLAGS_OFFSET , EXT3_FEATURE_INCOMPAT_UNSUPPORTED)) &&
-             flagsNotSet(EXT_MISC_FLAGS_OFFSET      , EXT_FLAGS_TEST_FILESYS))
+          if(flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT_FLAG_INCOMPAT_JOURNAL_DEV) &&
+             (flagsSet(EXT_RO_COMPAT_FLAGS_OFFSET   , ~EXT2_RO_compat_flags) ||
+              flagsSet(EXT_INCOMPAT_FLAGS_OFFSET    , ~EXT3_incompat_flags)) &&
+             flagsNotSet(EXT_MISC_FLAGS_OFFSET      , EXT_FLAG_MISC_DEV_FILESYSTEM))
             std::strcpy(dev.fstype, "ext4");
 
-          if(flagsAreSet(EXT_COMPAT_FLAGS_OFFSET    , EXT3_FEATURE_COMPAT_HAS_JOURNAL) &&
-             flagsNotSet(EXT_RO_COMPAT_FLAGS_OFFSET , EXT3_FEATURE_RO_COMPAT_UNSUPPORTED) &&
-             flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT3_FEATURE_INCOMPAT_UNSUPPORTED))
+          if(flagsAreSet(EXT_COMPAT_FLAGS_OFFSET    , EXT_FLAG_COMPAT_HAS_JOURNAL) &&
+             flagsNotSet(EXT_RO_COMPAT_FLAGS_OFFSET , ~EXT2_RO_compat_flags) &&
+             flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , ~EXT3_incompat_flags))
             std::strcpy(dev.fstype, "ext3");
 
-          if(flagsNotSet(EXT_COMPAT_FLAGS_OFFSET    , EXT3_FEATURE_COMPAT_HAS_JOURNAL) &&
-             flagsNotSet(EXT_RO_COMPAT_FLAGS_OFFSET , EXT2_FEATURE_RO_COMPAT_UNSUPPORTED) &&
-             flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT2_FEATURE_INCOMPAT_UNSUPPORTED))
+          if(flagsNotSet(EXT_COMPAT_FLAGS_OFFSET    , EXT_FLAG_COMPAT_HAS_JOURNAL) &&
+             flagsNotSet(EXT_RO_COMPAT_FLAGS_OFFSET , ~EXT2_RO_compat_flags) &&
+             flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , ~EXT2_incompat_flags))
             std::strcpy(dev.fstype, "ext2");
 
           std::memcpy(dev.uuid, EXT_UUID_OFFSET, 16);
