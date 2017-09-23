@@ -138,7 +138,7 @@ namespace blockdevices
 #else
   void init(void)
   {
-#pragma message("Code needed to detect GEOM devices like gpart@")
+#pragma message("Code needed to detect devices using kern.geom.conftxt?")
     detect();
   }
 #endif
