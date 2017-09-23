@@ -18,41 +18,10 @@
 #define DEVFS_PATH          "/dev"
 #endif
 
-// s_magic
-#define EXT_MAGIC_NUMBER                  0xEF53
+#ifndef BLOCK_SIZE
+#define BLOCK_SIZE 0x00000400
+#endif
 
-// s_feature_compat flags
-#define EXT_FLAG_COMPAT_HAS_JOURNAL       0x00000004
-
-// s_feature_incompat flags
-#define EXT_FLAG_INCOMPAT_FILETYPE        0x00000002
-#define EXT_FLAG_INCOMPAT_JOURNAL_DEV     0x00000008
-#define EXT_FLAG_INCOMPAT_META_BG         0x00000010
-
-// s_feature_ro_compat flags
-#define EXT_FLAG_RO_COMPAT_SPARSE_SUPER   0x00000001
-#define EXT_FLAG_RO_COMPAT_LARGE_FILE     0x00000002
-#define EXT_FLAG_RO_COMPAT_BTREE_DIR      0x00000004
-
-// s_flags flags
-#define EXT_FLAG_MISC_DEV_FILESYSTEM      0x00000004
-
-// composite flags
-constexpr uint32_t EXT2_RO_compat_flags = EXT_FLAG_RO_COMPAT_SPARSE_SUPER | EXT_FLAG_RO_COMPAT_LARGE_FILE | EXT_FLAG_RO_COMPAT_BTREE_DIR;
-constexpr uint32_t EXT2_incompat_flags  = EXT_FLAG_INCOMPAT_FILETYPE | EXT_FLAG_INCOMPAT_META_BG;
-constexpr uint32_t EXT3_incompat_flags  = EXT2_incompat_flags | EXT_FLAG_INCOMPAT_META_BG;
-
-#define EXT_BLOCK_COUNT_OFFSET            (superblock + 0x0004)
-#define EXT_BLOCK_SIZE_OFFSET             (superblock + 0x0018)
-#define EXT_MAGIC_NUMBER_OFFSET           (superblock + 0x0038)
-
-#define EXT_COMPAT_FLAGS_OFFSET           (superblock + 0x005C) // s_feature_compat
-#define EXT_INCOMPAT_FLAGS_OFFSET         (superblock + 0x0060) // s_feature_incompat
-#define EXT_RO_COMPAT_FLAGS_OFFSET        (superblock + 0x0064) // s_feature_ro_compat
-
-#define EXT_UUID_OFFSET                   (superblock + 0x0068) // s_uuid[16]
-#define EXT_LABEL_OFFSET                  (superblock + 0x0078) // s_volume_name[16]
-#define EXT_MISC_FLAGS_OFFSET             (superblock + 0x0160) // s_flags
 
 uint64_t read(posix::fd_t fd, off_t offset, uint8_t* buffer, uint64_t length)
 {
@@ -66,45 +35,6 @@ uint64_t read(posix::fd_t fd, off_t offset, uint8_t* buffer, uint64_t length)
 
   return length - remaining;
 }
-
-#ifndef BLOCK_SIZE
-#define BLOCK_SIZE 0x00000400
-#endif
-
-struct uintle16_t
-{
-  uint8_t low;
-  uint8_t high;
-  constexpr operator uint16_t(void) const { return low + (high << 8); }
-};
-static_assert(sizeof(uintle16_t) == sizeof(uint16_t), "naughty compiler!");
-
-
-struct uintle32_t
-{
-  uint8_t bottom;
-  uint8_t low;
-  uint8_t high;
-  uint8_t top;
-  constexpr operator uint32_t(void) const
-  {
-    return bottom +
-        (low  <<  8) +
-        (high << 16) +
-        (top  << 24);
-  }
-};
-static_assert(sizeof(uintle32_t) == sizeof(uint32_t), "naughty compiler!");
-
-template<typename T> constexpr uint16_t get16(T* x) { return *reinterpret_cast<uint16_t*>(x); }
-template<typename T> constexpr uint32_t get32(T* x) { return *reinterpret_cast<uint32_t*>(x); }
-template<typename T> constexpr uint16_t getLE16(T* x) { return *reinterpret_cast<uintle16_t*>(x); }
-template<typename T> constexpr uint32_t getLE32(T* x) { return *reinterpret_cast<uintle32_t*>(x); }
-
-template<typename T> constexpr uint32_t getFlags(T addr, uint32_t flags) { return getLE32(addr) & flags; }
-template<typename T> constexpr bool flagsAreSet(T addr, uint32_t flags) { return getFlags(addr, flags) == flags; }
-template<typename T> constexpr bool flagsNotSet(T addr, uint32_t flags) { return !getFlags(addr, flags); }
-
 
 constexpr char uuid_digit(uint8_t* data, uint8_t digit)
   { return  "0123456789ABCDEF"[(digit & 1) ? (data[digit/2] & 0x0F) : (data[digit/2] >> 4)]; }
@@ -130,10 +60,18 @@ static void uuid_decode(uint8_t* data, std::string& uuid)
 }
 */
 
+
 namespace blockdevices
 {
-  static std::list<blockdevice_t> devices;
+  typedef bool (*detector_t)(uint8_t*, blockdevice_t*);
   void detect(void);
+  bool detect_ext(uint8_t* data, blockdevice_t* dev);
+  bool detect_NULL(uint8_t* data, blockdevice_t* dev);
+
+  static std::list<blockdevice_t> devices;
+  static std::list<detector_t> detectors = { detect_ext, detect_NULL };
+
+
 
 #if defined(WANT_PROCFS)
   void init(const char* procfs_path)
@@ -150,7 +88,6 @@ namespace blockdevices
     posix::ssize_t count = 0;
     posix::size_t size = 0;
     char* line = nullptr;
-    char* begin = nullptr;
     while((count = ::getline(&line, &size, file)) != posix::error_response)
     {
       char* pos = line;
@@ -242,7 +179,6 @@ namespace blockdevices
     return nullptr;
   }
 
-  // detection code: https://git.kernel.org/pub/scm/utils/util-linux/util-linux.git/tree/libblkid/src/superblocks
   void detect(void)
   {
     uint8_t superblock[BLOCK_SIZE];
@@ -256,6 +192,7 @@ namespace blockdevices
 
       if(fd != posix::error_response)
       {
+        // try to get the raw size of the partition (might be larger than the usable size)
   #if defined(BLKGETSIZE64) // Linux 2.6+
         posix::ioctl(fd, BLKGETSIZE64, &dev.size);
 
@@ -284,47 +221,152 @@ namespace blockdevices
       std::memset(superblock, 0, BLOCK_SIZE);
       if(read(fd, BLOCK_SIZE, superblock, BLOCK_SIZE) == BLOCK_SIZE) // if read filesystem superblock
       {
-        // https://github.com/torvalds/linux/blob/master/fs/ext2/ext2.h
-        // https://github.com/torvalds/linux/blob/master/fs/ext4/ext4.h
-        // https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#The_Super_Block
-        if(getLE16(EXT_MAGIC_NUMBER_OFFSET) == EXT_MAGIC_NUMBER) // test if Ext2/3/4
-        {
-          blockcount = getLE32(EXT_BLOCK_COUNT_OFFSET);
-          blocksize  = BLOCK_SIZE << getLE32(EXT_BLOCK_SIZE_OFFSET);
+        auto detectpos = detectors.begin();
+        while(detectpos != detectors.end() &&
+              !(*detectpos)(superblock, &dev)) // run filesystem detection functions until you find one
+          ++detectpos;
 
-          if(flagsAreSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT_FLAG_INCOMPAT_JOURNAL_DEV))
-            std::strcpy(dev.fstype, "jbd");
-
-          if(flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT_FLAG_INCOMPAT_JOURNAL_DEV) &&
-             flagsAreSet(EXT_MISC_FLAGS_OFFSET      , EXT_FLAG_MISC_DEV_FILESYSTEM))
-            std::strcpy(dev.fstype, "ext4dev");
-
-          if(flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT_FLAG_INCOMPAT_JOURNAL_DEV) &&
-             (getFlags(EXT_RO_COMPAT_FLAGS_OFFSET   , ~EXT2_RO_compat_flags) ||
-              getFlags(EXT_INCOMPAT_FLAGS_OFFSET    , ~EXT3_incompat_flags)) &&
-             flagsNotSet(EXT_MISC_FLAGS_OFFSET      , EXT_FLAG_MISC_DEV_FILESYSTEM))
-            std::strcpy(dev.fstype, "ext4");
-
-          if(flagsAreSet(EXT_COMPAT_FLAGS_OFFSET    , EXT_FLAG_COMPAT_HAS_JOURNAL) &&
-             flagsNotSet(EXT_RO_COMPAT_FLAGS_OFFSET , ~EXT2_RO_compat_flags) &&
-             flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , ~EXT3_incompat_flags))
-            std::strcpy(dev.fstype, "ext3");
-
-          if(flagsNotSet(EXT_COMPAT_FLAGS_OFFSET    , EXT_FLAG_COMPAT_HAS_JOURNAL) &&
-             flagsNotSet(EXT_RO_COMPAT_FLAGS_OFFSET , ~EXT2_RO_compat_flags) &&
-             flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , ~EXT2_incompat_flags))
-            std::strcpy(dev.fstype, "ext2");
-
-          std::memcpy(dev.uuid, EXT_UUID_OFFSET, 16);
-          std::strncpy(dev.label, (const char*)EXT_LABEL_OFFSET, 16);
-        }
-        else if(true) // test other filesystem type
-        {
-
-        }
-
-
+        printf("device: %s - label: %s - fs: %s - size: %lu\n", dev.path, dev.label, dev.fstype, dev.size);
       }
     } // for each device
   } // end detect()
+
+
+// DETECTION HELPER constexprs!
+
+  struct uintle16_t
+  {
+    uint8_t low;
+    uint8_t high;
+    constexpr operator uint16_t(void) const { return low + (high << 8); }
+  };
+  static_assert(sizeof(uintle16_t) == sizeof(uint16_t), "naughty compiler!");
+
+  struct uintle32_t
+  {
+    uint8_t bottom;
+    uint8_t low;
+    uint8_t high;
+    uint8_t top;
+    constexpr operator uint32_t(void) const
+    {
+      return bottom +
+          (low  <<  8) +
+          (high << 16) +
+          (top  << 24);
+    }
+  };
+  static_assert(sizeof(uintle32_t) == sizeof(uint32_t), "naughty compiler!");
+
+  template<typename T> constexpr uint16_t get16(T* x) { return *reinterpret_cast<uint16_t*>(x); }
+  template<typename T> constexpr uint32_t get32(T* x) { return *reinterpret_cast<uint32_t*>(x); }
+  template<typename T> constexpr uint16_t getLE16(T* x) { return *reinterpret_cast<uintle16_t*>(x); }
+  template<typename T> constexpr uint32_t getLE32(T* x) { return *reinterpret_cast<uintle32_t*>(x); }
+
+  template<typename T> constexpr uint32_t getFlags(T addr, uint32_t flags) { return getLE32(addr) & flags; }
+  template<typename T> constexpr bool flagsAreSet(T addr, uint32_t flags) { return getFlags(addr, flags) == flags; }
+  template<typename T> constexpr bool flagsNotSet(T addr, uint32_t flags) { return !getFlags(addr, flags); }
+
+
+// FILESYSTEM DETECTION FUNCTIONS BELOW!
+
+  // https://github.com/torvalds/linux/blob/master/fs/ext2/ext2.h
+  // https://github.com/torvalds/linux/blob/master/fs/ext4/ext4.h
+  // https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#The_Super_Block
+  bool detect_ext(uint8_t* data, blockdevice_t* dev)
+  {
+    constexpr uint16_t ext_magic_number = 0xEF53; // s_magic
+
+    enum compat_flags : uint32_t // s_feature_compat flags
+    {
+      has_journal     = 0x00000004,
+    };
+
+    enum incompat_flags : uint32_t // s_feature_incompat flags
+    {
+      filetype        = 0x00000002,
+      recover         = 0x00000004,
+      journal_dev     = 0x00000008,
+      meta_bg         = 0x00000010,
+    };
+
+    enum ro_compat_flags : uint32_t // s_feature_ro_compat flags
+    {
+      sparse_super    = 0x00000001,
+      large_file      = 0x00000002,
+      btree_dir       = 0x00000004,
+    };
+
+    enum misc_flags : uint32_t // s_flags flags
+    {
+      dev_filesystem  = 0x00000004,
+    };
+
+    enum composite_flags : uint32_t // composite flags
+    {
+      EXT2_RO_compat_flags = ro_compat_flags::sparse_super | ro_compat_flags::large_file | ro_compat_flags::btree_dir,
+      EXT2_incompat_flags  = incompat_flags::filetype | incompat_flags::meta_bg,
+      EXT3_incompat_flags  = incompat_flags::filetype | incompat_flags::meta_bg | incompat_flags::recover,
+    };
+
+    enum offsets : uintptr_t
+    {
+      block_count          = 0x0004,
+      block_size           = 0x0018,
+      magic_number         = 0x0038, // s_magic
+
+      compat_flags         = 0x005C, // s_feature_compat
+      incompat_flags       = 0x0060, // s_feature_incompat
+      ro_compat_flags      = 0x0064, // s_feature_ro_compat
+
+      uuid                 = 0x0068, // s_uuid[16]
+      label                = 0x0078, // s_volume_name[16]
+      misc_flags           = 0x0160, // s_flags
+    };
+
+    if(getLE16(data + offsets::magic_number) != ext_magic_number ) // test not Ext2/3/4/4dev or JDB
+      return false;
+
+    uint32_t blocksize  = BLOCK_SIZE << getLE32(data + offsets::block_size); // filesystem block size
+    uint64_t blockcount = getLE32(data + offsets::block_count); // filesystem block count
+    dev->size = blockcount * blocksize; // store partitions usable size
+
+    if(flagsAreSet(data + offsets::incompat_flags  , incompat_flags::journal_dev))
+      std::strcpy(dev->fstype, "jbd");
+
+    if(flagsNotSet(data + offsets::incompat_flags  , incompat_flags::journal_dev) &&
+       flagsAreSet(data + offsets::misc_flags      , misc_flags::dev_filesystem))
+      std::strcpy(dev->fstype, "ext4dev");
+
+    if(flagsNotSet(data + offsets::incompat_flags  , incompat_flags::journal_dev) &&
+       (getFlags(data + offsets::ro_compat_flags   , ~EXT2_RO_compat_flags) ||
+        getFlags(data + offsets::incompat_flags    , ~EXT3_incompat_flags)) &&
+       flagsNotSet(data + offsets::misc_flags      , misc_flags::dev_filesystem))
+      std::strcpy(dev->fstype, "ext4");
+
+    if(flagsAreSet(data + offsets::compat_flags    , compat_flags::has_journal) &&
+       flagsNotSet(data + offsets::ro_compat_flags , ~EXT2_RO_compat_flags) &&
+       flagsNotSet(data + offsets::incompat_flags  , ~EXT3_incompat_flags))
+      std::strcpy(dev->fstype, "ext3");
+
+    if(flagsNotSet(data + offsets::compat_flags    , compat_flags::has_journal) &&
+       flagsNotSet(data + offsets::ro_compat_flags , ~EXT2_RO_compat_flags) &&
+       flagsNotSet(data + offsets::incompat_flags  , ~EXT2_incompat_flags))
+      std::strcpy(dev->fstype, "ext2");
+
+    if(!dev->fstype[0])
+      return false;
+
+    std::memcpy(dev->uuid, data + offsets::uuid, 16);
+    std::strncpy(dev->label, (const char*)data + offsets::label, 16);
+    return true;
+  }
+
+  bool detect_NULL(uint8_t* data, blockdevice_t* dev)
+  {
+    printf("NOT A RECOGNIZED FILESYSTEM!  ");
+    return true;
+  }
+
+
 } // end namespace
