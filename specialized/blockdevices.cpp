@@ -101,9 +101,9 @@ template<typename T> constexpr uint32_t get32(T* x) { return *reinterpret_cast<u
 template<typename T> constexpr uint16_t getLE16(T* x) { return *reinterpret_cast<uintle16_t*>(x); }
 template<typename T> constexpr uint32_t getLE32(T* x) { return *reinterpret_cast<uintle32_t*>(x); }
 
-template<typename T> constexpr uint32_t flagsSet(T addr, uint32_t flags) { return getLE32(addr) & flags; }
-template<typename T> constexpr bool flagsAreSet(T addr, uint32_t flags) { return flagsSet(addr, flags) == flags; }
-template<typename T> constexpr bool flagsNotSet(T addr, uint32_t flags) { return !flagsSet(addr, flags); }
+template<typename T> constexpr uint32_t getFlags(T addr, uint32_t flags) { return getLE32(addr) & flags; }
+template<typename T> constexpr bool flagsAreSet(T addr, uint32_t flags) { return getFlags(addr, flags) == flags; }
+template<typename T> constexpr bool flagsNotSet(T addr, uint32_t flags) { return !getFlags(addr, flags); }
 
 
 constexpr char uuid_digit(uint8_t* data, uint8_t digit)
@@ -300,8 +300,8 @@ namespace blockdevices
             std::strcpy(dev.fstype, "ext4dev");
 
           if(flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT_FLAG_INCOMPAT_JOURNAL_DEV) &&
-             (flagsSet(EXT_RO_COMPAT_FLAGS_OFFSET   , ~EXT2_RO_compat_flags) ||
-              flagsSet(EXT_INCOMPAT_FLAGS_OFFSET    , ~EXT3_incompat_flags)) &&
+             (getFlags(EXT_RO_COMPAT_FLAGS_OFFSET   , ~EXT2_RO_compat_flags) ||
+              getFlags(EXT_INCOMPAT_FLAGS_OFFSET    , ~EXT3_incompat_flags)) &&
              flagsNotSet(EXT_MISC_FLAGS_OFFSET      , EXT_FLAG_MISC_DEV_FILESYSTEM))
             std::strcpy(dev.fstype, "ext4");
 
