@@ -22,13 +22,53 @@
 #define EXT_COMPAT_FLAG_HAS_JOURNAL       0x00000004
 #define EXT_INCOMPAT_FLAG_JOURNAL_DEV     0x00000008
 
-#define EXT_BLOCK_COUNT_OFFSET            (superblock + 0x04)
-#define EXT_BLOCK_SIZE_OFFSET             (superblock + 0x18)
-#define EXT_MAGIC_NUMBER_OFFSET           (superblock + 0x38)
-#define EXT_COMPAT_FLAGS_OFFSET           (superblock + 0x5C)
-#define EXT_INCOMPAT_FLAGS_OFFSET         (superblock + 0x60)
-#define EXT_UUID_OFFSET                   (superblock + 0x68)
-#define EXT_LABEL_OFFSET                  (superblock + 0x78)
+/* for s_flags */
+#define EXT_FLAGS_TEST_FILESYS              0x0004
+
+/* for s_feature_compat */
+#define EXT3_FEATURE_COMPAT_HAS_JOURNAL     0x0004
+
+/* for s_feature_ro_compat */
+#define EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER 0x0001
+#define EXT2_FEATURE_RO_COMPAT_LARGE_FILE   0x0002
+#define EXT2_FEATURE_RO_COMPAT_BTREE_DIR    0x0004
+#define EXT4_FEATURE_RO_COMPAT_HUGE_FILE    0x0008
+#define EXT4_FEATURE_RO_COMPAT_GDT_CSUM     0x0010
+#define EXT4_FEATURE_RO_COMPAT_DIR_NLINK    0x0020
+#define EXT4_FEATURE_RO_COMPAT_EXTRA_ISIZE  0x0040
+
+/* for s_feature_incompat */
+#define EXT2_FEATURE_INCOMPAT_FILETYPE      0x0002
+#define EXT3_FEATURE_INCOMPAT_RECOVER       0x0004
+#define EXT3_FEATURE_INCOMPAT_JOURNAL_DEV   0x0008
+#define EXT2_FEATURE_INCOMPAT_META_BG       0x0010
+#define EXT4_FEATURE_INCOMPAT_EXTENTS       0x0040 // extents support
+#define EXT4_FEATURE_INCOMPAT_64BIT         0x0080
+#define EXT4_FEATURE_INCOMPAT_MMP           0x0100
+#define EXT4_FEATURE_INCOMPAT_FLEX_BG       0x0200
+
+#define EXT2_FEATURE_RO_COMPAT_SUPP           (EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER | EXT2_FEATURE_RO_COMPAT_LARGE_FILE | EXT2_FEATURE_RO_COMPAT_BTREE_DIR)
+#define EXT2_FEATURE_INCOMPAT_SUPP            (EXT2_FEATURE_INCOMPAT_FILETYPE | EXT2_FEATURE_INCOMPAT_META_BG)
+#define EXT2_FEATURE_INCOMPAT_UNSUPPORTED     ~EXT2_FEATURE_INCOMPAT_SUPP
+#define EXT2_FEATURE_RO_COMPAT_UNSUPPORTED    ~EXT2_FEATURE_RO_COMPAT_SUPP
+
+#define EXT3_FEATURE_RO_COMPAT_SUPP           (EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER | EXT2_FEATURE_RO_COMPAT_LARGE_FILE | EXT2_FEATURE_RO_COMPAT_BTREE_DIR)
+#define EXT3_FEATURE_INCOMPAT_SUPP            (EXT2_FEATURE_INCOMPAT_FILETYPE | EXT3_FEATURE_INCOMPAT_RECOVER | EXT2_FEATURE_INCOMPAT_META_BG)
+#define EXT3_FEATURE_INCOMPAT_UNSUPPORTED     ~EXT3_FEATURE_INCOMPAT_SUPP
+#define EXT3_FEATURE_RO_COMPAT_UNSUPPORTED    ~EXT3_FEATURE_RO_COMPAT_SUPP
+
+
+#define EXT_BLOCK_COUNT_OFFSET            (superblock + 0x0004)
+#define EXT_BLOCK_SIZE_OFFSET             (superblock + 0x0018)
+#define EXT_MAGIC_NUMBER_OFFSET           (superblock + 0x0038)
+
+#define EXT_COMPAT_FLAGS_OFFSET           (superblock + 0x005C) // s_feature_compat
+#define EXT_INCOMPAT_FLAGS_OFFSET         (superblock + 0x0060) // s_feature_incompat
+#define EXT_RO_COMPAT_FLAGS_OFFSET        (superblock + 0x0064) // s_feature_ro_compat
+
+#define EXT_UUID_OFFSET                   (superblock + 0x0068) // s_uuid[16]
+#define EXT_LABEL_OFFSET                  (superblock + 0x0078) // s_volume_name[16]
+#define EXT_MISC_FLAGS_OFFSET             (superblock + 0x0160) // s_flags
 
 uint64_t read(posix::fd_t fd, off_t offset, uint8_t* buffer, uint64_t length)
 {
@@ -76,6 +116,10 @@ template<typename T> constexpr uint16_t get16(T* x) { return *reinterpret_cast<u
 template<typename T> constexpr uint32_t get32(T* x) { return *reinterpret_cast<uint32_t*>(x); }
 template<typename T> constexpr uint16_t getLE16(T* x) { return *reinterpret_cast<uintle16_t*>(x); }
 template<typename T> constexpr uint32_t getLE32(T* x) { return *reinterpret_cast<uintle32_t*>(x); }
+
+template<typename T> constexpr uint32_t flagsSet(T addr, uint32_t flags) { return getLE32(addr) & flags; }
+template<typename T> constexpr bool flagsAreSet(T addr, uint32_t flags) { return flagsSet(addr, flags) == flags; }
+template<typename T> constexpr bool flagsNotSet(T addr, uint32_t flags) { return !flagsSet(addr, flags); }
 
 
 constexpr char uuid_digit(uint8_t* data, uint8_t digit)
@@ -263,21 +307,39 @@ namespace blockdevices
           blockcount = getLE32(EXT_BLOCK_COUNT_OFFSET);
           blocksize  = BLOCK_SIZE << getLE32(EXT_BLOCK_SIZE_OFFSET);
 
-        //if(get32(EXT_INCOMPAT_FLAGS_OFFSET) & EXT_INCOMPAT_FLAG_JOURNAL_DEV)
+          if(flagsAreSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT3_FEATURE_INCOMPAT_JOURNAL_DEV))
+            std::strcpy(dev.fstype, "jbd");
 
-          if(getLE32(EXT_COMPAT_FLAGS_OFFSET) & EXT_COMPAT_FLAG_HAS_JOURNAL)
+          if(flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT3_FEATURE_INCOMPAT_JOURNAL_DEV) &&
+             flagsAreSet(EXT_MISC_FLAGS_OFFSET      , EXT_FLAGS_TEST_FILESYS))
+            std::strcpy(dev.fstype, "ext4dev");
+
+          if(flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT3_FEATURE_INCOMPAT_JOURNAL_DEV) &&
+             (flagsSet(EXT_RO_COMPAT_FLAGS_OFFSET, EXT3_FEATURE_RO_COMPAT_UNSUPPORTED) ||
+              flagsSet(EXT_INCOMPAT_FLAGS_OFFSET , EXT3_FEATURE_INCOMPAT_UNSUPPORTED)) &&
+             flagsNotSet(EXT_MISC_FLAGS_OFFSET      , EXT_FLAGS_TEST_FILESYS))
+            std::strcpy(dev.fstype, "ext4");
+
+          if(flagsAreSet(EXT_COMPAT_FLAGS_OFFSET    , EXT3_FEATURE_COMPAT_HAS_JOURNAL) &&
+             flagsNotSet(EXT_RO_COMPAT_FLAGS_OFFSET , EXT3_FEATURE_RO_COMPAT_UNSUPPORTED) &&
+             flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT3_FEATURE_INCOMPAT_UNSUPPORTED))
             std::strcpy(dev.fstype, "ext3");
-          else
+
+          if(flagsNotSet(EXT_COMPAT_FLAGS_OFFSET    , EXT3_FEATURE_COMPAT_HAS_JOURNAL) &&
+             flagsNotSet(EXT_RO_COMPAT_FLAGS_OFFSET , EXT2_FEATURE_RO_COMPAT_UNSUPPORTED) &&
+             flagsNotSet(EXT_INCOMPAT_FLAGS_OFFSET  , EXT2_FEATURE_INCOMPAT_UNSUPPORTED))
             std::strcpy(dev.fstype, "ext2");
+
           std::memcpy(dev.uuid, EXT_UUID_OFFSET, 16);
           std::strncpy(dev.label, (const char*)EXT_LABEL_OFFSET, 16);
         }
+        else if(true) // test other filesystem type
+        {
+
+        }
+
+
       }
-/*
-      std::string uuid;
-      uuid_decode(dev.uuid, uuid);
-      printf("PATH: %s - UUID: %s - LABEL: %s - filesystem: %s - size: %lu\n", dev.path, uuid.c_str(), dev.label, dev.fstype, dev.size);
-*/
     } // for each device
   } // end detect()
 } // end namespace
