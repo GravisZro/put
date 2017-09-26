@@ -64,7 +64,7 @@ static void uuid_decode(uint8_t* data, std::string& uuid)
 namespace blockdevices
 {
   typedef bool (*detector_t)(uint8_t*, blockdevice_t*);
-  void detect(void);
+  void detect(blockdevice_t* dev);
   bool detect_ext(uint8_t* data, blockdevice_t* dev);
   bool detect_NULL(uint8_t* data, blockdevice_t* dev);
 
@@ -73,7 +73,11 @@ namespace blockdevices
 
 
 
-#if defined(WANT_PROCFS)
+#if !defined(WANT_PROCFS)
+  void init(void)
+  {
+# pragma message("Code needed to detect devices using... kern.geom.conftxt(?)")
+#else
   void init(const char* procfs_path)
   {
     devices.clear();
@@ -131,17 +135,10 @@ namespace blockdevices
     line = nullptr;
 
     posix::fclose(file);
-
-    detect();
-  }
-
-#else
-  void init(void)
-  {
-#pragma message("Code needed to detect devices using kern.geom.conftxt?")
-    detect();
-  }
 #endif
+    for(blockdevice_t& dev : devices)
+      detect(&dev);
+  }
 
   blockdevice_t* lookupByPath(const char* path) noexcept // finds device based on absolute path
   {
@@ -179,56 +176,64 @@ namespace blockdevices
     return nullptr;
   }
 
-  void detect(void)
+  blockdevice_t* probe(const char* path) noexcept
+  {
+    blockdevice_t dev;
+    std::strcpy(dev.path, path);
+    detect(&dev);
+    if(!dev.fstype[0]) // if filesystem wasn't detected
+      return nullptr;
+    devices.emplace_back(dev);
+    return &devices.back();
+  }
+
+  void detect(blockdevice_t* dev)
   {
     uint8_t superblock[BLOCK_SIZE];
     uint32_t blocksize;
     uint64_t blockcount;
 
-    for(blockdevice_t& dev : devices)
+    posix::fd_t fd = posix::open(dev->path, O_RDONLY);
+    dev->size = 0;
+
+    if(fd != posix::error_response)
     {
-      posix::fd_t fd = posix::open(dev.path, O_RDONLY);
-      dev.size = 0;
+      // try to get the raw size of the partition (might be larger than the usable size)
+#if defined(BLKGETSIZE64) // Linux 2.6+
+      posix::ioctl(fd, BLKGETSIZE64, &dev->size);
 
-      if(fd != posix::error_response)
-      {
-        // try to get the raw size of the partition (might be larger than the usable size)
-  #if defined(BLKGETSIZE64) // Linux 2.6+
-        posix::ioctl(fd, BLKGETSIZE64, &dev.size);
+#elif defined(DKIOCGETBLOCKCOUNT) // Darwin
+      blocksize = 0;
+      blockcount = 0;
+      if(posix::ioctl(fd, DKIOCGETBLOCKSIZE , &blocksize ) > posix::error_response &&
+         posix::ioctl(fd, DKIOCGETBLOCKCOUNT, &blockcount) > posix::error_response)
+        dev->size = blockcount * blocksize;
 
-  #elif defined(DKIOCGETBLOCKCOUNT) // Darwin
-        blocksize = 0;
-        blockcount = 0;
-        if(posix::ioctl(fd, DKIOCGETBLOCKSIZE , &blocksize ) > posix::error_response &&
-           posix::ioctl(fd, DKIOCGETBLOCKCOUNT, &blockcount) > posix::error_response)
-          dev.size = blockcount * blocksize;
+#elif defined(DIOCGMEDIASIZE) // current BSD
+      posix::ioctl(fd, DIOCGMEDIASIZE, &dev->size);
 
-  #elif defined(DIOCGMEDIASIZE) // current BSD
-        posix::ioctl(fd, DIOCGMEDIASIZE, &dev.size);
+#elif defined(DIOCGDINFO) // old BSD
+      struct disklabel info;
+      if(posix::ioctl(fd, DIOCGDINFO, &info) > posix::error_response)
+        dev->size = info.d_ncylinders * info.d_secpercyl * info.d_secsize;
 
-  #elif defined(DIOCGDINFO) // old BSD
-        struct disklabel info;
-        if(posix::ioctl(fd, DIOCGDINFO, &info) > posix::error_response)
-          dev.size = info.d_ncylinders * info.d_secpercyl * info.d_secsize;
+#else
+      dev->size = ::lseek(fd, 0, SEEK_END); // behavior not defined in POSIX for devices but try as a last resort
 
-  #else
-        dev.size = ::lseek(fd, 0, SEEK_END); // behavior not defined in POSIX for devices but try as a last resort
+#pragma message("No device interface defined for this operating system.  Please add one to device.cpp!")
+#endif
+    }
 
-  #pragma message("No device interface defined for this operating system.  Please add one to device.cpp!")
-  #endif
-      }
+    std::memset(superblock, 0, BLOCK_SIZE);
+    if(read(fd, BLOCK_SIZE, superblock, BLOCK_SIZE) == BLOCK_SIZE) // if read filesystem superblock
+    {
+      auto detectpos = detectors.begin();
+      while(detectpos != detectors.end() &&
+            !(*detectpos)(superblock, dev)) // run filesystem detection functions until you find one
+        ++detectpos;
 
-      std::memset(superblock, 0, BLOCK_SIZE);
-      if(read(fd, BLOCK_SIZE, superblock, BLOCK_SIZE) == BLOCK_SIZE) // if read filesystem superblock
-      {
-        auto detectpos = detectors.begin();
-        while(detectpos != detectors.end() &&
-              !(*detectpos)(superblock, &dev)) // run filesystem detection functions until you find one
-          ++detectpos;
-
-        printf("device: %s - label: %s - fs: %s - size: %lu\n", dev.path, dev.label, dev.fstype, dev.size);
-      }
-    } // for each device
+      printf("device: %s - label: %s - fs: %s - size: %lu\n", dev->path, dev->label, dev->fstype, dev->size);
+    }
   } // end detect()
 
 

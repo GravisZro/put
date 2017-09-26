@@ -11,11 +11,12 @@
 
 struct blockdevice_t
 {
-  char    path  [PATH_MAX];
-  uint8_t uuid  [16];
-  char    label [256];
-  char    fstype[256];
+  char     path  [PATH_MAX];
+  uint8_t  uuid  [16];
+  char     label [256];
+  char     fstype[256];
   uint64_t size;
+  bool     clean;
 
   blockdevice_t(void) { std::memset(this, 0, sizeof(blockdevice_t)); }
   blockdevice_t(blockdevice_t& other) { std::memcpy(this, &other, sizeof(blockdevice_t)); }
@@ -28,6 +29,8 @@ namespace blockdevices
 #else
   void init(void) noexcept;
 #endif
+
+  blockdevice_t* probe(const char* path) noexcept; // probe a device based on absolute path
 
   blockdevice_t* lookup(const char* id) noexcept; // finds device based on absolute path, uuid or label
   blockdevice_t* lookupByPath(const char* path) noexcept; // finds device based on absolute path
