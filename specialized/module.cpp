@@ -30,22 +30,42 @@ int load_module(const char* filename, const char* module_arguments)
   }
   return rval;
 }
+
 #elif defined(__hpux) // HP-UX
 #error No kernel module operations code exists in PDTK for HP-UX!  Please submit a patch!
+
 #elif defined(_AIX) // IBM AIX
 #error No kernel module operations code exists in PDTK for IBM AIX!  Please submit a patch!
+
 #elif defined(__APPLE__) // Darwin
+// kextload and kextunload
 #error No kernel module operations code exists in PDTK for Darwin!  Please submit a patch!
+
 #elif defined(__sun) && defined(__SVR4) // Solaris
 #error No kernel module operations code exists in PDTK for Solaris!  Please submit a patch!
-#elif defined(__FreeBSD__) // FreeBSD
-#error No kernel module operations code exists in PDTK for FreeBSD!  Please submit a patch!
+
+#elif defined(__FreeBSD__) || defined(__DragonFly__) // FreeBSD
+// https://man.openbsd.org/FreeBSD-11.0/kldload.2
+// https://man.openbsd.org/FreeBSD-11.0/kldunload.2
+// kldload and kldunload
+#error No kernel module operations code exists in PDTK for FreeBSD/DragonFly BSD!  Please submit a patch!
+
+#elif defined(__OpenBSD__)
+// https://man.openbsd.org/OpenBSD-5.4/lkm.4
+// ioctl on /dev/lkm
+#error No kernel module operations code exists in PDTK for OpenBSD!  Please submit a patch!
+
 #elif defined(__NetBSD__) // NetBSD
+// https://man.openbsd.org/NetBSD-7.1/module.9
+// module_load and module_unload
 #error No kernel module operations code exists in PDTK for NetBSD!  Please submit a patch!
-#elif defined(BSD) // *BSD
-#error No kernel module operations code exists in PDTK for BSDs!  Please submit a patch!
+
+#elif defined(BSD)
+#error Unrecognized BSD derivative!
+
 #elif defined(__unix__)
-#error No kernel module operations code exists in PDTK for this OS!
+#error Unrecognized UNIX variant!
+
 #else
 #error This platform is not supported.
 #endif
