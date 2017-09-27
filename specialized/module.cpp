@@ -35,16 +35,17 @@ int load_module(const char* filename, const char* module_arguments)
 #error No kernel module operations code exists in PDTK for HP-UX!  Please submit a patch!
 
 #elif defined(_AIX) // IBM AIX
+// https://www.ibm.com/developerworks/aix/library/au-kernelext.html
 #error No kernel module operations code exists in PDTK for IBM AIX!  Please submit a patch!
 
 #elif defined(__APPLE__) // Darwin
 // kextload and kextunload
 #error No kernel module operations code exists in PDTK for Darwin!  Please submit a patch!
 
-#elif defined(__sun) && defined(__SVR4) // Solaris
+#elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
 #error No kernel module operations code exists in PDTK for Solaris!  Please submit a patch!
 
-#elif defined(__FreeBSD__) || defined(__DragonFly__) // FreeBSD
+#elif defined(__FreeBSD__) || defined(__DragonFly__) // FreeBSD and DragonFly BSD
 // https://man.openbsd.org/FreeBSD-11.0/kldload.2
 // https://man.openbsd.org/FreeBSD-11.0/kldunload.2
 // kldload and kldunload

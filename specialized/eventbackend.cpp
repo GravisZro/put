@@ -586,7 +586,12 @@ bool EventBackend::getevents(int timeout) noexcept
   }
   return true;
 }
-#elif defined(__APPLE__) || defined(BSD)
+
+#elif defined(__Darwin__)     /* Darwin 7+     */ || \
+      defined(__FreeBSD__)    /* FreeBSD 4.1+  */ || \
+      defined(__DragonFly__)  /* DragonFly BSD */ || \
+      defined(__OpenBSD__)    /* OpenBSD 2.9+  */ || \
+      defined(__NetBSD__)     /* NetBSD 2+     */
 
 #define GLOBAL_PROCESS_EVENT_TRACKING
 
@@ -811,10 +816,11 @@ bool EventBackend::getevents(int timeout) noexcept
   return true;
 }
 
-#elif defined(__sun) && defined(__SVR4) // Solaris
+#elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
 
 #pragma message Not implemented, yet!
 #pragma message See: http://docs.oracle.com/cd/E19253-01/816-5168/port-get-3c/index.html
+#error The backend code in PDTK for Solaris / OpenSolaris / OpenIndiana / illumos is non-functional!  Please submit a patch!
 
 // Solaris
 #include <port.h>
@@ -920,11 +926,21 @@ bool EventBackend::getevents(int timeout) noexcept
   return true;
 }
 
+#elif defined(__hpux) // HP-UX
+// uses /dev/poll
+#error No event backend code exists in PDTK for HP-UX!  Please submit a patch!
+
+#elif defined(_AIX) // IBM AIX
+// see https://www.ibm.com/support/knowledgecenter/ssw_aix_61/com.ibm.aix.basetrf1/pollset.htm
+// uses pollset_* functions
+#error No event backend code exists in PDTK for IBM AIX!  Please submit a patch!
+
+#elif defined(BSD)
+#error Unrecognized BSD derivative!
 
 #elif defined(__unix__)
-
-#error no code yet for your operating system. :(
+#error Unrecognized UNIX variant!
 
 #else
-#error Unsupported platform! >:(
+#error This platform is not supported.
 #endif
