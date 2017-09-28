@@ -927,7 +927,7 @@ bool EventBackend::getevents(int timeout) noexcept
 }
 
 #elif defined(__minix) // MINIX
-#error No event backend code exists in PDTK for QNX!  Please submit a patch!
+#error No event backend code exists in PDTK for MINIX!  Please submit a patch!
 
 #elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
