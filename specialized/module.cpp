@@ -4,12 +4,8 @@
 
 #if defined(__linux__)
 
-#include <fcntl.h>
 #include <sys/mman.h>
-#include <sys/stat.h>
-
-int init_module(void *module_image, unsigned long len,
-                const char *param_values);
+#include <sys/syscall.h>
 
 int load_module(const char* filename, const char* module_arguments)
 {
@@ -23,13 +19,19 @@ int load_module(const char* filename, const char* module_arguments)
     {
       void* mem = ::mmap(0, state.st_size, PROT_READ | PROT_EXEC, MAP_PRIVATE, fd, 0);
       if(mem != nullptr)
-        rval = init_module(mem, state.st_size, module_arguments);
+        rval = ::syscall(SYS_init_module, mem, state.st_size, module_arguments);
       ::munmap(mem, state.st_size);
     }
     posix::close(fd);
   }
   return rval;
 }
+
+#elif defined(__minix) // MINIX
+#error No kernel module operations code exists in PDTK for MINIX!  Please submit a patch!
+
+#elif defined(__QNX__) // QNX
+#error No kernel module operations code exists in PDTK for QNX!  Please submit a patch!
 
 #elif defined(__hpux) // HP-UX
 #error No kernel module operations code exists in PDTK for HP-UX!  Please submit a patch!

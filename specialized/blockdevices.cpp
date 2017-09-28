@@ -64,23 +64,16 @@ static void uuid_decode(uint8_t* data, std::string& uuid)
 namespace blockdevices
 {
   typedef bool (*detector_t)(uint8_t*, blockdevice_t*);
-  void detect(blockdevice_t* dev);
+  void detect_filesystem(blockdevice_t* dev);
   bool detect_ext(uint8_t* data, blockdevice_t* dev);
   bool detect_NULL(uint8_t* data, blockdevice_t* dev);
 
   static std::list<blockdevice_t> devices;
   static std::list<detector_t> detectors = { detect_ext, detect_NULL };
 
-
-
-#if !defined(WANT_PROCFS)
-  void init(void)
+#if defined(__linux__)
+  void fill_device_list(const char* procfs_path)
   {
-# pragma message("Code needed to detect devices using... kern.geom.conftxt(?)")
-#else
-  void init(const char* procfs_path)
-  {
-    devices.clear();
     char filename[PATH_MAX] = { 0 };
     std::strcpy(filename, procfs_path);
     std::strcat(filename, "/partitions");
@@ -135,9 +128,56 @@ namespace blockdevices
     line = nullptr;
 
     posix::fclose(file);
+  }
 #endif
+
+
+  void init(BLOCKDEV_ARGS)
+  {
+    devices.clear();
+
+#if defined(__linux__)
+    fill_device_list(procfs_path);
+
+#elif defined(__minix) // MINIX
+#error Detection of block partitions is not implemented in PDTK for MINIX!  Please submit a patch!
+
+#elif defined(__QNX__) // QNX
+#error Detection of block partitions is not implemented in PDTK for QNX!  Please submit a patch!
+
+#elif defined(__hpux) // HP-UX
+#error Detection of block partitions is not implemented in PDTK for HP-UX!  Please submit a patch!
+
+#elif defined(_AIX) // IBM AIX
+#error Detection of block partitions is not implemented in PDTK for IBM AIX!  Please submit a patch!
+
+#elif defined(__APPLE__) // Darwin
+#error Detection of block partitions is not implemented in PDTK for Darwin!  Please submit a patch!
+
+#elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
+#error Detection of block partitions is not implemented in PDTK for Solaris!  Please submit a patch!
+
+#elif defined(__FreeBSD__) || defined(__DragonFly__) // FreeBSD and DragonFly BSD
+#error Detection of block partitions is not implemented in PDTK for FreeBSD!  Please submit a patch!
+
+#elif defined(__OpenBSD__) // OpenBSD
+#error Detection of block partitions is not implemented in PDTK for OpenBSD!  Please submit a patch!
+
+#elif defined(__NetBSD__) // NetBSD
+#error Detection of block partitions is not implemented in PDTK for NetBSD!  Please submit a patch!
+
+#elif defined(BSD)
+#error Unrecognized BSD derivative!
+
+#elif defined(__unix__)
+#error Unrecognized UNIX variant!
+
+#else
+#error This platform is not supported.
+#endif
+
     for(blockdevice_t& dev : devices)
-      detect(&dev);
+      detect_filesystem(&dev);
   }
 
   blockdevice_t* lookupByPath(const char* path) noexcept // finds device based on absolute path
@@ -180,14 +220,14 @@ namespace blockdevices
   {
     blockdevice_t dev;
     std::strcpy(dev.path, path);
-    detect(&dev);
+    detect_filesystem(&dev);
     if(!dev.fstype[0]) // if filesystem wasn't detected
       return nullptr;
     devices.emplace_back(dev);
     return &devices.back();
   }
 
-  void detect(blockdevice_t* dev)
+  void detect_filesystem(blockdevice_t* dev)
   {
     uint8_t superblock[BLOCK_SIZE];
     uint32_t blocksize;
