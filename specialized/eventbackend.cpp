@@ -5,7 +5,7 @@
 #if defined(__linux__)
 
 // epoll needs kernel 2.5.44
-// "process events connector" needs  kernel 2.6.15
+// "process events connector" needs kernel 2.6.15
 // uevents needs kernel 2.6.10
 // eventfd needs kernel 2.6.22
 
@@ -587,7 +587,7 @@ bool EventBackend::getevents(int timeout) noexcept
   return true;
 }
 
-#elif defined(__Darwin__)     /* Darwin 7+     */ || \
+#elif defined(__APPLE__)      /* Darwin 7+     */ || \
       defined(__FreeBSD__)    /* FreeBSD 4.1+  */ || \
       defined(__DragonFly__)  /* DragonFly BSD */ || \
       defined(__OpenBSD__)    /* OpenBSD 2.9+  */ || \
@@ -926,13 +926,32 @@ bool EventBackend::getevents(int timeout) noexcept
   return true;
 }
 
+#elif defined(__minix) // MINIX
+#error No event backend code exists in PDTK for QNX!  Please submit a patch!
+
+#elif defined(__QNX__) // QNX
+// QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
+#error No event backend code exists in PDTK for QNX!  Please submit a patch!
+
 #elif defined(__hpux) // HP-UX
+// see http://nixdoc.net/man-pages/HP-UX/man7/poll.7.html
+// and https://www.freebsd.org/cgi/man.cgi?query=poll&sektion=7&apropos=0&manpath=HP-UX+11.22
 // uses /dev/poll
 #error No event backend code exists in PDTK for HP-UX!  Please submit a patch!
+
+#include <sys/devpoll.h>
 
 #elif defined(_AIX) // IBM AIX
 // see https://www.ibm.com/support/knowledgecenter/ssw_aix_61/com.ibm.aix.basetrf1/pollset.htm
 // uses pollset_* functions
+
+#include <sys/poll.h>
+#include <sys/pollset.h>
+
+  pollset_t n;
+  n = pollset_create(-1);
+  pollset_destroy(n);
+
 #error No event backend code exists in PDTK for IBM AIX!  Please submit a patch!
 
 #elif defined(BSD)
