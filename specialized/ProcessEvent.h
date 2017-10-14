@@ -29,8 +29,8 @@ public:
   ProcessEvent(pid_t _pid, Flags_t _flags) noexcept;
   ~ProcessEvent(void) noexcept;
 
-  constexpr pid_t pid(void) const noexcept { return m_pid; }
-  inline Flags_t flags(void) const noexcept { return m_flags; }
+  pid_t pid(void) const noexcept { return m_pid; }
+  Flags_t flags(void) const noexcept { return m_flags; }
 
   signal<pid_t, Flags_t> activated;
 private:

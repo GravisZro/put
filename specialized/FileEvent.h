@@ -37,8 +37,8 @@ public:
   FileEvent(const char* _file, Flags_t _flags) noexcept;
   ~FileEvent(void) noexcept;
 
-  constexpr const char* file(void) const noexcept { return m_file; }
-  inline Flags_t flags(void) const noexcept { return m_flags; }
+  const char* file(void) const noexcept { return m_file; }
+  Flags_t flags(void) const noexcept { return m_flags; }
 
   signal<posix::fd_t, const char*, Flags_t> activated;
 private:
