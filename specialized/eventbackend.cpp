@@ -19,7 +19,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
   struct epoll_event output[MAX_EVENTS];
 
   // FD flags
-  static constexpr Event::Flags_t from_native_flags(const uint32_t flags) noexcept
+  static constexpr uint8_t from_native_flags(const uint32_t flags) noexcept
   {
     return
         (flags & EPOLLERR ? Event::Error          : 0) |
@@ -28,7 +28,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
         (flags & EPOLLOUT ? Event::Writeable      : 0);
   }
 
-  static constexpr uint32_t to_native_flags(const Event::Flags_t flags) noexcept
+  static constexpr uint32_t to_native_flags(const uint8_t flags) noexcept
   {
     return
         (flags & Event::Error        ? uint32_t(EPOLLERR ) : 0) |
@@ -176,7 +176,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
 
 
   // FD flags
-  static constexpr Event::Flags_t from_kevent(const kevent& event) noexcept
+  static constexpr uint8_t from_kevent(const kevent& event) noexcept
   {
     return
         (event.flags  & EV_ERROR     ? Event::Error        : 0) |
@@ -185,7 +185,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
         (event.filter & EVFILT_WRITE ? Event::Writeable    : 0);
   }
 
-  static constexpr uint32_t to_native_flags(const Event::Flags_t flags) noexcept
+  static constexpr uint32_t to_native_flags(const uint8_t flags) noexcept
   {
     return
         (flags & Event::Readable     ? uint32_t(EVFILT_READ ) : 0) |
@@ -212,8 +212,8 @@ bool EventBackend::add(posix::fd_t fd, Event::Flags_t flags, callback_t function
 {
   struct kevent ev;
   EV_SET(&ev, fd, to_native_flags(flags), EV_ADD, 0, 0, nullptr);
-  s_platform->kinput.push_back(ev);
-  s_platform->koutput.resize(s_platform->kinput.size());
+  s_platform.kinput.push_back(ev);
+  s_platform.koutput.resize(s_platform.kinput.size());
   queue.emplace(fd, (callback_info_t){flags, function});
   return true;
 }
@@ -225,23 +225,23 @@ bool EventBackend::remove(posix::fd_t fd, Event::Flags_t flags) noexcept
 
 bool EventBackend::poll(int timeout) noexcept
 {
-  EventData_t data;
+  Event::Flags_t data;
   timespec tout;
   tout.tv_sec = timeout / 1000;
   tout.tv_nsec = (timeout % 1000) * 1000;
 
   int count = 0;
   count = kevent(platform->kq,
-             s_platform->kinput.data(), s_platform->kinput.size(),
-             s_platform->koutput.data(), s_platform->koutput.size(),
+             s_platform.kinput.data(), s_platform.kinput.size(),
+             s_platform.koutput.data(), s_platform.koutput.size(),
              &tout);
 
   if(count <= 0)
     return false;
 
-  struct kevent* end = s_platform->koutput.data() + count;
+  struct kevent* end = s_platform.koutput.data() + count;
 
-  for(struct kevent* pos = s_platform->koutput.data(); pos != end; ++pos) // iterate through results
+  for(struct kevent* pos = s_platform.koutput.data(); pos != end; ++pos) // iterate through results
     results.emplace_back(std::make_pair(posix::fd_t(pos->ident), platform_dependant::from_kevent(*pos)));
   return true;
 }
@@ -298,7 +298,7 @@ bool EventBackend::add(posix::fd_t fd, Event::Flags_t flags, callback_t function
 {
   port_event_t pev;
 
-  s_platform->pinput.push_back(pev);
+  s_platform.pinput.push_back(pev);
   queue.emplace(fd, (callback_info_t){flags, function});
   return true;
 }
@@ -316,15 +316,15 @@ bool EventBackend::poll(int timeout) noexcept
   tout.tv_sec = timeout / 1000;
   tout.tv_nsec = (timeout % 1000) * 1000;
 
-  if(::port_getn(s_platform->port,
-                 &s_platform->pinput.data(), s_platform->pinput.size(),
-                 s_platform->poutput, MAX_EVENTS, &count
+  if(::port_getn(s_platform.port,
+                 &s_platform.pinput.data(), s_platform.pinput.size(),
+                 s_platform.poutput, MAX_EVENTS, &count
                  &tout) == posix::error_response)
     return false;
 
-  port_event_t* end = s_platform->poutput + count;
+  port_event_t* end = s_platform.poutput + count;
 
-  for(port_event_t* pos = s_platform->poutput; pos != end; ++pos) // iterate through results
+  for(port_event_t* pos = s_platform.poutput; pos != end; ++pos) // iterate through results
   {
     //flags = from_kevent(*pos);
 
