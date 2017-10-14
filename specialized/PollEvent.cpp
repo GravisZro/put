@@ -2,7 +2,7 @@
 
 #include <functional>
 
-PollEvent::PollEvent(posix::fd_t _fd, Event::Flags _flags)
+PollEvent::PollEvent(posix::fd_t _fd, Event::Flags _flags) noexcept
   : m_fd(_fd), m_flags(_flags)
 {
   EventBackend::add(m_fd, m_flags, // connect FD with flags to signal
@@ -10,7 +10,7 @@ PollEvent::PollEvent(posix::fd_t _fd, Event::Flags _flags)
                     { Object::enqueue(activated, lambda_fd, lambda_flags); });
 }
 
-PollEvent::~PollEvent(void)
+PollEvent::~PollEvent(void) noexcept
 {
   EventBackend::remove(m_fd, m_flags); // disconnect FD with flags from signal
 }

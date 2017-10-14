@@ -107,7 +107,7 @@ struct ProcessEvent::platform_dependant // process notification (process events 
     ProcessEvent::Flags_t flags;
   };
 
-  return_data read(posix::fd_t procfd)
+  return_data read(posix::fd_t procfd) noexcept
   {
     struct alignas(NLMSG_ALIGNTO) // 32-bit alignment
     {
@@ -129,7 +129,7 @@ struct ProcessEvent::platform_dependant // process notification (process events 
   }
 } ProcessEvent::s_platform;
 
-ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags)
+ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
   : m_pid(_pid), m_flags(_flags), m_fd(posix::invalid_descriptor)
 {
   m_fd = s_platform.add(m_pid, m_flags);
@@ -144,7 +144,7 @@ ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags)
                     });
 }
 
-ProcessEvent::~ProcessEvent(void)
+ProcessEvent::~ProcessEvent(void) noexcept
 {
   assert(EventBackend::remove(m_fd, Event::Readable));
   assert(s_platform.remove(m_pid));

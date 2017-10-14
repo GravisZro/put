@@ -102,7 +102,7 @@ bool EventBackend::add(posix::fd_t fd, Event::Flags_t flags, callback_t function
   return true;
 }
 
-bool EventBackend::remove(posix::fd_t fd, Event::Flags_t flags)
+bool EventBackend::remove(posix::fd_t fd, Event::Flags_t flags) noexcept
 {
   auto entries = queue.equal_range(fd); // find modified entry!
   for(auto& pos = entries.first; pos != entries.second; ++pos)

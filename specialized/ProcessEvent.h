@@ -22,15 +22,15 @@ public:
     uint8_t Exit  : 1;
     uint8_t Fork  : 1;
 
-    Flags_t(uint8_t flags = 0) { *reinterpret_cast<uint8_t*>(this) = flags; }
-    operator uint8_t& (void) { return *reinterpret_cast<uint8_t*>(this); }
+    Flags_t(uint8_t flags = 0) noexcept { *reinterpret_cast<uint8_t*>(this) = flags; }
+    operator uint8_t& (void) noexcept { return *reinterpret_cast<uint8_t*>(this); }
   };
 
-  ProcessEvent(pid_t _pid, Flags_t _flags);
-  ~ProcessEvent(void);
+  ProcessEvent(pid_t _pid, Flags_t _flags) noexcept;
+  ~ProcessEvent(void) noexcept;
 
-  constexpr pid_t pid(void) const { return m_pid; }
-  inline Flags_t flags(void) const { return m_flags; }
+  constexpr pid_t pid(void) const noexcept { return m_pid; }
+  inline Flags_t flags(void) const noexcept { return m_flags; }
 
   signal<pid_t, Flags_t> activated;
 private:

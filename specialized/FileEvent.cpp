@@ -76,7 +76,7 @@ struct FileEvent::platform_dependant // file notification (inotify)
   };
 
 #define INOTIFY_EVENT_SIZE   (sizeof(inotify_event) + NAME_MAX + 1)
-  return_data read(posix::fd_t wd)
+  return_data read(posix::fd_t wd) noexcept
   {
     static uint8_t inotifiy_buffer_data[INOTIFY_EVENT_SIZE * 16]; // queue has a minimum of size of 16 inotify events
     union {
@@ -93,7 +93,7 @@ struct FileEvent::platform_dependant // file notification (inotify)
 } FileEvent::s_platform;
 
 
-FileEvent::FileEvent(const char* _file, Flags_t _flags)
+FileEvent::FileEvent(const char* _file, Flags_t _flags) noexcept
   : m_flags(_flags), m_fd(posix::invalid_descriptor)
 {
   static_assert(sizeof(m_file) == PATH_MAX, "whoops!");
@@ -111,7 +111,7 @@ FileEvent::FileEvent(const char* _file, Flags_t _flags)
                     });
 }
 
-FileEvent::~FileEvent(void)
+FileEvent::~FileEvent(void) noexcept
 {
   assert(EventBackend::remove(m_fd, Event::Readable));
   assert(s_platform.remove(m_fd));

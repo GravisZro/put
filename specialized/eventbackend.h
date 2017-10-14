@@ -33,8 +33,8 @@ namespace Event
     uint8_t Readable      : 1;
     uint8_t Writeable     : 1;
 
-    Flags_t(uint8_t flags = 0) { *reinterpret_cast<uint8_t*>(this) = flags; }
-    operator uint8_t& (void) { return *reinterpret_cast<uint8_t*>(this); }
+    Flags_t(uint8_t flags = 0) noexcept { *reinterpret_cast<uint8_t*>(this) = flags; }
+    operator uint8_t& (void) noexcept { return *reinterpret_cast<uint8_t*>(this); }
   };
 }
 

@@ -7,11 +7,11 @@
 class PollEvent : public Object
 {
 public:
-  PollEvent(posix::fd_t _fd, Event::Flags _flags);
-  ~PollEvent(void);
+  PollEvent(posix::fd_t _fd, Event::Flags _flags) noexcept;
+  ~PollEvent(void) noexcept;
 
-  constexpr posix::fd_t fd(void) const { return m_fd; }
-  inline Event::Flags_t flags(void) const { return m_flags; }
+  constexpr posix::fd_t fd(void) const noexcept { return m_fd; }
+  inline Event::Flags_t flags(void) const noexcept { return m_flags; }
 
   signal<posix::fd_t, Event::Flags_t> activated;
 protected:
