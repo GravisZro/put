@@ -176,7 +176,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
 
 
   // FD flags
-  static constexpr uint8_t from_kevent(const kevent& event) noexcept
+  static constexpr uint8_t from_kevent(const struct kevent& event) noexcept
   {
     return
         (event.flags  & EV_ERROR     ? Event::Error        : 0) |
@@ -211,7 +211,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
 bool EventBackend::add(posix::fd_t fd, Event::Flags_t flags, callback_t function) noexcept
 {
   struct kevent ev;
-  EV_SET(&ev, fd, to_native_flags(flags), EV_ADD, 0, 0, nullptr);
+  EV_SET(&ev, fd, platform_dependant::to_native_flags(flags), EV_ADD, 0, 0, nullptr);
   s_platform.kinput.push_back(ev);
   s_platform.koutput.resize(s_platform.kinput.size());
   queue.emplace(fd, (callback_info_t){flags, function});
@@ -231,7 +231,7 @@ bool EventBackend::poll(int timeout) noexcept
   tout.tv_nsec = (timeout % 1000) * 1000;
 
   int count = 0;
-  count = kevent(platform->kq,
+  count = kevent(s_platform.kq,
              s_platform.kinput.data(), s_platform.kinput.size(),
              s_platform.koutput.data(), s_platform.koutput.size(),
              &tout);
