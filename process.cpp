@@ -71,10 +71,10 @@ void Process::reaper(int sig) noexcept
     {
       Process* p = process_map_iter->second;
 #ifndef GLOBAL_PROCESS_EVENT_TRACKING
-      Object::enqueue_copy(p->finished, posix::invalid_descriptor, EventData_t(EventFlags::ExitEvent, p->processId(), p->processId(), status, sig));
+//      Object::enqueue_copy(p->finished, posix::invalid_descriptor, EventData_t(EventFlags::ExitEvent, p->processId(), p->processId(), status, sig));
 #endif
-      EventBackend::remove(p->getStdOut());
-      EventBackend::remove(p->getStdErr());
+//      EventBackend::remove(p->getStdOut(), EventFlags::Readable);
+//      EventBackend::remove(p->getStdErr(), EventFlags::Readable);
       posix::close(p->getStdOut());
       posix::close(p->getStdErr());
       posix::close(p->getStdIn());
@@ -103,11 +103,12 @@ Process::~Process(void) noexcept
 #else
     ::kill(processId(), 0);
 #endif
-
+/*
   Object::disconnect(getStdOut(), EventFlags::Readable);
   Object::disconnect(getStdErr(), EventFlags::Readable);
   Object::disconnect(processId(), EventFlags::ExecEvent);
   Object::disconnect(processId(), EventFlags::ExitEvent);
+*/
   m_state = State::Invalid;
 }
 
@@ -243,11 +244,11 @@ bool Process::invoke(void) noexcept
   state();
 
 #ifndef GLOBAL_PROCESS_EVENT_TRACKING
-  Object::enqueue_copy(started, posix::invalid_descriptor, EventData_t(EventFlags::ExecEvent, processId(), processId()));
+//  Object::enqueue_copy(started, posix::invalid_descriptor, EventData_t(EventFlags::ExecEvent, processId(), processId()));
 #endif
 
-  Object::connect(getStdOut(), EventFlags::Readable, stdoutMessage);
-  Object::connect(getStdErr(), EventFlags::Readable, stderrMessage);
+//  Object::connect(getStdOut(), EventFlags::Readable, stdoutMessage);
+//  Object::connect(getStdErr(), EventFlags::Readable, stderrMessage);
 
   m_state = State::Running;
   return errno == posix::success_response;

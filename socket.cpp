@@ -20,7 +20,7 @@ GenericSocket::GenericSocket(EDomain   domain,
 GenericSocket::GenericSocket(posix::fd_t socket) noexcept
   : m_connected(false), m_socket(socket)
 {
-  Object::connect(m_socket, EventFlags::Readable, this, &GenericSocket::read); // monitor socket connection
+  //Object::connect(m_socket, Event::Readable, this, &GenericSocket::read); // monitor socket connection
 }
 
 GenericSocket::~GenericSocket(void) noexcept { disconnect(); }
@@ -36,7 +36,7 @@ void GenericSocket::disconnect(void) noexcept
   if(m_socket != posix::invalid_descriptor)
   {
     Object::enqueue(disconnected, m_socket);
-    Object::disconnect(m_socket, EventFlags::Readable);
+//    Object::disconnect(m_socket, EventFlags::Readable);
     posix::close(m_socket); // connection severed!
     m_socket = posix::invalid_descriptor;
   }
@@ -101,7 +101,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
   return true;
 }
 
-bool ClientSocket::read(posix::fd_t socket, EventData_t event) noexcept
+bool ClientSocket::read(posix::fd_t socket, Event::Flags_t event) noexcept
 {
   (void)event;
   flaw(m_socket != socket, terminal::critical, std::exit(int(std::errc::invalid_argument)), false,
@@ -214,7 +214,7 @@ void ServerSocket::disconnectPeer(posix::fd_t socket) noexcept
 
 
 // accepts socket connections and then enqueues newPeerRequest
-bool ServerSocket::read(posix::fd_t socket, EventData_t event) noexcept
+bool ServerSocket::read(posix::fd_t socket, Event::Flags_t event) noexcept
 {
   (void)event;
   flaw(m_socket != socket, terminal::critical, std::exit(int(std::errc::invalid_argument)), false,
