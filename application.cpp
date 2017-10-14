@@ -21,7 +21,6 @@ static std::atomic_bool s_run (true); // quit signal
 static posix::fd_t s_pipeio[2] = { posix::invalid_descriptor }; //  execution stepper pipe
 
 lockable<std::queue<vfunc>> Application::ms_signal_queue;
-lockable<std::unordered_multimap<posix::fd_t, std::pair<EventFlags_t, vfdfunc>>> Application::ms_fd_signals;
 
 enum {
   Read = 0,
@@ -36,8 +35,7 @@ Application::Application(void) noexcept
          "Unable to create pipe for execution stepper: %s", std::strerror(errno))
     ::fcntl(s_pipeio[Read], F_SETFD, FD_CLOEXEC);
     ::fcntl(s_pipeio[Read], F_SETFL, O_NONBLOCK);
-    EventBackend::init(); // initialize event backend
-    EventBackend::watch(s_pipeio[Read], EventFlags::Readable); // watch for when execution stepper pipe has been triggered
+    EventBackend::add(s_pipeio[Read], Event::Readable, read); // watch for when execution stepper pipe has been triggered
   }
 }
 
@@ -45,7 +43,7 @@ Application::~Application(void) noexcept
 {
   if(s_pipeio[Read] != posix::invalid_descriptor)
   {
-    EventBackend::destroy(); // shutdown event backend
+    EventBackend::remove(s_pipeio[Read], Event::Readable); // stop watching execution stepper pipe
     posix::close(s_pipeio[Read ]);
     posix::close(s_pipeio[Write]);
     s_pipeio[Read ] = posix::invalid_descriptor;
@@ -64,44 +62,46 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
 {
   while(s_run) // while not quitting
   {
-    EventBackend::getevents(); // get event queue
-    for(const std::pair<posix::fd_t, EventData_t> pos : EventBackend::results) // process queued events
+    EventBackend::poll(); // get event queue results
+
+    for(std::pair<posix::fd_t, Event::Flags_t>& pair : EventBackend::results) // process results
     {
-      if(pos.first == s_pipeio[Read]) // if this is the execution stepper pipe (via Object::enqueue())
-      {
-        uint64_t discard;
-        while(posix::read(pos.first, &discard, sizeof(discard)) != posix::error_response);
+      EventBackend::queue.lock(); // get exclusive access (make thread-safe)
+      auto entries = EventBackend::queue.equal_range(pair.first); // get all the entries for that FD
+      std::list<std::pair<posix::fd_t, EventBackend::callback_info_t>> exec_fds(entries.first, entries.second); // copy entries
+      EventBackend::queue.unlock(); // access is no longer needed
 
-        // execute queue of object signal calls
-        static std::queue<vfunc> exec_queue;
-        if(exec_queue.empty()) // if not currently executing (recursive or multithread exec() calls?)
-        {
-          ms_signal_queue.lock(); // get exclusive access (make thread-safe)
-          exec_queue.swap(ms_signal_queue); // swap the queues
-          ms_signal_queue.unlock(); // access is no longer needed
-
-          while(!exec_queue.empty()) // while still have object signals to execute
-          {
-            exec_queue.front()(); // execute current object signal/callback
-            exec_queue.pop(); // discard current object signal
-          }
-        }
-      }
-      else // if this was a watched FD
-      {
-        ms_fd_signals.lock(); // get exclusive access (make thread-safe)
-        auto entries = ms_fd_signals.equal_range(pos.first); // get all the callback entries for that FD
-        std::list<std::pair<posix::fd_t, std::pair<EventFlags_t, vfdfunc>>> exec_fds(entries.first, entries.second); // copy entries
-        ms_fd_signals.unlock(); // access is no longer needed
-        for(auto& entry : exec_fds) // for each FD
-        {
-          if(entry.second.first.isSet(pos.second.flags)) // if the flags match
-            entry.second.second(pos.first, pos.second); // call the fuction with the FD and triggering EventFlag
-        }
-      }
+      for(std::pair<posix::fd_t, EventBackend::callback_info_t>& entry : exec_fds) // for each FD
+        if(entry.second.flags & pair.second) // check if there is a matching flag
+          entry.second.function(pair.first, pair.second); // invoke the callback function with the FD and triggering Flag
     }
   }
   return s_return_value; // quit() has been called, return value specified
+}
+
+// this is the callback function for the signal queue
+void Application::read(posix::fd_t fd, Event::Flags_t flags)
+{
+  if(flags.Readable)
+  {
+    uint64_t discard;
+    while(posix::read(fd, &discard, sizeof(discard)) != posix::error_response);
+
+    // execute queue of object signal calls
+    static std::queue<vfunc> exec_queue;
+    if(exec_queue.empty()) // if not currently executing (recursive or multithread exec() calls?)
+    {
+      ms_signal_queue.lock(); // get exclusive access (make thread-safe)
+      exec_queue.swap(ms_signal_queue); // swap the queues
+      ms_signal_queue.unlock(); // access is no longer needed
+
+      while(!exec_queue.empty()) // while still have object signals to execute
+      {
+        exec_queue.front()(); // execute current object signal/callback
+        exec_queue.pop(); // discard current object signal
+      }
+    }
+  }
 }
 
 void Application::quit(int return_value) noexcept // soft application exit (allows event queues to complete)

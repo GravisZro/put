@@ -4,18 +4,12 @@
 // STL
 #include <queue>
 #include <functional>
-#include <mutex>
-#include <unordered_map>
 
 // PDTK
 #include <cxxutils/posix_helpers.h>
 #include <specialized/eventbackend.h>
 
-template<typename T>
-struct lockable : T, std::mutex
-  { template<typename... ArgTypes> constexpr lockable(ArgTypes... args) noexcept : T(args...) { } };
 using vfunc = std::function<void()>;
-using vfdfunc = std::function<void(posix::fd_t, EventData_t)>;
 
 class Application
 {
@@ -28,9 +22,9 @@ public:
   static void quit(int return_value = posix::success_response) noexcept;
 
 private:
+  static void read(posix::fd_t fd, Event::Flags_t flags);
   static void step(void) noexcept;
   static lockable<std::queue<vfunc>> ms_signal_queue;
-  static lockable<std::unordered_multimap<posix::fd_t, std::pair<EventFlags_t, vfdfunc>>> ms_fd_signals;
   friend class Object;
 };
 
