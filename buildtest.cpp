@@ -4,6 +4,9 @@
 #include <object.h>
 //#include <integration/sdl.h>
 #include <specialized/proclist.h>
+#include <specialized/FileEvent.h>
+#include <specialized/PollEvent.h>
+#include <specialized/ProcessEvent.h>
 #include <specialized/eventbackend.h>
 #include <specialized/peercred.h>
 #include <specialized/procstat.h>

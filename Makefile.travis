@@ -40,8 +40,11 @@ SOURCES       = buildtest.cpp \
 		specialized/eventbackend.cpp \
 		specialized/peercred.cpp \
 		specialized/procstat.cpp \
-		specialized/proclist.cpp
-#		integration/sdl.cpp \
+		specialized/proclist.cpp \
+		specialized/FileEvent.cpp \
+		specialized/PollEvent.cpp \
+		specialized/ProcessEvent.cpp \
+#		integration/sdl.cpp
 
 OBJS := $(SOURCES:.s=.o)
 OBJS := $(OBJS:.c=.o)
