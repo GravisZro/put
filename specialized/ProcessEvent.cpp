@@ -159,30 +159,24 @@ ProcessEvent::~ProcessEvent(void) noexcept
 # error No process event backend code exists in *BSD!  Please submit a patch!
 
 
-constexpr uint32_t to_native_flags(const EventFlags_t& flags)
+constexpr uint32_t to_native_flags(const ProcessEvent::Flags_t& flags) noexcept
 {
   return
-      (flags.ExecEvent    ? uint32_t(NOTE_EXEC    ) : 0) | // Process called exec*()
-      (flags.ExitEvent    ? uint32_t(NOTE_EXIT    ) : 0) | // Process exited
-      (flags.ForkEvent    ? uint32_t(NOTE_FORK    ) : 0) | // Process forked
+      (flags.Exec ? uint32_t(NOTE_EXEC) : 0) | // Process called exec*()
+      (flags.Exit ? uint32_t(NOTE_EXIT) : 0) | // Process exited
+      (flags.Fork ? uint32_t(NOTE_FORK) : 0) | // Process forked
 }
 
-
-// FD flags
-inline EventData_t from_kevent(const struct kevent& ev) noexcept
+// process flags
+constexpr uint8_t from_kevent(const struct kevent& ev) noexcept
 {
-    case EVFILT_PROC:
-    // process flags
-      data.flags.ExecEvent      = ev.flags & NOTE_EXEC      ? 1 : 0;
-      data.flags.ExitEvent      = ev.flags & NOTE_EXIT      ? 1 : 0;
-      data.flags.ForkEvent      = ev.flags & NOTE_FORK      ? 1 : 0;
-      break;
-  }
-
-
-  return data;
+  return
+      (ev.filter == EVFILT_PROC) // if filter matches
+        ? ((ev.flags & NOTE_EXEC ? ProcessEvent::Exec : 0) | // if flags match
+           (ev.flags & NOTE_EXIT ? ProcessEvent::Exit : 0) |
+           (ev.flags & NOTE_FORK ? ProcessEvent::Fork : 0))
+      : 0; // bail out
 }
-
 
 #elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
 
