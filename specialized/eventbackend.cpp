@@ -19,7 +19,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
   struct epoll_event output[MAX_EVENTS];
 
   // FD flags
-  static constexpr uint8_t from_native_flags(const uint32_t flags) noexcept
+  static constexpr Event::Flags_t from_native_flags(const uint32_t flags) noexcept
   {
     return
         (flags & EPOLLERR ? Event::Error          : 0) |
@@ -28,7 +28,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
         (flags & EPOLLOUT ? Event::Writeable      : 0);
   }
 
-  static constexpr uint32_t to_native_flags(const uint8_t flags) noexcept
+  static constexpr uint32_t to_native_flags(const Event::Flags_t flags) noexcept
   {
     return
         (flags & Event::Error        ? uint32_t(EPOLLERR ) : 0) |
@@ -174,21 +174,20 @@ struct EventBackend::platform_dependant // poll notification (epoll)
   std::vector<struct kevent> kinput;    // events we want to monitor
   std::vector<struct kevent> koutput;   // events that were triggered
 
+
   // FD flags
-  static constexpr uint8_t from_native_flags(const uint32_t flags) noexcept
+  static constexpr Event::Flags_t from_kevent(const kevent& event) noexcept
   {
     return
-        (flags & EV_ERROR     ? Event::Error        : 0) |
-        (flags & EV_EOF       ? Event::Disconnected : 0) |
-        (flags & EVFILT_READ  ? Event::Readable     : 0) |
-        (flags & EVFILT_WRITE ? Event::Writeable    : 0);
+        (event.flags  & EV_ERROR     ? Event::Error        : 0) |
+        (event.flags  & EV_EOF       ? Event::Disconnected : 0) |
+        (event.filter & EVFILT_READ  ? Event::Readable     : 0) |
+        (event.filter & EVFILT_WRITE ? Event::Writeable    : 0);
   }
 
-  static constexpr uint32_t to_native_flags(const uint8_t flags) noexcept
+  static constexpr uint32_t to_native_flags(const Event::Flags_t flags) noexcept
   {
     return
-        (flags & Event::Error        ? uint32_t(EV_ERROR    ) : 0) |
-        (flags & Event::Disconnected ? uint32_t(EV_EOF      ) : 0) |
         (flags & Event::Readable     ? uint32_t(EVFILT_READ ) : 0) |
         (flags & Event::Writeable    ? uint32_t(EVFILT_WRITE) : 0);
   }
@@ -206,17 +205,17 @@ struct EventBackend::platform_dependant // poll notification (epoll)
   {
     posix::close(kq);
   }
-};
+} EventBackend::s_platform;
 
 
 bool EventBackend::add(posix::fd_t fd, Event::Flags_t flags, callback_t function) noexcept
 {
   struct kevent ev;
-  EV_SET(&ev, fd, to_event_filter(flags), EV_ADD, to_native_flags(flags), 0, nullptr);
-  platform->kinput.push_back(ev);
-  platform->koutput.resize(platform->kinput.size());
-  queue.emplace(target, flags);
-  return true
+  EV_SET(&ev, fd, to_native_flags(flags), EV_ADD, 0, 0, nullptr);
+  s_platform->kinput.push_back(ev);
+  s_platform->koutput.resize(s_platform->kinput.size());
+  queue.emplace(fd, (callback_info_t){flags, function});
+  return true;
 }
 
 bool EventBackend::remove(posix::fd_t fd, Event::Flags_t flags) noexcept
@@ -233,21 +232,17 @@ bool EventBackend::poll(int timeout) noexcept
 
   int count = 0;
   count = kevent(platform->kq,
-             platform->kinput.data(), platform->kinput.size(),
-             platform->koutput.data(), platform->koutput.size(),
+             s_platform->kinput.data(), s_platform->kinput.size(),
+             s_platform->koutput.data(), s_platform->koutput.size(),
              &tout);
 
   if(count <= 0)
     return false;
 
-  struct kevent* end = platform->koutput.data() + count;
+  struct kevent* end = s_platform->koutput.data() + count;
 
-  for(struct kevent* pos = platform->koutput.data(); pos != end; ++pos) // iterate through results
-  {
-    data = from_kevent(*pos);
-
-    results.emplace(posix::fd_t(pos->ident), data);
-  }
+  for(struct kevent* pos = s_platform->koutput.data(); pos != end; ++pos) // iterate through results
+    results.emplace_back(std::make_pair(posix::fd_t(pos->ident), platform_dependant::from_kevent(*pos)));
   return true;
 }
 
@@ -297,14 +292,14 @@ struct platform_dependant
   {
     posix::close(port);
   }
-};
+} EventBackend::s_platform;
 
 bool EventBackend::add(posix::fd_t fd, Event::Flags_t flags, callback_t function) noexcept
 {
   port_event_t pev;
 
-  platform->pinput.push_back(pev);
-  queue.emplace(fd, flags);
+  s_platform->pinput.push_back(pev);
+  queue.emplace(fd, (callback_info_t){flags, function});
   return true;
 }
 
@@ -321,15 +316,15 @@ bool EventBackend::poll(int timeout) noexcept
   tout.tv_sec = timeout / 1000;
   tout.tv_nsec = (timeout % 1000) * 1000;
 
-  if(::port_getn(platform->port,
-                 &platform->pinput.data(), platform->pinput.size(),
-                 platform->poutput, MAX_EVENTS, &count
+  if(::port_getn(s_platform->port,
+                 &s_platform->pinput.data(), s_platform->pinput.size(),
+                 s_platform->poutput, MAX_EVENTS, &count
                  &tout) == posix::error_response)
     return false;
 
-  port_event_t* end = platform->poutput + count;
+  port_event_t* end = s_platform->poutput + count;
 
-  for(port_event_t* pos = platform->poutput; pos != end; ++pos) // iterate through results
+  for(port_event_t* pos = s_platform->poutput; pos != end; ++pos) // iterate through results
   {
     //flags = from_kevent(*pos);
 
