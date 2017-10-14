@@ -24,6 +24,7 @@ public:
 
   template<typename RType, typename... ArgTypes>
   using fslot_t = RType(*)(ArgTypes...); // function slot
+  //using fslot_t = std::function<RType(ArgTypes...)>; // function slot
 
   template<typename... ArgTypes>
   using signal = std::multimap<ProtoObject*, std::function<void(ProtoObject*, ArgTypes...)>>;
@@ -67,68 +68,6 @@ public:
         { slot(args...); });
   }
 
-  // connect a file descriptor event to an object member function
-  template<class ObjType, typename RType>
-  static inline void connect(posix::fd_t fd, EventFlags_t flags, ObjType* obj, mslot_t<ObjType, RType, posix::fd_t, EventData_t> slot) noexcept
-  {
-    EventBackend::watch(fd, flags);
-    Application::ms_fd_signals.emplace(fd, std::make_pair(flags,
-      [obj, slot](posix::fd_t _fd, EventData_t data) noexcept
-        { if(obj == obj->self) (obj->*slot)(_fd, data); })); // if ProtoObject is valid (not deleted), call slot
-  }
-
-  template<class ObjType, typename RType>
-  static inline void connect(posix::fd_t fd, ObjType* obj, mslot_t<ObjType, RType, posix::fd_t, EventData_t> slot) noexcept
-    { connect(fd, EventFlags::Readable, obj, slot); }
-
-  // connect an file descriptor event to a signal
-  static inline void connect(posix::fd_t fd, EventFlags_t flags, signal<posix::fd_t, EventData_t>& sig) noexcept
-  {
-    EventBackend::watch(fd, flags);
-    Application::ms_fd_signals.emplace(fd, std::make_pair(flags,
-      [&sig](posix::fd_t _fd, EventData_t _data) noexcept
-      {
-        if(!sig.empty()) // ensure that invalid signals are not enqueued
-        {
-          std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::ms_signal_queue); // multithread protection
-          for(auto sigpair : sig) // iterate through all connected slots
-            Application::ms_signal_queue.emplace(std::bind(sigpair.second, sigpair.first, _fd, _data));
-          Application::step(); // inform execution stepper
-        }
-      }));
-  }
-
-  static inline void connect(posix::fd_t fd, signal<posix::fd_t, EventData_t>& sig) noexcept
-    { connect(fd, EventFlags::Readable, sig); }
-
-  // connect a file descriptor event to a function
-  template<typename RType>
-  static inline void connect(posix::fd_t fd, EventFlags_t flags, fslot_t<RType, posix::fd_t, EventData_t> slot) noexcept
-  {
-    EventBackend::watch(fd, flags);
-    Application::ms_fd_signals.emplace(fd, std::make_pair(flags,
-      [slot](posix::fd_t fd, EventData_t data) noexcept
-        { slot(fd, data); }));
-  }
-
-  template<typename RType>
-  static inline void connect(posix::fd_t fd, fslot_t<RType, posix::fd_t, EventData_t> slot) noexcept
-    { connect(fd, EventFlags::Readable, slot); }
-
-  // connect a file location to a function
-  template<typename RType>
-  static inline void connect(const char* path, EventFlags_t flags, fslot_t<RType, posix::fd_t, EventData_t> slot) noexcept
-  {
-    posix::fd_t fd = EventBackend::watch(path, flags);
-    Application::ms_fd_signals.emplace(fd, std::make_pair(flags,
-      [slot](posix::fd_t fd, EventData_t data) noexcept
-        { slot(fd, data); }));
-  }
-
-  template<typename RType>
-  static inline void connect(const char* path, fslot_t<RType, posix::fd_t, EventData_t> slot) noexcept
-    { connect(path, EventFlags::FileMod, slot); }
-
   // disconnect all connections from signal
   template<typename... ArgTypes>
   static inline void disconnect(signal<ArgTypes...>& sig) noexcept
@@ -139,30 +78,7 @@ public:
   static inline void disconnect(signal<ArgTypes...>& sig, Object* obj) noexcept
     { sig.erase(obj); }
 
-  // disconnect connections to file for all event flags
-  static inline void disconnect(const char* path) noexcept
-    { disconnect(EventBackend::lookup(path), EventFlags::FileEvent | EventFlags::DirEvent /*| EventFlags::FilesystemEvent*/); }
-
-  // disconnect connections to fd for certain event flags
-  static inline void disconnect(posix::fd_t fd, EventFlags_t flags = EventFlags::Readable) noexcept
-  {
-    EventBackend::remove(fd, flags); // allowed to fail
-    auto range = Application::ms_fd_signals.equal_range(fd);
-    auto pos = range.first; // pos = iterator
-    while(pos != range.second) // pos is _always_ advanced within loop
-    {
-      if(pos->second.first.isSet(flags)) // if the flags match partially
-      {
-        if(pos->second.first.unset(flags)) // remove all matching parts and return if any flags remain
-          ++pos; // advance iterator
-        else
-          pos = Application::ms_fd_signals.erase(pos); // completely remove and advance iterator
-      }
-      else
-        ++pos; // advance iterator
-    }
-  }
-
+  // enqueue a function call without a signal
   template<class ObjType, typename RType, typename... ArgTypes>
   static inline void singleShot(ObjType* obj, mslot_t<ObjType, RType, ArgTypes...> slot, ArgTypes&... args) noexcept
   {
