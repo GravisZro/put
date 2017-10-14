@@ -165,124 +165,33 @@ bool EventBackend::poll(int timeout) noexcept
 #include <cxxutils/error_helpers.h>
 
 
-std::unordered_multimap<posix::fd_t, EventFlags_t> EventBackend::queue; // watch queue
-std::unordered_multimap<posix::fd_t, EventData_t> EventBackend::results; // results from getevents()
+lockable<std::unordered_multimap<posix::fd_t, EventBackend::callback_info_t>> EventBackend::queue;
+std::list<std::pair<posix::fd_t, Event::Flags_t>> EventBackend::results;
 
-constexpr uint32_t to_event_filter(const EventFlags_t& flags)
-{
-  if(flags.Readable ||
-     flags.Disconnected)
-    return EVFILT_READ;
-  if(flags.Writeable)
-    return EVFILT_WRITE;
-  if(flags.isSet(EventFlags::FileEvent | EventFlags::DirEvent))
-    return EVFILT_VNODE;
-  if(flags.isSet(EventFlags::ProcEvent))
-    return EVFILT_PROC;
-#ifdef MOUNT_NOTIFICATIONS
-  if(flags.isSet(EventFlags::FilesystemEvent))
-    return EVFILT_FS;
-#endif
-  return 0;
-}
-
-constexpr uint32_t to_native_flags(const EventFlags_t& flags)
-{
-  return
-#ifdef GLOBAL_PROCESS_EVENT_TRACKING
-// process
-      (flags.ExecEvent    ? uint32_t(NOTE_EXEC    ) : 0) | // Process called exec*()
-      (flags.ExitEvent    ? uint32_t(NOTE_EXIT    ) : 0) | // Process exited
-      (flags.ForkEvent    ? uint32_t(NOTE_FORK    ) : 0) | // Process forked
-#endif
-#ifdef MOUNT_NOTIFICATIONS
-// filesystem flags
-      (flags.MountEvent   ? uint32_t(NOTE_MOUNTED ) : 0) | // Filesystem mounted
-      (flags.UnmountEvent ? uint32_t(NOTE_UMOUNTED) : 0) | // Filesystem unmounted
-#endif
-// file flags
-      (flags.ReadEvent    ? uint32_t(NOTE_NONE    ) : 0) | // File was read
-      (flags.WriteEvent   ? uint32_t(NOTE_WRITE   ) : 0) | // File was modified (*).
-      (flags.AttributeMod ? uint32_t(NOTE_ATTRIB  ) : 0) | // Metadata changed, e.g., permissions, timestamps, extended attributes, link count (since Linux 2.6.25), UID, GID, etc. (*).
-      (flags.Moved        ? uint32_t(NOTE_RENAME  ) : 0) | // Watched File was moved.
-      (flags.Deleted      ? uint32_t(NOTE_DELETE  ) : 0) | // Watched File was deleted.
-// directory flags
-      (flags.SubCreated   ? uint32_t(NOTE_WRITE   ) : 0) | // File created in watched dir.
-      (flags.SubMoved     ? uint32_t(NOTE_RENAME  ) : 0) | // File moved in watched dir.
-      (flags.SubDeleted   ? uint32_t(NOTE_DELETE  ) : 0) ; // File deleted in watched dir.
-}
-
-
-// FD flags
-inline EventData_t from_kevent(const struct kevent& ev) noexcept
-{
-  EventData_t data;
-  struct stat buf;
-  data.flags.Error              = ev.flags & EV_ERROR       ? 1 : 0;
-
-  switch (ev.filter)
-  {
-    case EVFILT_READ:
-      data.flags.Readable       = ev.flags == 0             ? 1 : 0;
-      data.flags.Disconnected   = ev.flags & EV_EOF         ? 1 : 0;
-      break;
-
-    case EVFILT_WRITE:
-      data.flags.Writeable      = ev.flags == 0             ? 1 : 0;
-      break;
-
-#ifdef MOUNT_NOTIFICATIONS
-    case EVFILT_FS:
-      data.flags.MountEvent     = ev.flags & NOTE_MOUNTED   ? 1 : 0;
-      data.flags.UnmountEvent   = ev.flags & NOTE_UMOUNTED  ? 1 : 0;
-      break;
-#endif
-
-    case EVFILT_VNODE:
-      data.flags.AttributeMod   = ev.flags & NOTE_ATTRIB    ? 1 : 0;
-// file flags
-      data.flags.WriteEvent     = ev.flags & NOTE_WRITE     ? 1 : 0;
-      data.flags.Moved          = ev.flags & NOTE_RENAME    ? 1 : 0;
-      data.flags.Deleted        = ev.flags & NOTE_DELETE    ? 1 : 0;
-/*
-      ::fstat(ev.indent, &buf);
-      if(buf.st_mode & S_IFDIR)
-      {
-        // directory flags
-        data.flags.SubCreated   = ev.flags & NOTE_WRITE     ? 1 : 0;
-        data.flags.SubMoved     = ev.flags & NOTE_RENAME    ? 1 : 0;
-        data.flags.SubDeleted   = ev.flags & NOTE_DELETE    ? 1 : 0;
-      }
-      else
-      {
-        // file flags
-        data.flags.WriteEvent   = ev.flags & NOTE_WRITE     ? 1 : 0;
-        data.flags.Moved        = ev.flags & NOTE_RENAME    ? 1 : 0;
-        data.flags.Deleted      = ev.flags & NOTE_DELETE    ? 1 : 0;
-      }
-*/
-      break;
-
-#ifdef GLOBAL_PROCESS_EVENT_TRACKING
-    case EVFILT_PROC:
-    // process flags
-      data.flags.ExecEvent      = ev.flags & NOTE_EXEC      ? 1 : 0;
-      data.flags.ExitEvent      = ev.flags & NOTE_EXIT      ? 1 : 0;
-      data.flags.ForkEvent      = ev.flags & NOTE_FORK      ? 1 : 0;
-      break;
-#endif
-  }
-
-
-  return data;
-}
-
-
-struct platform_dependant
+struct EventBackend::platform_dependant // poll notification (epoll)
 {
   posix::fd_t kq;
-  std::vector<struct kevent> kinput;   // events we want to monitor
+  std::vector<struct kevent> kinput;    // events we want to monitor
   std::vector<struct kevent> koutput;   // events that were triggered
+
+  // FD flags
+  static constexpr uint8_t from_native_flags(const uint32_t flags) noexcept
+  {
+    return
+        (flags & EV_ERROR     ? Event::Error        : 0) |
+        (flags & EV_EOF       ? Event::Disconnected : 0) |
+        (flags & EVFILT_READ  ? Event::Readable     : 0) |
+        (flags & EVFILT_WRITE ? Event::Writeable    : 0);
+  }
+
+  static constexpr uint32_t to_native_flags(const uint8_t flags) noexcept
+  {
+    return
+        (flags & Event::Error        ? uint32_t(EV_ERROR    ) : 0) |
+        (flags & Event::Disconnected ? uint32_t(EV_EOF      ) : 0) |
+        (flags & Event::Readable     ? uint32_t(EVFILT_READ ) : 0) |
+        (flags & Event::Writeable    ? uint32_t(EVFILT_WRITE) : 0);
+  }
 
   platform_dependant(void)
   {
@@ -299,45 +208,23 @@ struct platform_dependant
   }
 };
 
-struct platform_dependant* EventBackend::platform = nullptr;
 
-void EventBackend::init(void) noexcept
-{
-  flaw(platform != nullptr, terminal::warning, posix::error(std::errc::operation_not_permitted),,
-       "EventBackend::init() has been called multiple times!")
-  platform = new platform_dependant;
-}
-
-void EventBackend::destroy(void) noexcept
-{
-  flaw(platform == nullptr, terminal::warning, posix::error(std::errc::operation_not_permitted),,
-       "EventBackend::destroy() has been called multiple times!")
-  delete platform;
-  platform = nullptr;
-}
-
-
-posix::fd_t EventBackend::watch(const char* path, EventFlags_t flags) noexcept
-{
-  return posix::invalid_descriptor;
-}
-
-posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
+bool EventBackend::add(posix::fd_t fd, Event::Flags_t flags, callback_t function) noexcept
 {
   struct kevent ev;
-  EV_SET(&ev, target, to_event_filter(flags), EV_ADD, to_native_flags(flags), 0, nullptr);
+  EV_SET(&ev, fd, to_event_filter(flags), EV_ADD, to_native_flags(flags), 0, nullptr);
   platform->kinput.push_back(ev);
   platform->koutput.resize(platform->kinput.size());
   queue.emplace(target, flags);
-  return target;
+  return true
 }
 
-bool EventBackend::remove(int target, EventFlags_t flags) noexcept
+bool EventBackend::remove(posix::fd_t fd, Event::Flags_t flags) noexcept
 {
   return false;
 }
 
-bool EventBackend::getevents(int timeout) noexcept
+bool EventBackend::poll(int timeout) noexcept
 {
   EventData_t data;
   timespec tout;
@@ -412,44 +299,21 @@ struct platform_dependant
   }
 };
 
-struct platform_dependant* EventBackend::platform = nullptr;
-
-void EventBackend::init(void) noexcept
-{
-  flaw(platform != nullptr, terminal::warning, posix::error(std::errc::operation_not_permitted),,
-       "EventBackend::init() has been called multiple times!")
-  platform = new platform_dependant;
-}
-
-void EventBackend::destroy(void) noexcept
-{
-  flaw(platform == nullptr, terminal::warning, posix::error(std::errc::operation_not_permitted),,
-       "EventBackend::destroy() has been called multiple times!")
-  delete platform;
-  platform = nullptr;
-}
-
-
-posix::fd_t EventBackend::watch(const char* path, EventFlags_t flags) noexcept
-{
-  return posix::invalid_descriptor;
-}
-
-posix::fd_t EventBackend::watch(int target, EventFlags_t flags) noexcept
+bool EventBackend::add(posix::fd_t fd, Event::Flags_t flags, callback_t function) noexcept
 {
   port_event_t pev;
 
   platform->pinput.push_back(pev);
-  queue.emplace(target, flags);
-  return target;
+  queue.emplace(fd, flags);
+  return true;
 }
 
-bool EventBackend::remove(int target, EventFlags_t flags) noexcept
+bool EventBackend::remove(posix::fd_t fd, Event::Flags_t flags) noexcept
 {
   return false;
 }
 
-bool EventBackend::getevents(int timeout) noexcept
+bool EventBackend::poll(int timeout) noexcept
 {
   uint32_t flags;
   uint_t count = 0;
