@@ -1,61 +1,19 @@
 #include "application.h"
 
-// POSIX
-#include <fcntl.h>
-
-// POSIX++
-#include <cstring> // for strerror()
-#include <cstdlib> // for exit
-
 // STL
 #include <atomic>
 #include <list>
 
-// PDTK
-#include <cxxutils/vterm.h>
-#include <cxxutils/error_helpers.h>
-
 // atomic vars are to avoid race conditions
 static std::atomic_int  s_return_value (0);
 static std::atomic_bool s_run (true); // quit signal
-static posix::fd_t s_pipeio[2] = { posix::invalid_descriptor }; //  execution stepper pipe
 
 lockable<std::queue<vfunc>> Application::ms_signal_queue;
 
-enum {
-  Read = 0,
-  Write = 1,
-};
-
 Application::Application(void) noexcept
 {
-  if(s_pipeio[Read] == posix::invalid_descriptor) // if execution stepper pipe  hasn't been initialized yet
-  {
-    flaw(::pipe(s_pipeio) == posix::error_response, terminal::critical, std::exit(errno),,
-         "Unable to create pipe for execution stepper: %s", std::strerror(errno))
-    ::fcntl(s_pipeio[Read], F_SETFD, FD_CLOEXEC);
-    ::fcntl(s_pipeio[Read], F_SETFL, O_NONBLOCK);
-    EventBackend::add(s_pipeio[Read], Event::Readable, read); // watch for when execution stepper pipe has been triggered
-  }
-}
-
-Application::~Application(void) noexcept
-{
-  if(s_pipeio[Read] != posix::invalid_descriptor)
-  {
-    EventBackend::remove(s_pipeio[Read], Event::Readable); // stop watching execution stepper pipe
-    posix::close(s_pipeio[Read ]);
-    posix::close(s_pipeio[Write]);
-    s_pipeio[Read ] = posix::invalid_descriptor;
-    s_pipeio[Write] = posix::invalid_descriptor;
-  }
-}
-
-void Application::step(void) noexcept
-{
-  static const uint8_t dummydata = 0; // dummy content
-  flaw(posix::write(s_pipeio[Write], &dummydata, 1) != 1, terminal::critical, /*std::exit(errno)*/,, // triggers execution stepper FD
-       "Unable to trigger Object signal queue processor: %s", std::strerror(errno))
+  if(!EventBackend::setstepper(stepper))
+    quit(posix::error_response);
 }
 
 int Application::exec(void) noexcept // non-static function to ensure an instance of Application exists
@@ -64,7 +22,7 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
   {
     EventBackend::poll(); // get event queue results
 
-    for(std::pair<posix::fd_t, Event::Flags_t>& pair : EventBackend::results) // process results
+    for(std::pair<posix::fd_t, native_flags_t>& pair : EventBackend::results) // process results
     {
       EventBackend::queue.lock(); // get exclusive access (make thread-safe)
       auto entries = EventBackend::queue.equal_range(pair.first); // get all the entries for that FD
@@ -80,26 +38,20 @@ int Application::exec(void) noexcept // non-static function to ensure an instanc
 }
 
 // this is the callback function for the signal queue
-void Application::read(posix::fd_t fd, Event::Flags_t flags)
+void Application::stepper(void) noexcept
 {
-  if(flags.Readable)
+  // execute queue of object signal calls
+  static std::queue<vfunc> exec_queue;
+  if(exec_queue.empty()) // if not currently executing (recursive or multithread exec() calls?)
   {
-    uint64_t discard;
-    while(posix::read(fd, &discard, sizeof(discard)) != posix::error_response);
+    ms_signal_queue.lock(); // get exclusive access (make thread-safe)
+    exec_queue.swap(ms_signal_queue); // swap the queues
+    ms_signal_queue.unlock(); // access is no longer needed
 
-    // execute queue of object signal calls
-    static std::queue<vfunc> exec_queue;
-    if(exec_queue.empty()) // if not currently executing (recursive or multithread exec() calls?)
+    while(!exec_queue.empty()) // while still have object signals to execute
     {
-      ms_signal_queue.lock(); // get exclusive access (make thread-safe)
-      exec_queue.swap(ms_signal_queue); // swap the queues
-      ms_signal_queue.unlock(); // access is no longer needed
-
-      while(!exec_queue.empty()) // while still have object signals to execute
-      {
-        exec_queue.front()(); // execute current object signal/callback
-        exec_queue.pop(); // discard current object signal
-      }
+      exec_queue.front()(); // execute current object signal/callback
+      exec_queue.pop(); // discard current object signal
     }
   }
 }

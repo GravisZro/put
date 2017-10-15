@@ -13,29 +13,30 @@
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/socket_helpers.h>
 #include <cxxutils/vterm.h>
+#include <specialized/PollEvent.h>
 
 #include <cassert>
+
+// process flags
+static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
+{
+  return (flags & proc_event::PROC_EVENT_EXEC ? ProcessEvent::Exec : 0) |
+         (flags & proc_event::PROC_EVENT_EXIT ? ProcessEvent::Exit : 0) |
+         (flags & proc_event::PROC_EVENT_FORK ? ProcessEvent::Fork : 0) ;
+}
+
+static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
+{
+  return
+      (flags & ProcessEvent::Exec ? native_flags_t(proc_event::PROC_EVENT_EXEC) : 0) | // Process called exec*()
+      (flags & ProcessEvent::Exit ? native_flags_t(proc_event::PROC_EVENT_EXIT) : 0) | // Process exited
+      (flags & ProcessEvent::Fork ? native_flags_t(proc_event::PROC_EVENT_FORK) : 0) ; // Process forked
+}
 
 struct ProcessEvent::platform_dependant // process notification (process events connector)
 {
   posix::fd_t fd;
   std::unordered_multimap<pid_t, ProcessEvent::Flags_t> events;
-
-  // process flags
-  static constexpr uint8_t from_native_flags(const uint32_t flags) noexcept
-  {
-    return (flags & proc_event::PROC_EVENT_EXEC ? Flags::Exec : 0) |
-           (flags & proc_event::PROC_EVENT_EXIT ? Flags::Exit : 0) |
-           (flags & proc_event::PROC_EVENT_FORK ? Flags::Fork : 0) ;
-  }
-
-  static constexpr uint32_t to_native_flags(const uint8_t flags) noexcept
-  {
-    return
-        (flags & Flags::Exec ? uint32_t(proc_event::PROC_EVENT_EXEC) : 0) | // Process called exec*()
-        (flags & Flags::Exit ? uint32_t(proc_event::PROC_EVENT_EXIT) : 0) | // Process exited
-        (flags & Flags::Fork ? uint32_t(proc_event::PROC_EVENT_FORK) : 0) ; // Process forked
-  }
 
   platform_dependant(void) noexcept
     : fd(posix::invalid_descriptor)
@@ -159,24 +160,33 @@ ProcessEvent::~ProcessEvent(void) noexcept
 # error No process event backend code exists in *BSD!  Please submit a patch!
 
 
-constexpr uint32_t to_native_flags(const ProcessEvent::Flags_t& flags) noexcept
-{
-  return
-      (flags.Exec ? uint32_t(NOTE_EXEC) : 0) | // Process called exec*()
-      (flags.Exit ? uint32_t(NOTE_EXIT) : 0) | // Process exited
-      (flags.Fork ? uint32_t(NOTE_FORK) : 0) | // Process forked
-}
+static constexpr native_flags_t composite_flag(short filters, ushort flags) noexcept
+  { return native_flags_t(reinterpret_cast<uint16_t>(flags) << 16) | native_flags_t(flags); }
 
 // process flags
-constexpr uint8_t from_kevent(const struct kevent& ev) noexcept
+static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
 {
   return
-      (ev.filter == EVFILT_PROC) // if filter matches
-        ? ((ev.flags & NOTE_EXEC ? ProcessEvent::Exec : 0) | // if flags match
-           (ev.flags & NOTE_EXIT ? ProcessEvent::Exit : 0) |
-           (ev.flags & NOTE_FORK ? ProcessEvent::Fork : 0))
-      : 0; // bail out
+      (flags & composite_flag(EVFILT_PROC, NOTE_EXEC) ? ProcessEvent::Exec : 0) |
+      (flags & composite_flag(EVFILT_PROC, NOTE_EXIT) ? ProcessEvent::Exit : 0) |
+      (flags & composite_flag(EVFILT_PROC, NOTE_FORK) ? ProcessEvent::Fork : 0) ;
 }
+
+static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
+{
+  return
+      (flags & ProcessEvent::Exec ? composite_flag(EVFILT_PROC, NOTE_EXEC) : 0) |
+      (flags & ProcessEvent::Exit ? composite_flag(EVFILT_PROC, NOTE_EXIT) : 0) |
+      (flags & ProcessEvent::Fork ? composite_flag(EVFILT_PROC, NOTE_FORK) : 0) ;
+}
+
+
+struct ProcessEvent::platform_dependant // process notification
+{
+
+
+
+} ProcessEvent::s_platform;
 
 #elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
 

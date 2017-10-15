@@ -84,7 +84,7 @@ public:
   {
     std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::ms_signal_queue); // multithread protection
     Application::ms_signal_queue.emplace(std::bind(slot, obj, std::forward<ArgTypes>(args)...));
-    Application::step(); // inform execution stepper
+    EventBackend::step(); // inform execution stepper
   }
 
   template<typename RType, typename... ArgTypes>
@@ -92,7 +92,7 @@ public:
   {
     std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::ms_signal_queue); // multithread protection
     Application::ms_signal_queue.emplace(std::bind(slot, std::forward<ArgTypes>(args)...));
-    Application::step(); // inform execution stepper
+    EventBackend::step(); // inform execution stepper
   }
 
   // enqueue a call to the functions connected to the signal
@@ -104,7 +104,7 @@ public:
       std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::ms_signal_queue); // multithread protection
       for(auto sigpair : sig) // iterate through all connected slots
         Application::ms_signal_queue.emplace(std::bind(sigpair.second, sigpair.first, std::forward<ArgTypes>(args)...));
-      Application::step(); // inform execution stepper
+      EventBackend::step(); // inform execution stepper
       return true;
     }
     return false;

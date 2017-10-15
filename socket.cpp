@@ -101,9 +101,9 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
   return true;
 }
 
-bool ClientSocket::read(posix::fd_t socket, Event::Flags_t event) noexcept
+bool ClientSocket::read(posix::fd_t socket, native_flags_t flags) noexcept
 {
-  (void)event;
+  (void)flags;
   flaw(m_socket != socket, terminal::critical, std::exit(int(std::errc::invalid_argument)), false,
        "ClientSocket::read() was improperly called: %s", std::strerror(int(std::errc::invalid_argument)))
 
@@ -214,9 +214,9 @@ void ServerSocket::disconnectPeer(posix::fd_t socket) noexcept
 
 
 // accepts socket connections and then enqueues newPeerRequest
-bool ServerSocket::read(posix::fd_t socket, Event::Flags_t event) noexcept
+bool ServerSocket::read(posix::fd_t socket, native_flags_t flags) noexcept
 {
-  (void)event;
+  (void)flags;
   flaw(m_socket != socket, terminal::critical, std::exit(int(std::errc::invalid_argument)), false,
        "ServerSocket::read() was improperly called: %s", std::strerror(int(std::errc::invalid_argument)))
   proccred_t cred;
