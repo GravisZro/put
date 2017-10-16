@@ -14,7 +14,7 @@ template<typename T>
 struct lockable : T, std::mutex
   { template<typename... ArgTypes> constexpr lockable(ArgTypes... args) noexcept : T(args...) { } };
 
-typedef uint32_t native_flags_t;
+typedef uint64_t native_flags_t;
 using vfunc = std::function<void()>;
 
 namespace EventBackend
