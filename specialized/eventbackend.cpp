@@ -185,6 +185,8 @@ namespace EventBackend
 
 // STL
 #include <vector>
+#include <algorithm>
+#include <iterator>
 
 // PDTK
 #include <cxxutils/vterm.h>
@@ -240,8 +242,9 @@ bool EventBackend::remove(posix::fd_t fd, native_flags_t flags) noexcept
 {
   struct kevent ev;
   EV_SET(&ev, fd, extract_filter(flags), EV_ADD, extract_flags(flags), 0, nullptr);
-  auto iter = s_platform.kinput.find(ev);
-  if(iter == s_platform.kinput.end())
+
+  auto iter = std::find(std::begin(s_platform.kinput), std::end(s_platform.kinput), ev);
+  if(iter == std::end(s_platform.kinput))
     return false;
   s_platform.kinput.erase(iter);
   return true;
