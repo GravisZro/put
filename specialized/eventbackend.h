@@ -15,7 +15,6 @@ struct lockable : T, std::mutex
   { template<typename... ArgTypes> constexpr lockable(ArgTypes... args) noexcept : T(args...) { } };
 
 typedef uint64_t native_flags_t;
-using vfunc = std::function<void()>;
 
 namespace EventBackend
 {
@@ -25,9 +24,6 @@ namespace EventBackend
     native_flags_t flags;
     callback_t function;
   };
-
-  extern void step(void) noexcept;
-  extern bool setstepper(vfunc function) noexcept;
 
   extern bool add(posix::fd_t target, native_flags_t flags, callback_t function) noexcept; // add FD or process events to montior
   extern bool remove(posix::fd_t target, native_flags_t flags) noexcept; // remove from watch queue
@@ -39,6 +35,7 @@ namespace EventBackend
 
   struct platform_dependant;
   extern struct platform_dependant s_platform;
+  extern const native_flags_t SimplePollFlags;
 }
 
 #endif // EVENTBACKEND_H

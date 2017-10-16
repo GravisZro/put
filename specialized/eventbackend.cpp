@@ -2,13 +2,6 @@
 
 #define MAX_EVENTS 1024
 
-// POSIX
-#include <fcntl.h>
-
-// POSIX++
-#include <cstring> // for strerror()
-#include <cstdlib> // for exit
-
 // PDTK
 #include <cxxutils/vterm.h>
 
@@ -56,6 +49,8 @@ struct EventBackend::platform_dependant // poll notification (epoll)
     return ::epoll_ctl(fd, EPOLL_CTL_DEL, wd, &event) == posix::success_response; // try to delete entry
   }
 } EventBackend::s_platform;
+
+const native_flags_t EventBackend::SimplePollFlags = EPOLLIN;
 
 bool EventBackend::poll(int timeout) noexcept
 {
@@ -152,6 +147,8 @@ struct EventBackend::platform_dependant // poll notification (epoll)
 
 } EventBackend::s_platform;
 
+const native_flags_t EventBackend::SimplePollFlags = platform_dependant::composite_flag(0, EVFILT_READ, 0);
+
 bool EventBackend::poll(int timeout) noexcept
 {
   uint32_t data;
@@ -168,6 +165,8 @@ bool EventBackend::poll(int timeout) noexcept
     results.emplace_back(std::make_pair(posix::fd_t(pos->ident), composite_flag(pos->filter, pos->flags)));
   return true;
 }
+
+
 
 #elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
 
@@ -332,41 +331,3 @@ bool EventBackend::remove(posix::fd_t fd, native_flags_t flags) noexcept
       : s_platform.remove(fd);
 }
 
-namespace EventBackend
-{
-  static posix::fd_t s_pipeio[2] = { posix::invalid_descriptor }; //  execution stepper pipe
-  static vfunc stepper_function = nullptr;
-  enum {
-    Read = 0,
-    Write = 1,
-  };
-
-
-  void readstep(posix::fd_t fd, native_flags_t) noexcept
-  {
-    uint64_t discard;
-    while(posix::read(fd, &discard, sizeof(discard)) != posix::error_response);
-    stepper_function();
-  }
-
-  bool setstepper(vfunc function) noexcept
-  {
-    stepper_function = function;
-    if(s_pipeio[Read] == posix::invalid_descriptor) // if execution stepper pipe  hasn't been initialized yet
-    {
-      flaw(::pipe(s_pipeio) == posix::error_response, terminal::critical, std::exit(errno), false,
-           "Unable to create pipe for execution stepper: %s", std::strerror(errno))
-      ::fcntl(s_pipeio[Read], F_SETFD, FD_CLOEXEC);
-      ::fcntl(s_pipeio[Read], F_SETFL, O_NONBLOCK);
-      return EventBackend::add(s_pipeio[Read], EPOLLIN, readstep); // watch for when execution stepper pipe has been triggered
-    }
-    return stepper_function != nullptr;
-  }
-
-  void step(void) noexcept
-  {
-    static const uint8_t dummydata = 0; // dummy content
-    flaw(posix::write(s_pipeio[Write], &dummydata, 1) != 1, terminal::critical, /*std::exit(errno)*/,, // triggers execution stepper FD
-         "Unable to trigger Object signal queue processor: %s", std::strerror(errno))
-  }
-}
