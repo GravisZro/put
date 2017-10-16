@@ -18,7 +18,6 @@
 #include <specialized/eventbackend.h>
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/vterm.h>
-#include <specialized/PollEvent.h>
 
 
 enum class command : uint8_t
@@ -72,8 +71,8 @@ void Process::reaper(int sig) noexcept
     if(process_map_iter != process_map.end()) // if the dead process exists...
     {
       Process* p = process_map_iter->second;
-      EventBackend::remove(p->getStdOut(), PollEvent::Readable);
-      EventBackend::remove(p->getStdErr(), PollEvent::Readable);
+      EventBackend::remove(p->getStdOut(), EventBackend::SimplePollReadFlags);
+      EventBackend::remove(p->getStdErr(), EventBackend::SimplePollReadFlags);
       posix::close(p->getStdOut());
       posix::close(p->getStdErr());
       posix::close(p->getStdIn());
@@ -92,29 +91,23 @@ Process::Process(void) noexcept
 
 Process::~Process(void) noexcept
 {
-  if(m_state == State::Running)
-#ifdef _XOPEN_SOURCE_EXTENDED
-    sendSignal(posix::signal::Kill);
-#else
-    ::kill(processId(), 0);
-#endif
+  EventBackend::remove(getStdOut(), EventBackend::SimplePollReadFlags);
+  EventBackend::remove(getStdErr(), EventBackend::SimplePollReadFlags);
 
-  EventBackend::remove(getStdOut(), PollEvent::Readable);
-  EventBackend::remove(getStdErr(), PollEvent::Readable);
-//  EventBackend::remove(processId(), ProcessEvent::Exec);
-//  EventBackend::remove(processId(), ProcessEvent::Exit);
+  if(m_state == State::Running)
+    sendSignal(posix::signal::Kill);
   m_state = State::Invalid;
 }
 
 bool Process::write_then_read(void) noexcept
 {
-  if(m_iobuf.empty() || // ensure there is data to write
-     !writeStdIn(m_iobuf) || // write data to pipe
-     !waitReadStdOut(1000) || // wait to read pipe
-     !readStdOut(m_iobuf) || // read data from pipe
-     (m_iobuf >> errno).hadError()) // read return value
-    return false;
-  return errno == posix::success_response;
+  if(!m_iobuf.empty()     && // ensure there is data to write
+     writeStdIn(m_iobuf)  && // write data to pipe
+     waitReadStdOut(1000) && // wait to read pipe
+     readStdOut(m_iobuf)  && // read data from pipe
+     !(m_iobuf >> errno).hadError()) // read return value
+    return errno == posix::success_response;
+  return false;
 }
 
 bool Process::setArguments(const std::vector<std::string>& arguments) noexcept
@@ -237,19 +230,13 @@ bool Process::invoke(void) noexcept
   m_state = State::Invalid;
   state();
 
-  EventBackend::add(getStdOut(), PollEvent::Readable,
-                    [this](posix::fd_t lambda_fd, PollEvent::Flags_t lambda_flags) noexcept
-                    {
-                      assert(lambda_flags == PollEvent::Readable);
-                      Object::enqueue(stdoutMessage, lambda_fd);
-                    });
+  EventBackend::add(getStdOut(), EventBackend::SimplePollReadFlags,
+                    [this](posix::fd_t lambda_fd, native_flags_t) noexcept
+                      { Object::enqueue(stdoutMessage, lambda_fd); });
 
-  EventBackend::add(getStdErr(), PollEvent::Readable,
-                    [this](posix::fd_t lambda_fd, PollEvent::Flags_t lambda_flags) noexcept
-                    {
-                      assert(lambda_flags == PollEvent::Readable);
-                      Object::enqueue(stderrMessage, lambda_fd);
-                    });
+  EventBackend::add(getStdErr(), EventBackend::SimplePollReadFlags,
+                    [this](posix::fd_t lambda_fd, native_flags_t) noexcept
+                      { Object::enqueue(stderrMessage, lambda_fd); });
 
   m_state = State::Running;
   return errno == posix::success_response;

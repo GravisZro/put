@@ -11,7 +11,6 @@
 
 // PDTK
 #include <cxxutils/vterm.h>
-#include <specialized/PollEvent.h>
 
 // file/directory flags
 static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
@@ -100,8 +99,8 @@ FileEvent::FileEvent(const char* _file, Flags_t _flags) noexcept
   std::memset(m_file, 0, sizeof(m_file));
   std::strcpy(m_file, _file);
   m_fd = s_platform.add(m_file, m_flags);
-  EventBackend::add(m_fd, PollEvent::Readable,
-                    [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
+  EventBackend::add(m_fd, EventBackend::SimplePollReadFlags,
+                    [this](posix::fd_t lambda_fd, native_flags_t) noexcept
                     {
                       platform_dependant::return_data data = s_platform.read(lambda_fd);
                       Object::enqueue(activated, data.name, data.flags);
@@ -110,7 +109,7 @@ FileEvent::FileEvent(const char* _file, Flags_t _flags) noexcept
 
 FileEvent::~FileEvent(void) noexcept
 {
-  assert(EventBackend::remove(m_fd, PollEvent::Readable));
+  assert(EventBackend::remove(m_fd, EventBackend::SimplePollReadFlags));
   assert(s_platform.remove(m_fd));
 }
 

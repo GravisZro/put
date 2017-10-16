@@ -27,8 +27,8 @@ class PipedSpawn
 public:
   PipedSpawn(void) noexcept
     : m_pid(0),
-      m_stdout(posix::error_response),
-      m_stderr(posix::error_response)
+      m_stdout(posix::invalid_descriptor),
+      m_stderr(posix::invalid_descriptor)
   {
     posix::fd_t stdin_pipe[2];
     posix::fd_t stdout_pipe[2];

@@ -35,7 +35,7 @@ namespace EventBackend
 
   struct platform_dependant;
   extern struct platform_dependant s_platform;
-  extern const native_flags_t SimplePollFlags;
+  extern const native_flags_t SimplePollReadFlags;
 }
 
 #endif // EVENTBACKEND_H

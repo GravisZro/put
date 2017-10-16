@@ -35,7 +35,7 @@ Application::Application(void) noexcept
          "Unable to create pipe for execution stepper: %s", std::strerror(errno))
     ::fcntl(s_pipeio[Read], F_SETFD, FD_CLOEXEC);
     ::fcntl(s_pipeio[Read], F_SETFL, O_NONBLOCK);
-    if(!EventBackend::add(s_pipeio[Read], EventBackend::SimplePollFlags, read)) // watch for when execution stepper pipe has been triggered
+    if(!EventBackend::add(s_pipeio[Read], EventBackend::SimplePollReadFlags, read)) // watch for when execution stepper pipe has been triggered
       quit(posix::error_response);
   }
 }

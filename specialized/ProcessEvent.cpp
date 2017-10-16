@@ -13,7 +13,6 @@
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/socket_helpers.h>
 #include <cxxutils/vterm.h>
-#include <specialized/PollEvent.h>
 
 #include <cassert>
 
@@ -134,10 +133,9 @@ ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
   : m_pid(_pid), m_flags(_flags), m_fd(posix::invalid_descriptor)
 {
   m_fd = s_platform.add(m_pid, m_flags);
-  EventBackend::add(m_fd, PollEvent::Readable,
-                    [this](posix::fd_t lambda_fd, PollEvent::Flags_t lambda_flags) noexcept
+  EventBackend::add(m_fd, EventBackend::SimplePollReadFlags,
+                    [this](posix::fd_t lambda_fd, native_flags_t) noexcept
                     {
-                      assert(lambda_flags == PollEvent::Readable);
                       platform_dependant::return_data data = s_platform.read(lambda_fd);
                       assert(m_pid == data.pid);
                       assert(m_flags == data.flags);
@@ -147,7 +145,7 @@ ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
 
 ProcessEvent::~ProcessEvent(void) noexcept
 {
-  assert(EventBackend::remove(m_fd, PollEvent::Readable));
+  EventBackend::remove(m_fd, EventBackend::SimplePollReadFlags);
   assert(s_platform.remove(m_pid));
 }
 

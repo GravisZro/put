@@ -50,7 +50,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
   }
 } EventBackend::s_platform;
 
-const native_flags_t EventBackend::SimplePollFlags = EPOLLIN;
+const native_flags_t EventBackend::SimplePollReadFlags = EPOLLIN;
 
 bool EventBackend::poll(int timeout) noexcept
 {
