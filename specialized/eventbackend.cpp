@@ -2,13 +2,6 @@
 
 #define MAX_EVENTS 1024
 
-#if defined(__linux__)
-
-// epoll needs kernel 2.5.44
-
-// Linux
-#include <sys/epoll.h>
-
 // POSIX
 #include <fcntl.h>
 
@@ -19,6 +12,15 @@
 // PDTK
 #include <cxxutils/vterm.h>
 
+lockable<std::unordered_multimap<posix::fd_t, EventBackend::callback_info_t>> EventBackend::queue;
+std::list<std::pair<posix::fd_t, native_flags_t>> EventBackend::results;
+
+#if defined(__linux__)
+
+// epoll needs kernel 2.5.44
+
+// Linux
+#include <sys/epoll.h>
 
 struct EventBackend::platform_dependant // poll notification (epoll)
 {
@@ -44,16 +46,8 @@ struct EventBackend::platform_dependant // poll notification (epoll)
     struct epoll_event native_event;
     native_event.data.fd = wd;
     native_event.events = flags; // be sure to convert to native events
-    return ::epoll_ctl(fd, EPOLL_CTL_ADD, wd, &native_event) == posix::success_response;
-  }
-
-  bool modify(posix::fd_t wd, native_flags_t flags) noexcept
-  {
-    struct epoll_event native_event;
-    native_event.data.fd = wd;
-    native_event.events = flags; // be sure to convert to native events
-
-    return ::epoll_ctl(fd, EPOLL_CTL_MOD, wd, &native_event) == posix::success_response; // try to modify FD first
+    return ::epoll_ctl(fd, EPOLL_CTL_ADD, wd, &native_event) == posix::success_response || // add new event OR
+        (errno == EEXIST && ::epoll_ctl(fd, EPOLL_CTL_MOD, wd, &native_event) == posix::success_response); // modify existing event
   }
 
   bool remove(posix::fd_t wd) noexcept
@@ -62,52 +56,6 @@ struct EventBackend::platform_dependant // poll notification (epoll)
     return ::epoll_ctl(fd, EPOLL_CTL_DEL, wd, &event) == posix::success_response; // try to delete entry
   }
 } EventBackend::s_platform;
-
-lockable<std::unordered_multimap<posix::fd_t, EventBackend::callback_info_t>> EventBackend::queue;
-std::list<std::pair<posix::fd_t, native_flags_t>> EventBackend::results;
-
-bool EventBackend::add(posix::fd_t fd, native_flags_t flags, callback_t function) noexcept
-{
-  if(s_platform.add(fd, flags))
-    queue.emplace(fd, (callback_info_t){flags, function});
-  else if(errno == EEXIST && s_platform.modify(fd, flags)) // if entry exist and modification worked
-  {
-    bool found = false;
-    auto entries = queue.equal_range(fd); // find modified entry!
-    for(auto& pos = entries.first; pos != entries.second; ++pos)
-    {
-      found |= &(pos->second.function) == &function; // save if function was ever found
-      if(&(pos->second.function) == &function) // if the FD is in the queue and it's callback function matches
-        pos->second.flags |= flags; // simply modify the flags to include the current
-    }
-
-    if(!found) // function wasn't found
-      queue.emplace(fd, (callback_info_t){flags, function}); // make a new entry for this FD
-  }
-  else // unable to add an entry or modify the entry for this FD!
-    return false; // fail
-
-  return true;
-}
-
-bool EventBackend::remove(posix::fd_t fd, native_flags_t flags) noexcept
-{
-  auto entries = queue.equal_range(fd); // find modified entry!
-  for(auto& pos = entries.first; pos != entries.second; ++pos)
-  {
-    if(pos->second.flags == flags)
-      queue.erase(pos);
-    else if(pos->second.flags & flags)
-    {
-      pos->second.flags ^= pos->second.flags & flags;
-      if(pos->second.flags) // if some flags are still set
-        s_platform.modify(fd, pos->second.flags);
-      else // if no flags are set then remove it completely
-        s_platform.remove(fd);
-    }
-  }
-  return true;
-}
 
 bool EventBackend::poll(int timeout) noexcept
 {
@@ -122,46 +70,6 @@ bool EventBackend::poll(int timeout) noexcept
     results.emplace_back(std::make_pair(posix::fd_t(pos->data.fd), native_flags_t(pos->events))); // save result (in native format)
   return true;
 }
-
-namespace EventBackend
-{
-  static posix::fd_t s_pipeio[2] = { posix::invalid_descriptor }; //  execution stepper pipe
-  static vfunc stepper_function = nullptr;
-  enum {
-    Read = 0,
-    Write = 1,
-  };
-
-
-  void readstep(posix::fd_t fd, native_flags_t) noexcept
-  {
-    uint64_t discard;
-    while(posix::read(fd, &discard, sizeof(discard)) != posix::error_response);
-    stepper_function();
-  }
-
-  bool setstepper(vfunc function) noexcept
-  {
-    stepper_function = function;
-    if(s_pipeio[Read] == posix::invalid_descriptor) // if execution stepper pipe  hasn't been initialized yet
-    {
-      flaw(::pipe(s_pipeio) == posix::error_response, terminal::critical, std::exit(errno), false,
-           "Unable to create pipe for execution stepper: %s", std::strerror(errno))
-      ::fcntl(s_pipeio[Read], F_SETFD, FD_CLOEXEC);
-      ::fcntl(s_pipeio[Read], F_SETFL, O_NONBLOCK);
-      return EventBackend::add(s_pipeio[Read], EPOLLIN, readstep); // watch for when execution stepper pipe has been triggered
-    }
-    return stepper_function != nullptr;
-  }
-
-  void step(void) noexcept
-  {
-    static const uint8_t dummydata = 0; // dummy content
-    flaw(posix::write(s_pipeio[Write], &dummydata, 1) != 1, terminal::critical, /*std::exit(errno)*/,, // triggers execution stepper FD
-         "Unable to trigger Object signal queue processor: %s", std::strerror(errno))
-  }
-}
-
 
 #elif defined(__APPLE__)      /* Darwin 7+     */ || \
       defined(__FreeBSD__)    /* FreeBSD 4.1+  */ || \
@@ -199,56 +107,50 @@ std::list<std::pair<posix::fd_t, native_flags_t>> EventBackend::results;
 struct EventBackend::platform_dependant // poll notification (epoll)
 {
   posix::fd_t kq;
-  std::vector<struct kevent> kinput;    // events we want to monitor
   std::vector<struct kevent> koutput;   // events that were triggered
+
+  static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, uint32_t flags) noexcept
+    { return native_flags_t(actions) | (uint16_t(filters) << 16) | (flags << 32); }
+
+  static constexpr short extract_actions(native_flags_t flags) noexcept
+    { return flags & 0xFFFF; }
+
+  static constexpr ushort extract_filter(native_flags_t flags) noexcept
+    { return (flags >> 16) & 0xFFFF; }
+
+  static constexpr ushort extract_flags(native_flags_t flags) noexcept
+    { return flags >> 32; }
 
   platform_dependant(void)
   {
     kq = posix::ignore_interruption(::kqueue);
     flaw(kq == posix::error_response, terminal::critical, std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
-    kinput .reserve(1024);
-    koutput.reserve(1024);
+    koutput.resize(1024);
   }
 
   ~platform_dependant(void)
   {
     posix::close(kq);
   }
+
+  bool add(posix::fd_t wd, native_flags_t flags) noexcept
+  {
+    struct kevent ev;
+    EV_SET(&ev, fd, extract_filter(flags), EV_ADD | extract_actions(flags), extract_flags(flags), 0, nullptr);
+    return kevent(kq, &ev, 1, nullptr, 0, nullptr) == posix::success_response;
+  }
+
+  constexpr bool modify(posix::fd_t wd, native_flags_t flags) noexcept { return add(wd, flags); }
+
+  bool remove(posix::fd_t wd, native_flags_t flags) noexcept
+  {
+    struct kevent ev;
+    EV_SET(&ev, fd, extract_filter(flags), EV_DELETE | extract_actions(flags), extract_flags(flags), 0, nullptr);
+    return kevent(kq, &ev, 1, nullptr, 0, nullptr) == posix::success_response;
+  }
+
 } EventBackend::s_platform;
-
-
-static constexpr native_flags_t composite_flag(short filters, ushort flags) noexcept
-  { return native_flags_t(uint16_t(flags) << 16) | native_flags_t(flags); }
-
-static constexpr short extract_filter(native_flags_t flags) noexcept
-  { return flags & 0xFFFF; }
-
-static constexpr ushort extract_flags(native_flags_t flags) noexcept
-  { return flags >> 16; }
-
-
-bool EventBackend::add(posix::fd_t fd, native_flags_t flags, callback_t function) noexcept
-{
-  struct kevent ev;
-  EV_SET(&ev, fd, extract_filter(flags), EV_ADD, extract_flags(flags), 0, nullptr);
-  s_platform.kinput.push_back(ev);
-  s_platform.koutput.resize(s_platform.kinput.size());
-  queue.emplace(fd, (callback_info_t){flags, function});
-  return true;
-}
-
-bool EventBackend::remove(posix::fd_t fd, native_flags_t flags) noexcept
-{
-  struct kevent ev;
-  EV_SET(&ev, fd, extract_filter(flags), EV_ADD, extract_flags(flags), 0, nullptr);
-
-  auto iter = std::find(std::begin(s_platform.kinput), std::end(s_platform.kinput), ev);
-  if(iter == std::end(s_platform.kinput))
-    return false;
-  s_platform.kinput.erase(iter);
-  return true;
-}
 
 bool EventBackend::poll(int timeout) noexcept
 {
@@ -257,17 +159,11 @@ bool EventBackend::poll(int timeout) noexcept
   tout.tv_sec = timeout / 1000;
   tout.tv_nsec = (timeout % 1000) * 1000;
 
-  int count = 0;
-  count = kevent(s_platform.kq,
-             s_platform.kinput.data(), s_platform.kinput.size(),
-             s_platform.koutput.data(), s_platform.koutput.size(),
-             &tout);
-
+  int count = kevent(s_platform.kq, nullptr, 0, s_platform.koutput.data(), s_platform.koutput.size(), &tout);
   if(count <= 0)
     return false;
 
   struct kevent* end = s_platform.koutput.data() + count;
-
   for(struct kevent* pos = s_platform.koutput.data(); pos != end; ++pos) // iterate through results
     results.emplace_back(std::make_pair(posix::fd_t(pos->ident), composite_flag(pos->filter, pos->flags)));
   return true;
@@ -397,3 +293,80 @@ bool EventBackend::poll(int timeout) noexcept
 #else
 #error This platform is not supported.
 #endif
+
+bool EventBackend::add(posix::fd_t fd, native_flags_t flags, callback_t function) noexcept
+{
+  native_flags_t total_flags = flags;
+  bool found = false;
+  auto entries = queue.equal_range(fd); // find modified entry!
+  for(auto& pos = entries.first; pos != entries.second; ++pos)
+  {
+    total_flags |= pos->second.flags;
+    found |= &(pos->second.function) == &function; // save if function was ever found
+    if(&(pos->second.function) == &function) // if the FD is in the queue and it's callback function matches
+      pos->second.flags |= flags; // simply modify the flags to include the current
+  }
+
+  if(!found) // function wasn't found
+    queue.emplace(fd, (callback_info_t){flags, function}); // make a new entry for this FD
+
+  return s_platform.add(fd, total_flags);
+}
+
+bool EventBackend::remove(posix::fd_t fd, native_flags_t flags) noexcept
+{
+  native_flags_t remaining_flags = 0;
+  auto entries = queue.equal_range(fd); // find modified entry!
+  for(auto& pos = entries.first; pos != entries.second; ++pos)
+  {
+    if((pos->second.flags & flags) == pos->second.flags) // if all flags match
+      queue.erase(pos);
+    else if(pos->second.flags & flags) // if only some flags match
+    {
+      pos->second.flags ^= pos->second.flags & flags; // remove flags
+      remaining_flags |= pos->second.flags; // accumulate remaining flags
+    }
+  }
+  return remaining_flags
+      ? s_platform.add(fd, remaining_flags)
+      : s_platform.remove(fd);
+}
+
+namespace EventBackend
+{
+  static posix::fd_t s_pipeio[2] = { posix::invalid_descriptor }; //  execution stepper pipe
+  static vfunc stepper_function = nullptr;
+  enum {
+    Read = 0,
+    Write = 1,
+  };
+
+
+  void readstep(posix::fd_t fd, native_flags_t) noexcept
+  {
+    uint64_t discard;
+    while(posix::read(fd, &discard, sizeof(discard)) != posix::error_response);
+    stepper_function();
+  }
+
+  bool setstepper(vfunc function) noexcept
+  {
+    stepper_function = function;
+    if(s_pipeio[Read] == posix::invalid_descriptor) // if execution stepper pipe  hasn't been initialized yet
+    {
+      flaw(::pipe(s_pipeio) == posix::error_response, terminal::critical, std::exit(errno), false,
+           "Unable to create pipe for execution stepper: %s", std::strerror(errno))
+      ::fcntl(s_pipeio[Read], F_SETFD, FD_CLOEXEC);
+      ::fcntl(s_pipeio[Read], F_SETFL, O_NONBLOCK);
+      return EventBackend::add(s_pipeio[Read], EPOLLIN, readstep); // watch for when execution stepper pipe has been triggered
+    }
+    return stepper_function != nullptr;
+  }
+
+  void step(void) noexcept
+  {
+    static const uint8_t dummydata = 0; // dummy content
+    flaw(posix::write(s_pipeio[Write], &dummydata, 1) != 1, terminal::critical, /*std::exit(errno)*/,, // triggers execution stepper FD
+         "Unable to trigger Object signal queue processor: %s", std::strerror(errno))
+  }
+}
