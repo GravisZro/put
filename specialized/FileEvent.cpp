@@ -121,28 +121,28 @@ FileEvent::~FileEvent(void) noexcept
       defined(__NetBSD__)     /* NetBSD 2+     */
 
 
-static constexpr native_flags_t composite_flag(short filters, ushort flags) noexcept
-  { return native_flags_t(reinterpret_cast<uint16_t>(flags) << 16) | native_flags_t(flags); }
+static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, uint32_t flags) noexcept
+  { return native_flags_t(actions) | (uint16_t(filters) << 16) | (flags << 32); }
 
 // file flags
 static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
 {
   return
-      (flags & composite_flag(EVFILT_VNODE, NOTE_READ  ) ? FileEvent::ReadEvent    : 0) |
-      (flags & composite_flag(EVFILT_VNODE, NOTE_WRITE ) ? FileEvent::WriteEvent   : 0) |
-      (flags & composite_flag(EVFILT_VNODE, NOTE_ATTRIB) ? FileEvent::AttributeMod : 0) |
-      (flags & composite_flag(EVFILT_VNODE, NOTE_RENAME) ? FileEvent::Moved        : 0) |
-      (flags & composite_flag(EVFILT_VNODE, NOTE_DELETE) ? FileEvent::Deleted      : 0) ;
+      (flags & composite_flag(0, EVFILT_VNODE, NOTE_READ  ) ? FileEvent::ReadEvent    : 0) |
+      (flags & composite_flag(0, EVFILT_VNODE, NOTE_WRITE ) ? FileEvent::WriteEvent   : 0) |
+      (flags & composite_flag(0, EVFILT_VNODE, NOTE_ATTRIB) ? FileEvent::AttributeMod : 0) |
+      (flags & composite_flag(0, EVFILT_VNODE, NOTE_RENAME) ? FileEvent::Moved        : 0) |
+      (flags & composite_flag(0, EVFILT_VNODE, NOTE_DELETE) ? FileEvent::Deleted      : 0) ;
 }
 
 static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
 {
   return
-      (flags & FileEvent::ReadEvent     ? composite_flag(EVFILT_VNODE, NOTE_READ  ) : 0) |
-      (flags & FileEvent::WriteEvent    ? composite_flag(EVFILT_VNODE, NOTE_WRITE ) : 0) |
-      (flags & FileEvent::AttributeMod  ? composite_flag(EVFILT_VNODE, NOTE_ATTRIB) : 0) |
-      (flags & FileEvent::Moved         ? composite_flag(EVFILT_VNODE, NOTE_RENAME) : 0) |
-      (flags & FileEvent::Deleted       ? composite_flag(EVFILT_VNODE, NOTE_DELETE) : 0) ;
+      (flags & FileEvent::ReadEvent     ? composite_flag(0, EVFILT_VNODE, NOTE_READ  ) : 0) |
+      (flags & FileEvent::WriteEvent    ? composite_flag(0, EVFILT_VNODE, NOTE_WRITE ) : 0) |
+      (flags & FileEvent::AttributeMod  ? composite_flag(0, EVFILT_VNODE, NOTE_ATTRIB) : 0) |
+      (flags & FileEvent::Moved         ? composite_flag(0, EVFILT_VNODE, NOTE_RENAME) : 0) |
+      (flags & FileEvent::Deleted       ? composite_flag(0, EVFILT_VNODE, NOTE_DELETE) : 0) ;
 }
 
 FileEvent::FileEvent(const char* _file, Flags_t _flags) noexcept
