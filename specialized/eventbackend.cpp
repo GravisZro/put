@@ -238,7 +238,13 @@ bool EventBackend::add(posix::fd_t fd, native_flags_t flags, callback_t function
 
 bool EventBackend::remove(posix::fd_t fd, native_flags_t flags) noexcept
 {
-  return false;
+  struct kevent ev;
+  EV_SET(&ev, fd, extract_filter(flags), EV_ADD, extract_flags(flags), 0, nullptr);
+  auto iter = s_platform.kinput.find(ev);
+  if(iter == s_platform.kinput.end())
+    return false;
+  s_platform.kinput.erase(iter);
+  return true;
 }
 
 bool EventBackend::poll(int timeout) noexcept
