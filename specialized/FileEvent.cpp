@@ -97,18 +97,14 @@ struct FileEvent::platform_dependant // file notification (inotify)
 FileEvent::FileEvent(const char* _file, Flags_t _flags) noexcept
   : m_flags(_flags), m_fd(posix::invalid_descriptor)
 {
-  static_assert(sizeof(m_file) == PATH_MAX, "whoops!");
   std::memset(m_file, 0, sizeof(m_file));
   std::strcpy(m_file, _file);
   m_fd = s_platform.add(m_file, m_flags);
   EventBackend::add(m_fd, PollEvent::Readable,
                     [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
                     {
-                      assert(lambda_flags == PollEvent::Readable);
                       platform_dependant::return_data data = s_platform.read(lambda_fd);
-                      assert(m_fd == data.wd);
-                      assert(m_flags == data.flags);
-                      Object::enqueue(activated, data.wd, data.name, data.flags);
+                      Object::enqueue(activated, data.name, data.flags);
                     });
 }
 
@@ -123,6 +119,50 @@ FileEvent::~FileEvent(void) noexcept
       defined(__DragonFly__)  /* DragonFly BSD */ || \
       defined(__OpenBSD__)    /* OpenBSD 2.9+  */ || \
       defined(__NetBSD__)     /* NetBSD 2+     */
+
+
+static constexpr native_flags_t composite_flag(short filters, ushort flags) noexcept
+  { return native_flags_t(reinterpret_cast<uint16_t>(flags) << 16) | native_flags_t(flags); }
+
+// file flags
+static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
+{
+  return
+      (flags & composite_flag(EVFILT_VNODE, NOTE_READ  ) ? FileEvent::ReadEvent    : 0) |
+      (flags & composite_flag(EVFILT_VNODE, NOTE_WRITE ) ? FileEvent::WriteEvent   : 0) |
+      (flags & composite_flag(EVFILT_VNODE, NOTE_ATTRIB) ? FileEvent::AttributeMod : 0) |
+      (flags & composite_flag(EVFILT_VNODE, NOTE_RENAME) ? FileEvent::Moved        : 0) |
+      (flags & composite_flag(EVFILT_VNODE, NOTE_DELETE) ? FileEvent::Deleted      : 0) ;
+}
+
+static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
+{
+  return
+      (flags & FileEvent::ReadEvent     ? composite_flag(EVFILT_VNODE, NOTE_READ  ) : 0) |
+      (flags & FileEvent::WriteEvent    ? composite_flag(EVFILT_VNODE, NOTE_WRITE ) : 0) |
+      (flags & FileEvent::AttributeMod  ? composite_flag(EVFILT_VNODE, NOTE_ATTRIB) : 0) |
+      (flags & FileEvent::Moved         ? composite_flag(EVFILT_VNODE, NOTE_RENAME) : 0) |
+      (flags & FileEvent::Deleted       ? composite_flag(EVFILT_VNODE, NOTE_DELETE) : 0) ;
+}
+
+FileEvent::FileEvent(const char* _file, Flags_t _flags) noexcept
+  : m_flags(_flags), m_fd(posix::invalid_descriptor)
+{
+  std::memset(m_file, 0, sizeof(m_file));
+  std::strcpy(m_file, _file);
+  m_fd = posix::open(path, O_EVTONLY);
+  EventBackend::add(m_fd, to_native_flags(m_flags), // connect FD with flags to signal
+                    [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
+                    { Object::enqueue_copy<const char*, Flags_t>(activated, m_file, from_native_flags(lambda_flags)); });
+}
+
+FileEvent::~FileEvent(void) noexcept
+{
+  EventBackend::remove(m_fd, to_native_flags(m_flags)); // disconnect FD with flags from signal
+  posix::close(m_fd);
+  m_fd = posix::invalid_descriptor;
+}
+
 
 # error No file event backend code exists in *BSD!  Please submit a patch!
 

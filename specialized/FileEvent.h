@@ -40,7 +40,7 @@ public:
   const char* file(void) const noexcept { return m_file; }
   Flags_t flags(void) const noexcept { return m_flags; }
 
-  signal<posix::fd_t, const char*, Flags_t> activated;
+  signal<const char*, Flags_t> activated;
 private:
   char m_file[PATH_MAX];
   Flags_t m_flags;
