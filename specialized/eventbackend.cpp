@@ -216,6 +216,9 @@ struct EventBackend::platform_dependant // poll notification (epoll)
 } EventBackend::s_platform;
 
 
+static constexpr native_flags_t composite_flag(short filters, ushort flags) noexcept
+  { return native_flags_t(reinterpret_cast<uint16_t>(flags) << 16) | native_flags_t(flags); }
+
 static constexpr short extract_filter(native_flags_t flags) noexcept
   { return flags & 0xFFFF; }
 
@@ -257,7 +260,7 @@ bool EventBackend::poll(int timeout) noexcept
   struct kevent* end = s_platform.koutput.data() + count;
 
   for(struct kevent* pos = s_platform.koutput.data(); pos != end; ++pos) // iterate through results
-    results.emplace_back(std::make_pair(posix::fd_t(pos->ident), native_flags_t((reinterpret_cast<uint16_t>(pos->filter) << 16) | pos->flags)));
+    results.emplace_back(std::make_pair(posix::fd_t(pos->ident), composite_flag(pos->filter, pos->flags)));
   return true;
 }
 
