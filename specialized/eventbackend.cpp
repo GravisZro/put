@@ -220,7 +220,7 @@ static constexpr short extract_filter(native_flags_t flags) noexcept
   { return flags & 0xFFFF; }
 
 static constexpr ushort extract_flags(native_flags_t flags) noexcept
-  { return nflags >> 16; }
+  { return flags >> 16; }
 
 
 bool EventBackend::add(posix::fd_t fd, native_flags_t flags, callback_t function) noexcept
