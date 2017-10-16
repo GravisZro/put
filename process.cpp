@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <climits>
 #include <cstring>
+#include <cassert>
 
 // PDTK
 #include <specialized/procstat.h>
@@ -100,8 +101,8 @@ Process::~Process(void) noexcept
 
   EventBackend::remove(getStdOut(), PollEvent::Readable);
   EventBackend::remove(getStdErr(), PollEvent::Readable);
-  EventBackend::remove(processId(), PollEvent::ExecEvent);
-  EventBackend::remove(processId(), PollEvent::ExitEvent);
+//  EventBackend::remove(processId(), ProcessEvent::Exec);
+//  EventBackend::remove(processId(), ProcessEvent::Exit);
   m_state = State::Invalid;
 }
 
@@ -236,8 +237,19 @@ bool Process::invoke(void) noexcept
   m_state = State::Invalid;
   state();
 
-  EventBackend::add(getStdOut(), PollEvent::Readable, stdoutMessage);
-  EventBackend::add(getStdErr(), PollEvent::Readable, stderrMessage);
+  EventBackend::add(getStdOut(), PollEvent::Readable,
+                    [this](posix::fd_t lambda_fd, PollEvent::Flags_t lambda_flags) noexcept
+                    {
+                      assert(lambda_flags == PollEvent::Readable);
+                      Object::enqueue(stdoutMessage, lambda_fd);
+                    });
+
+  EventBackend::add(getStdErr(), PollEvent::Readable,
+                    [this](posix::fd_t lambda_fd, PollEvent::Flags_t lambda_flags) noexcept
+                    {
+                      assert(lambda_flags == PollEvent::Readable);
+                      Object::enqueue(stderrMessage, lambda_fd);
+                    });
 
   m_state = State::Running;
   return errno == posix::success_response;
