@@ -24,6 +24,7 @@ public:
 
   struct Flags_t
   {
+    uint32_t               : 8;
     uint32_t ReadEvent     : 1;
     uint32_t WriteEvent    : 1;
     uint32_t AttributeMod  : 1;
