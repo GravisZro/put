@@ -17,6 +17,7 @@
 #include <specialized/eventbackend.h>
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/vterm.h>
+#include <specialized/PollEvent.h>
 
 
 enum class command : uint8_t
@@ -70,11 +71,8 @@ void Process::reaper(int sig) noexcept
     if(process_map_iter != process_map.end()) // if the dead process exists...
     {
       Process* p = process_map_iter->second;
-#ifndef GLOBAL_PROCESS_EVENT_TRACKING
-//      Object::enqueue_copy(p->finished, posix::invalid_descriptor, EventData_t(EventFlags::ExitEvent, p->processId(), p->processId(), status, sig));
-#endif
-//      EventBackend::remove(p->getStdOut(), EventFlags::Readable);
-//      EventBackend::remove(p->getStdErr(), EventFlags::Readable);
+      EventBackend::remove(p->getStdOut(), PollEvent::Readable);
+      EventBackend::remove(p->getStdErr(), PollEvent::Readable);
       posix::close(p->getStdOut());
       posix::close(p->getStdErr());
       posix::close(p->getStdIn());
@@ -89,10 +87,6 @@ Process::Process(void) noexcept
 {
   init_once();
   process_map.emplace(processId(), this); // add self to process map
-#ifdef GLOBAL_PROCESS_EVENT_TRACKING
-  Object::connect(processId(), EventFlags::ExecEvent, started);
-  Object::connect(processId(), EventFlags::ExitEvent, finished);
-#endif
 }
 
 Process::~Process(void) noexcept
@@ -103,12 +97,11 @@ Process::~Process(void) noexcept
 #else
     ::kill(processId(), 0);
 #endif
-/*
-  Object::disconnect(getStdOut(), EventFlags::Readable);
-  Object::disconnect(getStdErr(), EventFlags::Readable);
-  Object::disconnect(processId(), EventFlags::ExecEvent);
-  Object::disconnect(processId(), EventFlags::ExitEvent);
-*/
+
+  EventBackend::remove(getStdOut(), PollEvent::Readable);
+  EventBackend::remove(getStdErr(), PollEvent::Readable);
+  EventBackend::remove(processId(), PollEvent::ExecEvent);
+  EventBackend::remove(processId(), PollEvent::ExitEvent);
   m_state = State::Invalid;
 }
 
@@ -243,12 +236,8 @@ bool Process::invoke(void) noexcept
   m_state = State::Invalid;
   state();
 
-#ifndef GLOBAL_PROCESS_EVENT_TRACKING
-//  Object::enqueue_copy(started, posix::invalid_descriptor, EventData_t(EventFlags::ExecEvent, processId(), processId()));
-#endif
-
-//  Object::connect(getStdOut(), EventFlags::Readable, stdoutMessage);
-//  Object::connect(getStdErr(), EventFlags::Readable, stderrMessage);
+  EventBackend::add(getStdOut(), PollEvent::Readable, stdoutMessage);
+  EventBackend::add(getStdErr(), PollEvent::Readable, stderrMessage);
 
   m_state = State::Running;
   return errno == posix::success_response;

@@ -80,10 +80,10 @@ public:
   void terminate (void) const noexcept { sendSignal(posix::signal::Terminate); }
   void kill      (void) const noexcept { sendSignal(posix::signal::Kill     ); }
 
-  signal<posix::fd_t, Event::Flags_t> stdoutMessage;
-  signal<posix::fd_t, Event::Flags_t> stderrMessage;
-  signal<posix::fd_t, Event::Flags_t> started;
-  signal<posix::fd_t, Event::Flags_t> finished;
+  signal<posix::fd_t> stdoutMessage;
+  signal<posix::fd_t> stderrMessage;
+  signal<posix::fd_t> started;
+  signal<posix::fd_t> finished;
 private:
   bool write_then_read(void) noexcept;
   vfifo m_iobuf;

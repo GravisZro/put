@@ -8,8 +8,6 @@
 #include <cxxutils/posix_helpers.h>
 #include <specialized/eventbackend.h>
 
-
-
 class Application
 {
 public:
