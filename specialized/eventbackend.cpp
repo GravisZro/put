@@ -217,7 +217,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
 
 
 static constexpr native_flags_t composite_flag(short filters, ushort flags) noexcept
-  { return native_flags_t(reinterpret_cast<uint16_t>(flags) << 16) | native_flags_t(flags); }
+  { return native_flags_t(uint16_t(flags) << 16) | native_flags_t(flags); }
 
 static constexpr short extract_filter(native_flags_t flags) noexcept
   { return flags & 0xFFFF; }
