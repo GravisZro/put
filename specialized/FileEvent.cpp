@@ -122,7 +122,6 @@ FileEvent::~FileEvent(void) noexcept
       defined(__NetBSD__)     /* NetBSD 2+     */
 
 #include <sys/event.h> // kqueue
-#include <sys/types.h>
 
 static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, uint32_t flags) noexcept
   { return native_flags_t(actions) | (native_flags_t(uint16_t(filters)) << 16) | (native_flags_t(flags) << 32); }
@@ -134,7 +133,9 @@ static constexpr bool flag_subset(native_flags_t flags, native_flags_t subset)
 static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
 {
   return
+#if defined(NOTE_READ)
       (flag_subset(flags, composite_flag(0, EVFILT_VNODE, NOTE_READ  )) ? FileEvent::ReadEvent    : 0) |
+#endif
       (flag_subset(flags, composite_flag(0, EVFILT_VNODE, NOTE_WRITE )) ? FileEvent::WriteEvent   : 0) |
       (flag_subset(flags, composite_flag(0, EVFILT_VNODE, NOTE_ATTRIB)) ? FileEvent::AttributeMod : 0) |
       (flag_subset(flags, composite_flag(0, EVFILT_VNODE, NOTE_RENAME)) ? FileEvent::Moved        : 0) |
@@ -144,7 +145,9 @@ static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
 static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
 {
   return
+#if defined(NOTE_READ)
       (flags & FileEvent::ReadEvent     ? composite_flag(0, EVFILT_VNODE, NOTE_READ  ) : 0) |
+#endif
       (flags & FileEvent::WriteEvent    ? composite_flag(0, EVFILT_VNODE, NOTE_WRITE ) : 0) |
       (flags & FileEvent::AttributeMod  ? composite_flag(0, EVFILT_VNODE, NOTE_ATTRIB) : 0) |
       (flags & FileEvent::Moved         ? composite_flag(0, EVFILT_VNODE, NOTE_RENAME) : 0) |
