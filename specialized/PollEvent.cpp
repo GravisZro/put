@@ -35,7 +35,7 @@ static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
 #include <sys/event.h> // kqueue
 
 static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, uint32_t flags) noexcept
-  { return native_flags_t(actions) | (uint16_t(filters) << 16) | (flags << 32); }
+  { return native_flags_t(actions) | (native_flags_t(uint16_t(filters)) << 16) | (native_flags_t(flags) << 32); }
 
 static constexpr bool flag_subset(native_flags_t flags, native_flags_t subset)
   { return (flags & subset) == subset; }

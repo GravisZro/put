@@ -120,9 +120,10 @@ FileEvent::~FileEvent(void) noexcept
       defined(__NetBSD__)     /* NetBSD 2+     */
 
 #include <sys/event.h> // kqueue
+#include <sys/types.h>
 
 static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, uint32_t flags) noexcept
-  { return native_flags_t(actions) | (uint16_t(filters) << 16) | (flags << 32); }
+  { return native_flags_t(actions) | (native_flags_t(uint16_t(filters)) << 16) | (native_flags_t(flags) << 32); }
 
 static constexpr bool flag_subset(native_flags_t flags, native_flags_t subset)
   { return (flags & subset) == subset; }
@@ -153,7 +154,7 @@ FileEvent::FileEvent(const char* _file, Flags_t _flags) noexcept
 {
   std::memset(m_file, 0, sizeof(m_file));
   std::strcpy(m_file, _file);
-  m_fd = posix::open(path, O_EVTONLY);
+  m_fd = posix::open(m_file, O_EVTONLY);
   EventBackend::add(m_fd, to_native_flags(m_flags), // connect FD with flags to signal
                     [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
                     { Object::enqueue_copy<const char*, Flags_t>(activated, m_file, from_native_flags(lambda_flags)); });

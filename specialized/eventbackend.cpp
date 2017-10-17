@@ -101,7 +101,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
   std::vector<struct kevent> koutput;   // events that were triggered
 
   static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, uint32_t flags) noexcept
-    { return native_flags_t(actions) | (uint16_t(filters) << 16) | (flags << 32); }
+    { return native_flags_t(actions) | (native_flags_t(uint16_t(filters)) << 16) | (native_flags_t(flags) << 32); }
 
   static constexpr short extract_actions(native_flags_t flags) noexcept
     { return flags & 0xFFFF; }
