@@ -7,25 +7,25 @@
 class PollEvent : public Object
 {
 public:
-  enum Flags : uint32_t // Pollable file descriptor event flags
+  enum Flags : uint8_t // Pollable file descriptor event flags
   {
-    Invalid       = 0x00000000,
-    Error         = 0x00000001, // FD encountered an error
-    Disconnected  = 0x00000002, // FD has disconnected
-    Readable      = 0x00000004, // FD has content to read
-    Writeable     = 0x00000008, // FD is writeable
-    Any           = 0x0000000F, // Any FD event
+    Invalid       = 0x00,
+    Error         = 0x01, // FD encountered an error
+    Disconnected  = 0x02, // FD has disconnected
+    Readable      = 0x04, // FD has content to read
+    Writeable     = 0x08, // FD is writeable
+    Any           = 0x0F, // Any FD event
   };
 
   struct Flags_t
   {
-    uint32_t Error         : 1;
-    uint32_t Disconnected  : 1;
-    uint32_t Readable      : 1;
-    uint32_t Writeable     : 1;
+    uint8_t Error         : 1;
+    uint8_t Disconnected  : 1;
+    uint8_t Readable      : 1;
+    uint8_t Writeable     : 1;
 
-    Flags_t(uint32_t flags = 0) noexcept { *reinterpret_cast<uint32_t*>(this) = flags; }
-    operator uint32_t& (void) noexcept { return *reinterpret_cast<uint32_t*>(this); }
+    Flags_t(uint8_t flags = 0) noexcept { *reinterpret_cast<uint8_t*>(this) = flags; }
+    operator uint8_t& (void) noexcept { return *reinterpret_cast<uint8_t*>(this); }
   };
 
   PollEvent(posix::fd_t _fd, Flags_t _flags) noexcept;

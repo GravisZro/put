@@ -7,24 +7,23 @@
 class ProcessEvent : public Object
 {
 public:
-  enum Flags : uint32_t // Process event flags
+  enum Flags : uint8_t // Process event flags
   {
-    Invalid       = 0x00000000,
-    Exec          = 0x00000010, // Process called exec*()
-    Exit          = 0x00000020, // Process exited
-    Fork          = 0x00000040, // Process forked
-    Any           = 0x00000070, // Any process event
+    Invalid       = 0x00,
+    Exec          = 0x01, // Process called exec*()
+    Exit          = 0x02, // Process exited
+    Fork          = 0x04, // Process forked
+    Any           = 0x07, // Any process event
   };
 
   struct Flags_t
   {
-    uint32_t       : 4;
-    uint32_t Exec  : 1;
-    uint32_t Exit  : 1;
-    uint32_t Fork  : 1;
+    uint8_t Exec  : 1;
+    uint8_t Exit  : 1;
+    uint8_t Fork  : 1;
 
-    Flags_t(uint32_t flags = 0) noexcept { *reinterpret_cast<uint32_t*>(this) = flags; }
-    operator uint32_t& (void) noexcept { return *reinterpret_cast<uint32_t*>(this); }
+    Flags_t(uint8_t flags = 0) noexcept { *reinterpret_cast<uint8_t*>(this) = flags; }
+    operator uint8_t& (void) noexcept { return *reinterpret_cast<uint8_t*>(this); }
   };
 
   ProcessEvent(pid_t _pid, Flags_t _flags) noexcept;

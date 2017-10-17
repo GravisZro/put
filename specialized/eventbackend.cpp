@@ -145,7 +145,6 @@ const native_flags_t EventBackend::SimplePollReadFlags = platform_dependant::com
 
 bool EventBackend::poll(int timeout) noexcept
 {
-  uint32_t data;
   timespec tout;
   tout.tv_sec = timeout / 1000;
   tout.tv_nsec = (timeout % 1000) * 1000;

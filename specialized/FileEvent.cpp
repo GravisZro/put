@@ -13,7 +13,7 @@
 #include <cxxutils/vterm.h>
 
 // file/directory flags
-static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
+static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
 {
   return
       (flags & IN_ACCESS      ? FileEvent::ReadEvent     : 0) |
@@ -26,7 +26,7 @@ static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
   //data.flags.SubDeleted   = flags & IN_DELETE      ? 1 : 0;
 }
 
-static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
+static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 {
   return
       (flags & FileEvent::ReadEvent    ? native_flags_t(IN_ACCESS     ) : 0) | // File was accessed (read) (*).
@@ -130,7 +130,7 @@ static constexpr bool flag_subset(native_flags_t flags, native_flags_t subset)
   { return (flags & subset) == subset; }
 
 // file flags
-static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
+static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
 {
   return
 #if defined(NOTE_READ)
@@ -142,7 +142,7 @@ static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
       (flag_subset(flags, composite_flag(0, EVFILT_VNODE, NOTE_DELETE)) ? FileEvent::Deleted      : 0) ;
 }
 
-static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
+static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 {
   return
 #if defined(NOTE_READ)

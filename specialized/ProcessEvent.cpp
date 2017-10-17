@@ -166,7 +166,7 @@ static constexpr bool flag_subset(native_flags_t flags, native_flags_t subset)
   { return (flags & subset) == subset; }
 
 // process flags
-static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
+static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
 {
   return
       (flag_subset(flags, composite_flag(0, EVFILT_PROC, NOTE_EXEC)) ? ProcessEvent::Exec : 0) |
@@ -174,7 +174,7 @@ static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
       (flag_subset(flags, composite_flag(0, EVFILT_PROC, NOTE_FORK)) ? ProcessEvent::Fork : 0) ;
 }
 
-static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
+static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 {
   return
       (flags & ProcessEvent::Exec ? composite_flag(0, EVFILT_PROC, NOTE_EXEC) : 0) |

@@ -8,7 +8,7 @@
 #include <sys/epoll.h>
 
 // FD flags
-static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
+static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
 {
   return
       (flags & EPOLLERR ? PollEvent::Error          : 0) |
@@ -17,7 +17,7 @@ static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
       (flags & EPOLLOUT ? PollEvent::Writeable      : 0);
 }
 
-static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
+static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 {
   return
       (flags & PollEvent::Error        ? native_flags_t(EPOLLERR ) : 0) |
@@ -41,7 +41,7 @@ static constexpr bool flag_subset(native_flags_t flags, native_flags_t subset)
   { return (flags & subset) == subset; }
 
 // FD flags
-static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
+static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
 {
   return
       (flag_subset(flags, composite_flag(EV_ERROR, 0           , 0)) ? PollEvent::Error        : 0) |
@@ -50,7 +50,7 @@ static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
       (flag_subset(flags, composite_flag(0       , EVFILT_WRITE, 0)) ? PollEvent::Writeable    : 0) ;
 }
 
-static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
+static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 {
   return
       (flags & PollEvent::Error         ? composite_flag(EV_ERROR, 0           , 0) : 0) |
