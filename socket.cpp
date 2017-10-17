@@ -18,9 +18,18 @@ GenericSocket::GenericSocket(EDomain   domain,
   : GenericSocket(posix::socket(domain, type, protocol, flags)) { }
 
 GenericSocket::GenericSocket(posix::fd_t socket) noexcept
-  : m_connected(false), m_socket(socket)
+  : PollEvent(socket, Readable | Disconnected),
+    m_connected(false), m_socket(socket)
 {
-  //Object::connect(m_socket, Event::Readable, this, &GenericSocket::read); // monitor socket connection
+  Object::connect(PollEvent::activated,
+                  std::function<void(posix::fd_t, Flags_t)>(
+                    [this](posix::fd_t l_socket, Flags_t l_flags) noexcept
+                    {
+                      if(l_flags & Readable)
+                        read(l_socket, Readable);
+                      if(l_flags & Disconnected)
+                        Object::enqueue(disconnected, l_socket);
+                    }));
 }
 
 GenericSocket::~GenericSocket(void) noexcept { disconnect(); }
@@ -36,7 +45,7 @@ void GenericSocket::disconnect(void) noexcept
   if(m_socket != posix::invalid_descriptor)
   {
     Object::enqueue(disconnected, m_socket);
-//    Object::disconnect(m_socket, EventFlags::Readable);
+    Object::disconnect(PollEvent::activated);
     posix::close(m_socket); // connection severed!
     m_socket = posix::invalid_descriptor;
   }
@@ -101,7 +110,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
   return true;
 }
 
-bool ClientSocket::read(posix::fd_t socket, native_flags_t flags) noexcept
+bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
 {
   (void)flags;
   flaw(m_socket != socket, terminal::critical, std::exit(int(std::errc::invalid_argument)), false,
@@ -214,7 +223,7 @@ void ServerSocket::disconnectPeer(posix::fd_t socket) noexcept
 
 
 // accepts socket connections and then enqueues newPeerRequest
-bool ServerSocket::read(posix::fd_t socket, native_flags_t flags) noexcept
+bool ServerSocket::read(posix::fd_t socket, Flags_t flags) noexcept
 {
   (void)flags;
   flaw(m_socket != socket, terminal::critical, std::exit(int(std::errc::invalid_argument)), false,

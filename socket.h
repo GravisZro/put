@@ -9,8 +9,9 @@
 #include <cxxutils/socket_helpers.h>
 #include <cxxutils/vfifo.h>
 #include <specialized/peercred.h>
+#include <specialized/PollEvent.h>
 
-class GenericSocket : public Object
+class GenericSocket : public PollEvent
 {
 public:
   GenericSocket(EDomain   domain   = EDomain::local,
@@ -22,7 +23,7 @@ public:
 
   signal<posix::fd_t> disconnected; // connection with peer was severed
 protected:
-  virtual bool read(posix::fd_t socket, native_flags_t flags) noexcept = 0;
+  virtual bool read(posix::fd_t socket, Flags_t flags) noexcept = 0;
   void disconnect(void) noexcept;
   bool m_connected;
   posix::sockaddr_t m_selfaddr;
@@ -42,7 +43,7 @@ public:
   signal<posix::fd_t, vfifo, posix::fd_t> newMessage; // message received
 
 private:
-  bool read(posix::fd_t socket, native_flags_t flags) noexcept; // buffers incomming data and then enqueues newMessage
+  bool read(posix::fd_t socket, Flags_t flags) noexcept; // buffers incomming data and then enqueues newMessage
   vfifo m_buffer;
 };
 
@@ -74,7 +75,7 @@ private:
   };
 
   void disconnectPeer(posix::fd_t socket) noexcept;
-  bool read(posix::fd_t socket, native_flags_t flags) noexcept; // accepts socket connections and then enqueues newPeerRequest
+  bool read(posix::fd_t socket, Flags_t flags) noexcept; // accepts socket connections and then enqueues newPeerRequest
   std::unordered_map<posix::fd_t, peer_t> m_peers;
   std::unordered_map<posix::fd_t, ClientSocket> m_connections;
 };
