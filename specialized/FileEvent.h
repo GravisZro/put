@@ -31,7 +31,7 @@ public:
     uint8_t Deleted       : 1;
 
     Flags_t(uint8_t flags = 0) noexcept { *reinterpret_cast<uint8_t*>(this) = flags; }
-    operator uint8_t& (void) noexcept { return *reinterpret_cast<uint8_t*>(this); }
+    operator const uint8_t& (void) const noexcept { return *reinterpret_cast<const uint8_t*>(this); }
   };
 
   FileEvent(const char* _file, Flags_t _flags) noexcept;
