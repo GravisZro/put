@@ -95,10 +95,6 @@ bool EventBackend::poll(int timeout) noexcept
 #include <cxxutils/vterm.h>
 #include <cxxutils/error_helpers.h>
 
-
-lockable<std::unordered_multimap<posix::fd_t, EventBackend::callback_info_t>> EventBackend::queue;
-std::list<std::pair<posix::fd_t, native_flags_t>> EventBackend::results;
-
 struct EventBackend::platform_dependant // poll notification (epoll)
 {
   posix::fd_t kq;
@@ -129,19 +125,17 @@ struct EventBackend::platform_dependant // poll notification (epoll)
     posix::close(kq);
   }
 
-  bool add(posix::fd_t wd, native_flags_t flags) noexcept
+  bool add(posix::fd_t fd, native_flags_t flags) noexcept
   {
     struct kevent ev;
     EV_SET(&ev, fd, extract_filter(flags), EV_ADD | extract_actions(flags), extract_flags(flags), 0, nullptr);
     return kevent(kq, &ev, 1, nullptr, 0, nullptr) == posix::success_response;
   }
 
-  constexpr bool modify(posix::fd_t wd, native_flags_t flags) noexcept { return add(wd, flags); }
-
-  bool remove(posix::fd_t wd, native_flags_t flags) noexcept
+  bool remove(posix::fd_t fd) noexcept
   {
     struct kevent ev;
-    EV_SET(&ev, fd, extract_filter(flags), EV_DELETE | extract_actions(flags), extract_flags(flags), 0, nullptr);
+    EV_SET(&ev, fd, 0, EV_DELETE, 0, 0, nullptr);
     return kevent(kq, &ev, 1, nullptr, 0, nullptr) == posix::success_response;
   }
 
@@ -162,7 +156,7 @@ bool EventBackend::poll(int timeout) noexcept
 
   struct kevent* end = s_platform.koutput.data() + count;
   for(struct kevent* pos = s_platform.koutput.data(); pos != end; ++pos) // iterate through results
-    results.emplace_back(std::make_pair(posix::fd_t(pos->ident), composite_flag(pos->filter, pos->flags)));
+    results.emplace_back(std::make_pair(posix::fd_t(pos->ident), platform_dependant::composite_flag(pos->filter, pos->flags)));
   return true;
 }
 
@@ -225,7 +219,7 @@ bool EventBackend::add(posix::fd_t fd, native_flags_t flags, callback_t function
   return true;
 }
 
-bool EventBackend::remove(posix::fd_t fd, native_flags_t flags) noexcept
+bool EventBackend::remove(posix::fd_t fd) noexcept
 {
   return false;
 }
