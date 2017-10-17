@@ -156,7 +156,7 @@ bool EventBackend::poll(int timeout) noexcept
 
   struct kevent* end = s_platform.koutput.data() + count;
   for(struct kevent* pos = s_platform.koutput.data(); pos != end; ++pos) // iterate through results
-    results.emplace_back(std::make_pair(posix::fd_t(pos->ident), platform_dependant::composite_flag(pos->filter, pos->flags)));
+    results.emplace_back(std::make_pair(posix::fd_t(pos->ident), platform_dependant::composite_flag(pos->flags, pos->filter, pos->fflags)));
   return true;
 }
 
