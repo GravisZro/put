@@ -32,17 +32,22 @@ static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
       defined(__OpenBSD__)    /* OpenBSD 2.9+  */ || \
       defined(__NetBSD__)     /* NetBSD 2+     */
 
+#include <sys/event.h> // kqueue
+
 static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, uint32_t flags) noexcept
   { return native_flags_t(actions) | (uint16_t(filters) << 16) | (flags << 32); }
+
+static constexpr bool flag_subset(native_flags_t flags, native_flags_t subset)
+  { return (flags & subset) == subset; }
 
 // FD flags
 static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
 {
   return
-      (flags & composite_flag(EV_ERROR, 0           , 0) ? PollEvent::Error        : 0) |
-      (flags & composite_flag(EV_EOF  , 0           , 0) ? PollEvent::Disconnected : 0) |
-      (flags & composite_flag(0       , EVFILT_READ , 0) ? PollEvent::Readable     : 0) |
-      (flags & composite_flag(0       , EVFILT_WRITE, 0) ? PollEvent::Writeable    : 0) ;
+      (flag_subset(flags, composite_flag(EV_ERROR, 0           , 0)) ? PollEvent::Error        : 0) |
+      (flag_subset(flags, composite_flag(EV_EOF  , 0           , 0)) ? PollEvent::Disconnected : 0) |
+      (flag_subset(flags, composite_flag(0       , EVFILT_READ , 0)) ? PollEvent::Readable     : 0) |
+      (flag_subset(flags, composite_flag(0       , EVFILT_WRITE, 0)) ? PollEvent::Writeable    : 0) ;
 }
 
 static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept

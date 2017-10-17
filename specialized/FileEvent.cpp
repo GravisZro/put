@@ -119,19 +119,23 @@ FileEvent::~FileEvent(void) noexcept
       defined(__OpenBSD__)    /* OpenBSD 2.9+  */ || \
       defined(__NetBSD__)     /* NetBSD 2+     */
 
+#include <sys/event.h> // kqueue
 
 static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, uint32_t flags) noexcept
   { return native_flags_t(actions) | (uint16_t(filters) << 16) | (flags << 32); }
+
+static constexpr bool flag_subset(native_flags_t flags, native_flags_t subset)
+  { return (flags & subset) == subset; }
 
 // file flags
 static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
 {
   return
-      (flags & composite_flag(0, EVFILT_VNODE, NOTE_READ  ) ? FileEvent::ReadEvent    : 0) |
-      (flags & composite_flag(0, EVFILT_VNODE, NOTE_WRITE ) ? FileEvent::WriteEvent   : 0) |
-      (flags & composite_flag(0, EVFILT_VNODE, NOTE_ATTRIB) ? FileEvent::AttributeMod : 0) |
-      (flags & composite_flag(0, EVFILT_VNODE, NOTE_RENAME) ? FileEvent::Moved        : 0) |
-      (flags & composite_flag(0, EVFILT_VNODE, NOTE_DELETE) ? FileEvent::Deleted      : 0) ;
+      (flag_subset(flags, composite_flag(0, EVFILT_VNODE, NOTE_READ  )) ? FileEvent::ReadEvent    : 0) |
+      (flag_subset(flags, composite_flag(0, EVFILT_VNODE, NOTE_WRITE )) ? FileEvent::WriteEvent   : 0) |
+      (flag_subset(flags, composite_flag(0, EVFILT_VNODE, NOTE_ATTRIB)) ? FileEvent::AttributeMod : 0) |
+      (flag_subset(flags, composite_flag(0, EVFILT_VNODE, NOTE_RENAME)) ? FileEvent::Moved        : 0) |
+      (flag_subset(flags, composite_flag(0, EVFILT_VNODE, NOTE_DELETE)) ? FileEvent::Deleted      : 0) ;
 }
 
 static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
@@ -161,10 +165,6 @@ FileEvent::~FileEvent(void) noexcept
   posix::close(m_fd);
   m_fd = posix::invalid_descriptor;
 }
-
-
-# error No file event backend code exists in *BSD!  Please submit a patch!
-
 
 #elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
 

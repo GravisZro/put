@@ -155,18 +155,21 @@ ProcessEvent::~ProcessEvent(void) noexcept
       defined(__OpenBSD__)    /* OpenBSD 2.9+  */ || \
       defined(__NetBSD__)     /* NetBSD 2+     */
 
-# error No process event backend code exists in *BSD!  Please submit a patch!
+#include <sys/event.h> // kqueue
 
 static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, uint32_t flags) noexcept
   { return native_flags_t(actions) | (uint16_t(filters) << 16) | (flags << 32); }
+
+static constexpr bool flag_subset(native_flags_t flags, native_flags_t subset)
+  { return (flags & subset) == subset; }
 
 // process flags
 static constexpr uint32_t from_native_flags(const native_flags_t flags) noexcept
 {
   return
-      (flags & composite_flag(0, EVFILT_PROC, NOTE_EXEC) ? ProcessEvent::Exec : 0) |
-      (flags & composite_flag(0, EVFILT_PROC, NOTE_EXIT) ? ProcessEvent::Exit : 0) |
-      (flags & composite_flag(0, EVFILT_PROC, NOTE_FORK) ? ProcessEvent::Fork : 0) ;
+      (flag_subset(flags, composite_flag(0, EVFILT_PROC, NOTE_EXEC)) ? ProcessEvent::Exec : 0) |
+      (flag_subset(flags, composite_flag(0, EVFILT_PROC, NOTE_EXIT)) ? ProcessEvent::Exit : 0) |
+      (flag_subset(flags, composite_flag(0, EVFILT_PROC, NOTE_FORK)) ? ProcessEvent::Fork : 0) ;
 }
 
 static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
@@ -177,13 +180,19 @@ static constexpr native_flags_t to_native_flags(const uint32_t flags) noexcept
       (flags & ProcessEvent::Fork ? composite_flag(0, EVFILT_PROC, NOTE_FORK) : 0) ;
 }
 
-
-struct ProcessEvent::platform_dependant // process notification
+ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
+  : m_pid(_pid), m_flags(_flags), m_fd(posix::invalid_descriptor)
 {
+  EventBackend::add(m_pid, to_native_flags(m_flags), // connect FD with flags to signal
+                    [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
+                    { Object::enqueue_copy<const char*, Flags_t>(activated, m_pid, from_native_flags(lambda_flags)); });
+}
 
+ProcessEvent::~ProcessEvent(void) noexcept
+{
+  EventBackend::remove(m_pid, to_native_flags(m_flags)); // disconnect FD with flags from signal
+}
 
-
-} ProcessEvent::s_platform;
 
 #elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
 
