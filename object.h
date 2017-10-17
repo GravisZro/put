@@ -23,8 +23,7 @@ public:
   using mslot_t = RType(ObjType::*)(ArgTypes...); // member slot
 
   template<typename RType, typename... ArgTypes>
-  using fslot_t = RType(*)(ArgTypes...); // function slot
-  //using fslot_t = std::function<RType(ArgTypes...)>; // function slot
+  using fslot_t = std::function<RType(ArgTypes...)>; // function slot
 
   template<typename... ArgTypes>
   using signal = std::multimap<ProtoObject*, std::function<void(ProtoObject*, ArgTypes...)>>;
