@@ -187,7 +187,7 @@ ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
 {
   EventBackend::add(m_pid, to_native_flags(m_flags), // connect FD with flags to signal
                     [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
-                    { Object::enqueue_copy<const char*, Flags_t>(activated, m_pid, from_native_flags(lambda_flags)); });
+                    { Object::enqueue_copy<pid_t, Flags_t>(activated, m_pid, from_native_flags(lambda_flags)); });
 }
 
 ProcessEvent::~ProcessEvent(void) noexcept
