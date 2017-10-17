@@ -126,6 +126,7 @@ struct ProcessEvent::platform_dependant // process notification (process events 
       if(posix::recv(fd, reinterpret_cast<void*>(&procmsg), sizeof(procmsg), 0) > 0) // read process event message
         return {fd, from_native_flags(procmsg.event.what) };
     }
+    assert(false);
     return {0, 0};
   }
 } ProcessEvent::s_platform;
@@ -139,7 +140,7 @@ ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
                     {
                       platform_dependant::return_data data = s_platform.read(lambda_fd);
                       assert(m_pid == data.pid);
-                      assert(m_flags == data.flags);
+                      assert(m_flags & data.flags);
                       Object::enqueue(activated, data.pid, data.flags);
                     });
 }

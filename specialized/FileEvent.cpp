@@ -71,7 +71,6 @@ struct FileEvent::platform_dependant // file notification (inotify)
   struct return_data
   {
     const char* name;
-    posix::fd_t wd;
     FileEvent::Flags_t flags;
   };
 
@@ -86,8 +85,9 @@ struct FileEvent::platform_dependant // file notification (inotify)
     uint8_t* inend = inotifiy_buffer_data + posix::read(wd, inotifiy_buffer_data, sizeof(inotifiy_buffer_data)); // read data and locate it's end
     for(inpos = inotifiy_buffer_data; inpos < inend; inpos += sizeof(inotify_event) + incur->len) // iterate through the inotify events
       if(incur->wd == wd)
-        return { incur->name, incur->wd, from_native_flags(incur->mask) };
-    return { nullptr, 0, 0 };
+        return { incur->name, from_native_flags(incur->mask) };
+    assert(false);
+    return { nullptr, 0 };
   }
 
 } FileEvent::s_platform;
@@ -103,6 +103,8 @@ FileEvent::FileEvent(const char* _file, Flags_t _flags) noexcept
                     [this](posix::fd_t lambda_fd, native_flags_t) noexcept
                     {
                       platform_dependant::return_data data = s_platform.read(lambda_fd);
+                      assert(m_flags & data.flags);
+                      assert(!std::strcmp(m_file, data.name));
                       Object::enqueue(activated, data.name, data.flags);
                     });
 }
