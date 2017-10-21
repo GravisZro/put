@@ -1,6 +1,8 @@
 #include "eventbackend.h"
 
+#if !defined(MAX_EVENTS)
 #define MAX_EVENTS 1024
+#endif
 
 // PDTK
 #include <cxxutils/vterm.h>
@@ -8,9 +10,7 @@
 lockable<std::unordered_multimap<posix::fd_t, EventBackend::callback_info_t>> EventBackend::queue;
 std::list<std::pair<posix::fd_t, native_flags_t>> EventBackend::results;
 
-#if defined(__linux__)
-
-// epoll needs kernel 2.5.44
+#if defined(__linux__) /* Linux 2.5.44+ */
 
 // Linux
 #include <sys/epoll.h>
@@ -66,11 +66,11 @@ bool EventBackend::poll(int timeout) noexcept
   return true;
 }
 
-#elif defined(__APPLE__)      /* Darwin 7+     */ || \
-      defined(__FreeBSD__)    /* FreeBSD 4.1+  */ || \
-      defined(__DragonFly__)  /* DragonFly BSD */ || \
-      defined(__OpenBSD__)    /* OpenBSD 2.9+  */ || \
-      defined(__NetBSD__)     /* NetBSD 2+     */
+#elif (defined(__APPLE__) && defined(__MACH__)) /* Darwin 7+     */ || \
+      defined(__FreeBSD__)                      /* FreeBSD 4.1+  */ || \
+      defined(__DragonFly__)                    /* DragonFly BSD */ || \
+      defined(__OpenBSD__)                      /* OpenBSD 2.9+  */ || \
+      defined(__NetBSD__)                       /* NetBSD 2+     */
 
 // BSD
 #include <sys/time.h>
@@ -159,11 +159,8 @@ bool EventBackend::poll(int timeout) noexcept
   return true;
 }
 
-
-
 #elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
 
-#pragma message Not implemented, yet!
 #pragma message See: http://docs.oracle.com/cd/E19253-01/816-5168/port-get-3c/index.html
 #error The backend code in PDTK for Solaris / OpenSolaris / OpenIndiana / illumos is non-functional!  Please submit a patch!
 
@@ -269,17 +266,28 @@ bool EventBackend::poll(int timeout) noexcept
 
 #include <sys/poll.h>
 #include <sys/pollset.h>
-
+/*
   pollset_t n;
   n = pollset_create(-1);
   pollset_destroy(n);
+*/
 
 #error No event backend code exists in PDTK for IBM AIX!  Please submit a patch!
+
+
+#elif defined(__osf__) || defined(__osf) // Tru64 (OSF/1)
+#error No event backend code exists in PDTK for Tru64!  Please submit a patch!
+
+#elif defined(_SCO_DS) // SCO OpenServer
+#error No event backend code exists in PDTK for SCO OpenServer!  Please submit a patch!
+
+#elif defined(sinux) // Reliant UNIX
+#error No event backend code exists in PDTK for Reliant UNIX!  Please submit a patch!
 
 #elif defined(BSD)
 #error Unrecognized BSD derivative!
 
-#elif defined(__unix__)
+#elif defined(__unix__) || defined(__unix)
 #error Unrecognized UNIX variant!
 
 #else

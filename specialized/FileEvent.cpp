@@ -1,6 +1,6 @@
 #include "FileEvent.h"
 
-#if defined(__linux__)
+#if defined(__linux__) /* Linux 2.6.13+ */
 
 // POSIX++
 #include <cstring>
@@ -115,11 +115,11 @@ FileEvent::~FileEvent(void) noexcept
   assert(s_platform.remove(m_fd));
 }
 
-#elif defined(__APPLE__)      /* Darwin 7+     */ || \
-      defined(__FreeBSD__)    /* FreeBSD 4.1+  */ || \
-      defined(__DragonFly__)  /* DragonFly BSD */ || \
-      defined(__OpenBSD__)    /* OpenBSD 2.9+  */ || \
-      defined(__NetBSD__)     /* NetBSD 2+     */
+#elif (defined(__APPLE__) && defined(__MACH__)) /* Darwin 7+     */ || \
+      defined(__FreeBSD__)                      /* FreeBSD 4.1+  */ || \
+      defined(__DragonFly__)                    /* DragonFly BSD */ || \
+      defined(__OpenBSD__)                      /* OpenBSD 2.9+  */ || \
+      defined(__NetBSD__)                       /* NetBSD 2+     */
 
 #include <sys/event.h> // kqueue
 
@@ -173,27 +173,25 @@ FileEvent::~FileEvent(void) noexcept
 }
 
 #elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
-
 # error No file event backend code exists in PDTK for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!
+
 #elif defined(__minix) // MINIX
-# error No process event backend code exists in PDTK for MINIX!  Please submit a patch!
+# error No file event backend code exists in PDTK for MINIX!  Please submit a patch!
 
 #elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
 # error No file event backend code exists in PDTK for QNX!  Please submit a patch!
 
 #elif defined(__hpux) // HP-UX
-
 # error No file event backend code exists in PDTK for HP-UX!  Please submit a patch!
 
 #elif defined(_AIX) // IBM AIX
-
 # error No file event backend code exists in PDTK for IBM AIX!  Please submit a patch!
 
 #elif defined(BSD)
 # error Unrecognized BSD derivative!
 
-#elif defined(__unix__)
+#elif defined(__unix__) || defined(__unix)
 # error Unrecognized UNIX variant!
 
 #else

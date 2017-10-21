@@ -2,9 +2,8 @@
 
 #include <functional>
 
-#if defined(__linux__)
+#if defined(__linux__) /* Linux 2.5.44+ */
 
-// epoll needs kernel 2.5.44
 #include <sys/epoll.h>
 
 // FD flags
@@ -26,11 +25,11 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
       (flags & PollEvent::Writeable    ? native_flags_t(EPOLLOUT ) : 0);
 }
 
-#elif defined(__APPLE__)      /* Darwin 7+     */ || \
-      defined(__FreeBSD__)    /* FreeBSD 4.1+  */ || \
-      defined(__DragonFly__)  /* DragonFly BSD */ || \
-      defined(__OpenBSD__)    /* OpenBSD 2.9+  */ || \
-      defined(__NetBSD__)     /* NetBSD 2+     */
+#elif (defined(__APPLE__) && defined(__MACH__)) /* Darwin 7+     */ || \
+      defined(__FreeBSD__)                      /* FreeBSD 4.1+  */ || \
+      defined(__DragonFly__)                    /* DragonFly BSD */ || \
+      defined(__OpenBSD__)                      /* OpenBSD 2.9+  */ || \
+      defined(__NetBSD__)                       /* NetBSD 2+     */
 
 #include <sys/event.h> // kqueue
 
@@ -60,35 +59,34 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 }
 
 #elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
-
-
+# error No poll event backend code exists in SXinit for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!
 
 #elif defined(__minix) // MINIX
-#error No event backend code exists in PDTK for MINIX!  Please submit a patch!
+# error No poll event backend code exists in PDTK for MINIX!  Please submit a patch!
 
 #elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
-#error No event backend code exists in PDTK for QNX!  Please submit a patch!
+# error No poll event backend code exists in PDTK for QNX!  Please submit a patch!
 
 #elif defined(__hpux) // HP-UX
 // see http://nixdoc.net/man-pages/HP-UX/man7/poll.7.html
 // and https://www.freebsd.org/cgi/man.cgi?query=poll&sektion=7&apropos=0&manpath=HP-UX+11.22
 // uses /dev/poll
-#error No event backend code exists in PDTK for HP-UX!  Please submit a patch!
+# error No poll event backend code exists in PDTK for HP-UX!  Please submit a patch!
 
 #elif defined(_AIX) // IBM AIX
 // see https://www.ibm.com/support/knowledgecenter/ssw_aix_61/com.ibm.aix.basetrf1/pollset.htm
 
-#error No event backend code exists in PDTK for IBM AIX!  Please submit a patch!
+# error No poll event backend code exists in PDTK for IBM AIX!  Please submit a patch!
 
 #elif defined(BSD)
-#error Unrecognized BSD derivative!
+# error Unrecognized BSD derivative!
 
-#elif defined(__unix__)
-#error Unrecognized UNIX variant!
+#elif defined(__unix__) || defined(__unix)
+# error Unrecognized UNIX variant!
 
 #else
-#error This platform is not supported.
+# error This platform is not supported.
 #endif
 
 
