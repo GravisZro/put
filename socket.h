@@ -19,7 +19,7 @@ public:
                 EProtocol protocol = EProtocol::unspec,
                 int       flags    = 0) noexcept;
   GenericSocket(posix::fd_t fd) noexcept;
-  ~GenericSocket(void) noexcept;
+  virtual ~GenericSocket(void) noexcept;
 
   signal<posix::fd_t> disconnected; // connection with peer was severed
 protected:
