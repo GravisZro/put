@@ -48,7 +48,7 @@ struct ProcessEvent::platform_dependant // process notification (process events 
     sa_nl.nl_groups = CN_IDX_PROC;
     sa_nl.nl_pid = getpid();
 
-    flaw(!posix::bind(fd, (struct sockaddr *)&sa_nl, sizeof(sa_nl)), terminal::warning,,,
+    flaw(!posix::bind(fd, reinterpret_cast<struct sockaddr *>(&sa_nl), sizeof(sa_nl)), terminal::warning,,,
          "Process Events Connector requires root level access: %s", std::strerror(errno))
 
     struct alignas(NLMSG_ALIGNTO) // 32-bit alignment
