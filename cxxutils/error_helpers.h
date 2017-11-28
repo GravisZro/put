@@ -29,10 +29,11 @@ constexpr bool operator ==(T err_num, std::errc err) noexcept
 
 namespace posix
 {
+  typedef int error_t;
   constexpr int success_response = 0;
   constexpr int error_response = -1;
-  static inline int success(void) noexcept { return errno = success_response; }
-  static inline int error(std::errc err) noexcept { errno = int(err); return error_response; }
+  static inline error_t success(void) noexcept { return errno = success_response; }
+  static inline error_t error(std::errc err) noexcept { errno = error_t(err); return error_response; }
 }
 
 #endif // ERROR_HELPERS_H

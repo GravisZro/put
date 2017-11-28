@@ -86,7 +86,7 @@ namespace posix
 // longcuts
   namespace signal
   {
-    enum EId : int
+    enum EId : error_t
     {
       Abort                   = SIGABRT,    // Process abort signal.
       Timer                   = SIGALRM,    // Alarm clock.
@@ -118,7 +118,7 @@ namespace posix
       LimitExceededFile       = SIGXFSZ,    // File size limit exceeded.
     };
 
-    enum ECode : int
+    enum ECode : error_t
     {
       // SIGILL
       IllegalOpcode                     = ILL_ILLOPC,
