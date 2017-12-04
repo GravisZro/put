@@ -3,6 +3,8 @@
 // PDTK
 #include <cxxutils/posix_helpers.h>
 
+static_assert(sizeof(pid_t) <= sizeof(int), "insufficient storage type for maximum number of pids");
+
 #if defined(__linux__) // Linux
 
 #include <dirent.h>
@@ -15,10 +17,11 @@ int proclist(pid_t* list, size_t max_length)
     return posix::error_response;
 
   struct dirent* entry;
-  size_t count = 0;
+  int count = 0;
 
   while((entry = ::readdir(dirp)) != nullptr &&
-        count < max_length)
+        count >= 0 &&
+        size_t(count) < max_length)
   {
     if(entry->d_type == DT_DIR)
     {
@@ -29,10 +32,21 @@ int proclist(pid_t* list, size_t max_length)
   }
 
   if(errno != posix::success_response)
-    return posix::error_response;
+  {
+    error_t errback = errno;
+    ::closedir(dirp);
+    return posix::error(errback);
+  }
 
   if(::closedir(dirp) == posix::error_response)
     return posix::error_response;
+
+  if(count < 0)
+    return posix::error(std::errc::result_out_of_range);
+
+  if(size_t(count) >= max_length)
+    return posix::error(std::errc::not_enough_memory);
+
   return count;
 }
 
