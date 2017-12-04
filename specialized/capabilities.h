@@ -1,14 +1,21 @@
-#if defined(__linux__) && !defined(_POSIX_DRAFT_1E)
-#define _POSIX_DRAFT_1E
+#if defined(__linux__) && !defined(POSIX_DRAFT_1E)
+#define POSIX_DRAFT_1E
 #endif
 
-#if defined(_POSIX_DRAFT_1E) && !defined(CAPABILITIES_H)
+#if defined(POSIX_DRAFT_1E) && !defined(CAPABILITIES_H)
 #define CAPABILITIES_H
 
+// POSIX++
+#include <cstdio>
+#include <cstring>
+#include <cerrno>
+
+// Non-POSIX
 #include <sys/capability.h>
 #include <sys/prctl.h>
 
 #if defined(__linux__)
+// Linux
 #include <linux/capability.h>
 
 #if defined(_LINUX_CAPABILITY_VERSION_3)
@@ -113,7 +120,7 @@ struct capability_data_t
     head.version = CAPABILITY_VERSION; // set version number
     head.pid = 0;
     if(::capget(*this, nullptr)) // load the kernel-capability version???
-      fprintf(stderr, "failed to init: %s\n", strerror(errno));
+      std::fprintf(stderr, "failed to init: %s\n", std::strerror(errno));
   }
 };
 
