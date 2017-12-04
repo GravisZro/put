@@ -185,7 +185,7 @@ bool EventBackend::poll(int timeout) noexcept
 #include <cxxutils/error_helpers.h>
 
 
-struct platform_dependant
+struct EventBackend::platform_dependant
 {
   posix::fd_t port;
   std::vector<port_event_t> pinput;   // events we want to monitor

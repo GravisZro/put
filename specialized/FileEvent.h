@@ -45,6 +45,7 @@ private:
   char m_file[PATH_MAX];
   Flags_t m_flags;
   posix::fd_t m_fd;
+
   struct platform_dependant;
   static struct platform_dependant s_platform;
 };

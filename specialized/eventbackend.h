@@ -33,7 +33,6 @@ namespace EventBackend
   extern lockable<std::unordered_multimap<posix::fd_t, callback_info_t>> queue; // watch queue
   extern std::list<std::pair<posix::fd_t, native_flags_t>> results; // results from getevents()
 
-  struct platform_dependant;
   extern struct platform_dependant s_platform;
   extern const native_flags_t SimplePollReadFlags;
 }
