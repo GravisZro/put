@@ -30,7 +30,7 @@ uint64_t read(posix::fd_t fd, off_t offset, uint8_t* buffer, uint64_t length)
 
   uint64_t remaining = length;
   ssize_t rval;
-  for(uint8_t* pos = buffer; remaining > 0; pos += rval, remaining -= rval)
+  for(uint8_t* pos = buffer; remaining > 0; pos += rval, remaining -= uint64_t(rval))
     rval = posix::read(fd, pos, remaining);
 
   return length - remaining;
@@ -64,15 +64,15 @@ static void uuid_decode(uint8_t* data, std::string& uuid)
 namespace blockdevices
 {
   typedef bool (*detector_t)(uint8_t*, blockdevice_t*);
-  void detect_filesystem(blockdevice_t* dev);
-  bool detect_ext(uint8_t* data, blockdevice_t* dev);
-  bool detect_NULL(uint8_t* data, blockdevice_t* dev);
+  void detect_filesystem(blockdevice_t* dev) noexcept;
+  bool detect_ext(uint8_t* data, blockdevice_t* dev) noexcept;
+  bool detect_NULL(uint8_t* data, blockdevice_t* dev) noexcept;
 
   static std::list<blockdevice_t> devices;
   static std::list<detector_t> detectors = { detect_ext, detect_NULL };
 
 #if defined(__linux__)
-  void fill_device_list(const char* procfs_path)
+  void fill_device_list(const char* procfs_path) noexcept
   {
     char filename[PATH_MAX] = { 0 };
     std::strcpy(filename, procfs_path);
@@ -132,7 +132,7 @@ namespace blockdevices
 #endif
 
 
-  void init(BLOCKDEV_ARGS)
+  void init(BLOCKDEV_ARGS) noexcept
   {
     devices.clear();
 
@@ -204,7 +204,7 @@ namespace blockdevices
     return nullptr;
   }
 
-  blockdevice_t* lookup(const char* id)
+  blockdevice_t* lookup(const char* id) noexcept
   {
     for(blockdevice_t& dev : devices)
     {
@@ -227,12 +227,9 @@ namespace blockdevices
     return &devices.back();
   }
 
-  void detect_filesystem(blockdevice_t* dev)
+  void detect_filesystem(blockdevice_t* dev) noexcept
   {
     uint8_t superblock[BLOCK_SIZE];
-    uint32_t blocksize;
-    uint64_t blockcount;
-
     posix::fd_t fd = posix::open(dev->path, O_RDONLY);
     dev->size = 0;
 
@@ -243,8 +240,8 @@ namespace blockdevices
       posix::ioctl(fd, BLKGETSIZE64, &dev->size);
 
 #elif defined(DKIOCGETBLOCKCOUNT) // Darwin
-      blocksize = 0;
-      blockcount = 0;
+      uint32_t blocksize = 0;
+      uint64_t blockcount = 0;
       if(posix::ioctl(fd, DKIOCGETBLOCKSIZE , &blocksize ) > posix::error_response &&
          posix::ioctl(fd, DKIOCGETBLOCKCOUNT, &blockcount) > posix::error_response)
         dev->size = blockcount * blocksize;
@@ -283,7 +280,7 @@ namespace blockdevices
   {
     uint8_t low;
     uint8_t high;
-    constexpr operator uint16_t(void) const { return low + (high << 8); }
+    constexpr operator uint16_t(void) const noexcept { return uint16_t(low) + uint16_t(uint16_t(high) << 8); }
   };
   static_assert(sizeof(uintle16_t) == sizeof(uint16_t), "naughty compiler!");
 
@@ -293,24 +290,24 @@ namespace blockdevices
     uint8_t low;
     uint8_t high;
     uint8_t top;
-    constexpr operator uint32_t(void) const
+    constexpr operator uint32_t(void) const noexcept
     {
-      return bottom +
-          (low  <<  8) +
-          (high << 16) +
-          (top  << 24);
+      return (uint32_t(bottom) <<  0) +
+             (uint32_t(low   ) <<  8) +
+             (uint32_t(high  ) << 16) +
+             (uint32_t(top   ) << 24) ;
     }
   };
   static_assert(sizeof(uintle32_t) == sizeof(uint32_t), "naughty compiler!");
 
-  template<typename T> constexpr uint16_t get16(T* x) { return *reinterpret_cast<uint16_t*>(x); }
-  template<typename T> constexpr uint32_t get32(T* x) { return *reinterpret_cast<uint32_t*>(x); }
-  template<typename T> constexpr uint16_t getLE16(T* x) { return *reinterpret_cast<uintle16_t*>(x); }
-  template<typename T> constexpr uint32_t getLE32(T* x) { return *reinterpret_cast<uintle32_t*>(x); }
+  template<typename T> constexpr uint16_t get16(T* x) noexcept { return *reinterpret_cast<uint16_t*>(x); }
+  template<typename T> constexpr uint32_t get32(T* x) noexcept { return *reinterpret_cast<uint32_t*>(x); }
+  template<typename T> constexpr uint16_t getLE16(T* x) noexcept { return *reinterpret_cast<uintle16_t*>(x); }
+  template<typename T> constexpr uint32_t getLE32(T* x) noexcept { return *reinterpret_cast<uintle32_t*>(x); }
 
-  template<typename T> constexpr uint32_t getFlags(T addr, uint32_t flags) { return getLE32(addr) & flags; }
-  template<typename T> constexpr bool flagsAreSet(T addr, uint32_t flags) { return getFlags(addr, flags) == flags; }
-  template<typename T> constexpr bool flagsNotSet(T addr, uint32_t flags) { return !getFlags(addr, flags); }
+  template<typename T> constexpr uint32_t getFlags(T addr, uint32_t flags) noexcept { return getLE32(addr) & flags; }
+  template<typename T> constexpr bool flagsAreSet(T addr, uint32_t flags) noexcept { return getFlags(addr, flags) == flags; }
+  template<typename T> constexpr bool flagsNotSet(T addr, uint32_t flags) noexcept { return !getFlags(addr, flags); }
 
 
 // FILESYSTEM DETECTION FUNCTIONS BELOW!
@@ -318,7 +315,7 @@ namespace blockdevices
   // https://github.com/torvalds/linux/blob/master/fs/ext2/ext2.h
   // https://github.com/torvalds/linux/blob/master/fs/ext4/ext4.h
   // https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#The_Super_Block
-  bool detect_ext(uint8_t* data, blockdevice_t* dev)
+  bool detect_ext(uint8_t* data, blockdevice_t* dev) noexcept
   {
     constexpr uint16_t ext_magic_number = 0xEF53; // s_magic
 
@@ -372,7 +369,7 @@ namespace blockdevices
     if(getLE16(data + offsets::magic_number) != ext_magic_number ) // test not Ext2/3/4/4dev or JDB
       return false;
 
-    uint32_t blocksize  = BLOCK_SIZE << getLE32(data + offsets::block_size); // filesystem block size
+    uint32_t blocksize  = uint32_t(BLOCK_SIZE) << getLE32(data + offsets::block_size); // filesystem block size
     uint64_t blockcount = getLE32(data + offsets::block_count); // filesystem block count
     dev->size = blockcount * blocksize; // store partitions usable size
 
@@ -403,11 +400,11 @@ namespace blockdevices
       return false;
 
     std::memcpy(dev->uuid, data + offsets::uuid, 16);
-    std::strncpy(dev->label, (const char*)data + offsets::label, 16);
+    std::strncpy(dev->label, reinterpret_cast<char*>(data) + offsets::label, 16);
     return true;
   }
 
-  bool detect_NULL(uint8_t* data, blockdevice_t* dev)
+  bool detect_NULL(uint8_t* data, blockdevice_t* dev) noexcept
   {
     printf("NOT A RECOGNIZED FILESYSTEM!  ");
     return true;
