@@ -23,11 +23,14 @@
 
 
 static_assert(sizeof(::size_t) == sizeof(std::size_t), "STL's size_t doesn't match the C standard!");
+static_assert(sizeof(::size_t) == sizeof(::off_t), "size_t not the same is as off_t!");
+static_assert(sizeof(::size_t) == sizeof(::ssize_t), "size_t not the same is as ssize_t!");
 
 namespace posix
 {
   using ::size_t;
   using ::ssize_t;
+  using ::off_t;
 
   typedef int fd_t;
   static const fd_t invalid_descriptor = error_response;
