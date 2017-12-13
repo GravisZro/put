@@ -25,8 +25,8 @@ namespace posix
   using function = RType(*)(ArgTypes...);
 
 #if defined(SA_RESTART) && !defined(INTERRUPTED_WRAPPER)
-  template<typename RType, typename... ArgTypes> constexpr RType  ignore_interruption(function<RType , ArgTypes...> func, ArgTypes... args) { return func(args...); }
-  template<typename RType, typename... ArgTypes> constexpr RType* ignore_interruption(function<RType*, ArgTypes...> func, ArgTypes... args) { return func(args...); }
+  template<typename RType, typename... ArgTypes> constexpr RType  ignore_interruption(function<RType , ArgTypes...> func, ArgTypes... args) noexcept { return func(args...); }
+  template<typename RType, typename... ArgTypes> constexpr RType* ignore_interruption(function<RType*, ArgTypes...> func, ArgTypes... args) noexcept { return func(args...); }
 #else
   template<typename RType, typename... ArgTypes>
   static inline RType ignore_interruption(function<RType, ArgTypes...> func, ArgTypes... args) noexcept
