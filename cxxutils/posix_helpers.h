@@ -32,6 +32,83 @@ namespace posix
   using ::ssize_t;
   using ::off_t;
 
+  // unistd.h
+  using ::access;
+  using ::alarm;
+  using ::chdir;
+  // ::chown EINTR
+  // ::close EINTR
+
+  // ::confstr XSI
+  // ::crypt USE EXTERNAL
+  // ::_exit DO NO USE
+  // ::encrypt USE EXTERNAL
+
+  using ::execl;
+  using ::execle;
+  using ::execlp;
+  using ::execv;
+  using ::execve;
+  using ::execvp;
+  using ::fexecve;
+/*
+  int execl(const char *path, const char *arg0, ... /, (char *)0 /);
+//  int execle(const char *path, const char *arg0, ... /, (char *)0, char *const envp[]/);
+  int execlp(const char *file, const char *arg0, ... /, (char *)0 /);
+
+  // scripts
+  static inline bool execvp(const char *file, char *const argv[]);
+
+  // binaries
+  static inline bool execv(const char *path, char *const argv[]);
+  static inline bool execve(const char *path, char *const argv[], char *const envp[]);
+  static inline bool fexecve(int fd, char *const argv[], char *const envp[]);
+*/
+
+  static inline bool faccessat(int fd, const char* path, int amode, int flag) noexcept
+    { return ignore_interruption<int, int, const char*, int, int>(::faccessat, fd, path, amode, flag) != error_response; }
+
+  static inline bool fchdir(int fd) noexcept
+    { return ignore_interruption<int, int>(::fchdir, fd) != error_response; }
+
+
+  static inline bool setuid(uid_t uid) noexcept
+    { return ignore_interruption<int, uid_t>(::setuid, uid) != error_response; }
+
+  static inline bool seteuid(uid_t uid) noexcept
+    { return ignore_interruption<int, uid_t>(::seteuid, uid) != error_response; }
+
+  static inline bool setgid(gid_t gid) noexcept
+    { return ignore_interruption<int, gid_t>(::setgid, gid) != error_response; }
+
+  static inline bool setegid(gid_t gid) noexcept
+    { return ignore_interruption<int, gid_t>(::setegid, gid) != error_response; }
+
+  using ::getuid;
+  using ::geteuid;
+  using ::getgid;
+  using ::getegid;
+
+  static inline bool pipe(int fildes[2]) noexcept
+    { return ignore_interruption<int, int[2]>(::pipe, fildes) != error_response; }
+
+  using ::dup;
+  //using ::dup2; EINTR
+
+  using ::fork;
+#if defined(_XOPEN_SOURCE_EXTENDED)
+  static inline bool sigqueue(pid_t pid, int signo, union sigval value) noexcept
+    { return ignore_interruption<int, pid_t, int, union sigval>(::sigqueue, pid, signo, value) != error_response; }
+#endif
+  static inline bool kill(pid_t pid, int signo) noexcept
+    { return ignore_interruption<int, pid_t, int>(::kill, pid, signo) != error_response; }
+
+  using ::getopt;
+
+  // fcntl.h
+  using ::fcntl;
+
+
   typedef int fd_t;
   static const fd_t invalid_descriptor = error_response;
 
@@ -178,9 +255,9 @@ namespace posix
 
     static inline bool send(pid_t pid, EId id, int value = 0) noexcept
 #if defined(_XOPEN_SOURCE_EXTENDED)
-      { return ::sigqueue(pid, id, {value}) == success_response; }
+      { return posix::sigqueue(pid, id, {value}); }
 #else
-      { (void)value; return ::kill(pid, id) == success_response; }
+      { (void)value; return posix::kill(pid, id); }
 #endif
   }
 

@@ -129,14 +129,14 @@ struct EventBackend::platform_dependant // poll notification (epoll)
   {
     struct kevent ev;
     EV_SET(&ev, fd, extract_filter(flags), EV_ADD | extract_actions(flags), extract_flags(flags), 0, nullptr);
-    return kevent(kq, &ev, 1, nullptr, 0, nullptr) == posix::success_response;
+    return ::kevent(kq, &ev, 1, nullptr, 0, nullptr) == posix::success_response;
   }
 
   bool remove(posix::fd_t fd) noexcept
   {
     struct kevent ev;
     EV_SET(&ev, fd, 0, EV_DELETE, 0, 0, nullptr);
-    return kevent(kq, &ev, 1, nullptr, 0, nullptr) == posix::success_response;
+    return ::kevent(kq, &ev, 1, nullptr, 0, nullptr) == posix::success_response;
   }
 
 } EventBackend::s_platform;

@@ -11,6 +11,10 @@
 
 namespace posix
 {
+  using ::openlog;
+  using ::closelog;
+  //using ::syslog;
+
   enum class priority : int
   {
     emergency = LOG_EMERG,    // system is unusable
@@ -47,8 +51,8 @@ namespace posix
   {
   public:
     static void open(const char* name, facility f = facility::daemon)
-      { ::openlog(name, LOG_PID | LOG_CONS | LOG_NOWAIT, int(f)); }
-    static void close(void) { ::closelog(); }
+      { posix::openlog(name, LOG_PID | LOG_CONS | LOG_NOWAIT, int(f)); }
+    static void close(void) { posix::closelog(); }
 
     SyslogStream& operator << (priority p) { m_priority = p;  return *this; }
 
@@ -82,71 +86,5 @@ namespace posix
   };
 
   static SyslogStream syslog;
-
-#if 0
-  ostream& operator << (ostream& os, const priority& p);
-
-  class syslogstreambuf : public basic_streambuf<char>
-  {
-  public:
-    syslogstreambuf(const char *ident, facility f)
-      : m_priority(priority::info)
-    {
-      m_buffer.reserve(4096);
-      ::openlog(ident, 0, static_cast<int>(f));
-    }
-
-    ~syslogstreambuf(void)
-    {
-      sync();
-      ::closelog();
-    }
-
-  protected:
-
-    virtual int overflow( int c = EOF )
-    {
-      if (c == EOF)
-        sync();
-      else
-        m_buffer += static_cast<char>(c & 0xFF);
-      return c;
-    }
-
-    virtual int sync(void)
-    {
-      if (!m_buffer.empty())
-      {
-        ::syslog(static_cast<int>(m_priority), "%s", m_buffer.c_str());
-        m_buffer.clear();
-      }
-      return 0;
-    }
-
-  private:
-    friend ostream& operator << (ostream& os, const priority& p);
-
-    string m_buffer;
-    priority m_priority;
-  };
-
-  ostream& operator << (ostream& os, const priority& p)
-  {
-    static_cast<syslogstreambuf*>(os.rdbuf())->m_priority = p;
-    return os;
-  }
-
-
-  static void sysloginit(ostream& os, const char *ident, facility f = facility::user)
-  {
-    os.rdbuf(new syslogstreambuf(ident, f));
-  }
-
-  static void sysloginit(const char *ident, facility f = facility::user)
-  {
-    sysloginit(clog, ident, f);
-  }
-#endif
 }
-
 #endif // SYSLOG_H

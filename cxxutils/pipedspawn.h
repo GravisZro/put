@@ -35,9 +35,9 @@ public:
     posix::fd_t stderr_pipe[2];
     posix_spawn_file_actions_t action;
 
-    flaw(::pipe(stdin_pipe ) == posix::error_response ||
-         ::pipe(stdout_pipe) == posix::error_response ||
-         ::pipe(stderr_pipe) == posix::error_response,
+    flaw(!posix::pipe(stdin_pipe ) ||
+         !posix::pipe(stdout_pipe) ||
+         !posix::pipe(stderr_pipe),
          terminal::critical, /*std::exit(errno)*/, ,
          "Unable to create a pipe: %s", std::strerror(errno))
 

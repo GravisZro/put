@@ -31,10 +31,10 @@ Application::Application(void) noexcept
 {
   if(s_pipeio[Read] == posix::invalid_descriptor) // if execution stepper pipe  hasn't been initialized yet
   {
-    flaw(::pipe(s_pipeio) == posix::error_response, terminal::critical, std::exit(errno),,
+    flaw(!posix::pipe(s_pipeio), terminal::critical, std::exit(errno),,
          "Unable to create pipe for execution stepper: %s", std::strerror(errno))
-    ::fcntl(s_pipeio[Read], F_SETFD, FD_CLOEXEC);
-    ::fcntl(s_pipeio[Read], F_SETFL, O_NONBLOCK);
+    posix::fcntl(s_pipeio[Read], F_SETFD, FD_CLOEXEC);
+    posix::fcntl(s_pipeio[Read], F_SETFL, O_NONBLOCK);
     if(!EventBackend::add(s_pipeio[Read], EventBackend::SimplePollReadFlags, read)) // watch for when execution stepper pipe has been triggered
       quit(posix::error_response);
   }

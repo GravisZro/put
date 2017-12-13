@@ -76,7 +76,7 @@ int procstat(pid_t pid, process_state_t* data) noexcept
   procinfo_t process;
   std::sprintf(buffer, "/proc/%d/stat", pid);
 
-  if(::access(buffer, R_OK) == posix::error_response)
+  if(!posix::access(buffer, R_OK))
     return posix::error_response;
 
   FILE* file = std::fopen(buffer, "r");
@@ -127,7 +127,7 @@ int procstat(pid_t pid, process_state_t* data) noexcept
 
   std::sprintf(buffer, "/proc/%d/cmdline", pid);
 
-  if(::access(buffer, R_OK) == posix::error_response)
+  if(!posix::access(buffer, R_OK))
     return posix::error_response;
 
   file = std::fopen(buffer, "r");

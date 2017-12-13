@@ -6,7 +6,6 @@
 #include <sys/un.h>     // for struct sockaddr_un
 #include <sys/socket.h> // for socket()
 #include <poll.h>       // for poll()
-#include <fcntl.h>      // for fcntl()
 
 // POSIX++
 #include <cstring>
@@ -110,9 +109,9 @@ namespace posix
                        static_cast<int>(protocol));
     if(fd != error_response)
     {
-      ::fcntl(fd, F_SETFD, FD_CLOEXEC);
+      posix::fcntl(fd, F_SETFD, FD_CLOEXEC);
       if(flags & O_NONBLOCK)
-        ::fcntl(fd, F_SETFL, ::fcntl(fd, F_GETFL) | O_NONBLOCK);
+        posix::fcntl(fd, F_SETFL, posix::fcntl(fd, F_GETFL) | O_NONBLOCK);
     }
     return fd;
   }
@@ -122,9 +121,9 @@ namespace posix
     fd_t fd = ignore_interruption(::accept, sockfd, addr, addrlen);
     if(fd != error_response)
     {
-      ::fcntl(fd, F_SETFD, FD_CLOEXEC);
+      posix::fcntl(fd, F_SETFD, FD_CLOEXEC);
       if(flags & O_NONBLOCK)
-        ::fcntl(fd, F_SETFL, ::fcntl(fd, F_GETFL) | O_NONBLOCK);
+        posix::fcntl(fd, F_SETFL, posix::fcntl(fd, F_GETFL) | O_NONBLOCK);
     }
     return fd;
   }

@@ -31,14 +31,14 @@ public:
     posix::fd_t out[2];
     posix::fd_t err[2];
 
-    flaw(::pipe(ipc_pico) == posix::error_response ||
-         ::pipe(ipc_cipo) == posix::error_response ||
-         ::pipe(out) == posix::error_response ||
-         ::pipe(err) == posix::error_response,
+    flaw(!posix::pipe(ipc_pico) ||
+         !posix::pipe(ipc_cipo) ||
+         !posix::pipe(out) ||
+         !posix::pipe(err),
          terminal::critical, /*std::exit(errno)*/, ,
          "Unable to create a pipe: %s", std::strerror(errno))
 
-    flaw((m_pid = ::fork()) <= posix::error_response,
+    flaw((m_pid = posix::fork()) <= posix::error_response,
          terminal::critical, /*std::exit(errno)*/, ,
          "Unable to create a fork: %s", std::strerror(errno))
 
