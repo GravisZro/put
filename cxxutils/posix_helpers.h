@@ -90,7 +90,7 @@ namespace posix
   using ::getegid;
 
   static inline bool pipe(int fildes[2]) noexcept
-    { return ignore_interruption<int, int[2]>(::pipe, fildes) != error_response; }
+    { return ignore_interruption<int, int*>(::pipe, fildes) != error_response; }
 
   using ::dup;
   //using ::dup2; EINTR
