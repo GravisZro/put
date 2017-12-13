@@ -50,8 +50,11 @@ namespace posix
   using ::execv;
   using ::execve;
   using ::execvp;
+#if (_XOPEN_SOURCE - 0) >= 700
   using ::fexecve;
-/*
+#endif
+
+  /*
   int execl(const char *path, const char *arg0, ... /, (char *)0 /);
 //  int execle(const char *path, const char *arg0, ... /, (char *)0, char *const envp[]/);
   int execlp(const char *file, const char *arg0, ... /, (char *)0 /);
