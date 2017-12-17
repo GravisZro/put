@@ -11,6 +11,8 @@
 #include <specialized/peercred.h>
 #include <specialized/PollEvent.h>
 
+extern bool use_socket_file(const char* file);
+
 class GenericSocket : public PollEvent
 {
 public:

@@ -3,6 +3,9 @@
 // STL
 #include <memory>
 
+// POSIX
+#include <sys/stat.h>
+
 // POSIX++
 #include <cstdlib>
 
@@ -10,6 +13,16 @@
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/vterm.h>
 
+
+bool use_socket_file(const char* file)
+{
+  struct stat data;
+  if(::stat(file, &data) == posix::success_response)
+    return S_ISSOCK(data.st_dev);
+
+  return (errno == EACCES ||
+          errno == EOVERFLOW);
+}
 
 GenericSocket::GenericSocket(EDomain   domain,
                              EType     type,
@@ -76,7 +89,7 @@ bool ClientSocket::connect(const char *socket_path) noexcept
   flaw(!posix::connect(m_socket, peeraddr, socklen_t(peeraddr.size())),
        terminal::warning,,
        false,
-       "connect() to \"%s\" failure: %s", socket_path, std::strerror(errno)) // connect to peer process
+       "connect() to %s \"%s\" failure: %s", (socket_path[0] ? "socket file" : "anonymous socket"), socket_path + (socket_path[0] ? 0 : 1), std::strerror(errno)) // connect to peer process
   m_connected = true;
 
   flaw(::peercred(m_socket, cred) != posix::success_response,
@@ -99,7 +112,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
   header.msg_control = aux_buffer.get();
 
   iov.iov_base = buffer.begin();
-  iov.iov_len = buffer.size();
+  iov.iov_len = posix::size_t(buffer.size());
 
   header.msg_controllen = 0;
 
@@ -138,7 +151,7 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
   header.msg_control = aux_buffer.get();
 
   iov.iov_base = m_buffer.begin();
-  iov.iov_len = m_buffer.capacity();
+  iov.iov_len = posix::size_t(m_buffer.capacity());
   header.msg_controllen = CMSG_SPACE(sizeof(int));
 
   posix::ssize_t byte_count = posix::recvmsg(m_socket, &header, 0);
@@ -201,7 +214,7 @@ bool ServerSocket::bind(const char* socket_path, EDomain domain, int socket_back
   m_selfaddr = socket_path;
   m_selfaddr = domain;
 
-  flaw(!posix::bind(m_socket, m_selfaddr, m_selfaddr.size()),
+  flaw(!posix::bind(m_socket, m_selfaddr, socklen_t(m_selfaddr.size())),
        terminal::warning,,
        false,
        "Unable to bind to socket to %s: %s", socket_path, std::strerror(errno))
