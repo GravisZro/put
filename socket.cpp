@@ -73,7 +73,7 @@ bool ClientSocket::connect(const char *socket_path) noexcept
   peeraddr = EDomain::local;
   m_selfaddr = EDomain::unspec;
 
-  flaw(!posix::connect(m_socket, peeraddr, peeraddr.size()),
+  flaw(!posix::connect(m_socket, peeraddr, socklen_t(peeraddr.size())),
        terminal::warning,,
        false,
        "connect() to \"%s\" failure: %s", socket_path, std::strerror(errno)) // connect to peer process
