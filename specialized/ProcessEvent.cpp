@@ -174,15 +174,6 @@ static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters
 static constexpr bool flag_subset(native_flags_t flags, native_flags_t subset)
   { return (flags & subset) == subset; }
 
-// process flags
-static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
-{
-  return
-      (flag_subset(flags, composite_flag(0, EVFILT_PROC, NOTE_EXEC)) ? ProcessEvent::Exec : 0) |
-      (flag_subset(flags, composite_flag(0, EVFILT_PROC, NOTE_EXIT)) ? ProcessEvent::Exit : 0) |
-      (flag_subset(flags, composite_flag(0, EVFILT_PROC, NOTE_FORK)) ? ProcessEvent::Fork : 0) ;
-}
-
 static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 {
   return
@@ -191,30 +182,31 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
       (flags & ProcessEvent::Fork ? composite_flag(0, EVFILT_PROC, NOTE_FORK) : 0) ;
 }
 
+static constexpr ushort extract_filter(native_flags_t flags) noexcept
+  { return (flags >> 16) & 0xFFFF; }
+
+static constexpr uint32_t extract_flags(native_flags_t flags) noexcept
+  { return flags >> 32; }
+
 ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
   : m_pid(_pid), m_flags(_flags), m_fd(posix::invalid_descriptor)
 {
-  /*
-  EventBackend::add(m_pid, to_native_flags(m_flags), // connect FD with flags to signal
-                    [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
-                    { Object::enqueue_copy<pid_t, Flags_t>(activated, m_pid, from_native_flags(lambda_flags)); });
-  */
   EventBackend::add(m_pid, to_native_flags(m_flags),
                     [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
                     {
-                      proc_event data = s_platform.read(lambda_fd);
-                      switch (from_native_flags(data.what))
+                      uint32_t data = extract_flags(lambda_fd);
+                      switch(extract_filter(lambda_fd))
                       {
                         case Flags::Exec:
                           Object::enqueue(execed, m_pid);
                           break;
                         case Flags::Exit:
                           Object::enqueue(exited, m_pid,
-                                          *reinterpret_cast<posix::error_t*>(&data.event_data.exit.exit_code));
+                                          *reinterpret_cast<posix::error_t*>(&data));
                           break;
                         case Flags::Fork:
                           Object::enqueue(forked, m_pid,
-                                          data.event_data.fork.child_pid);
+                                          *reinterpret_cast<pid_t*>(&data));
                           break;
                       }
                     });
