@@ -24,7 +24,9 @@ struct EventBackend::platform_dependant // poll notification (epoll)
     : fd(posix::invalid_descriptor)
   {
     fd = ::epoll_create(MAX_EVENTS);
-    flaw(fd == posix::invalid_descriptor, terminal::critical, std::exit(errno),,
+    flaw(fd == posix::invalid_descriptor,
+         terminal::critical,
+         std::exit(errno),,
          "Unable to create an instance of epoll! %s", std::strerror(errno))
   }
 
@@ -115,7 +117,9 @@ struct EventBackend::platform_dependant // poll notification (epoll)
   platform_dependant(void)
   {
     kq = posix::ignore_interruption(::kqueue);
-    flaw(kq == posix::error_response, terminal::critical, std::exit(errno),,
+    flaw(kq == posix::error_response,
+         terminal::critical,
+         std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
     koutput.resize(1024);
   }
@@ -194,7 +198,9 @@ struct EventBackend::platform_dependant
   platform_dependant(void)
   {
     port = ::port_create();
-    flaw(port == posix::error_response, terminal::critical, std::exit(errno),,
+    flaw(port == posix::error_response,
+         terminal::critical,
+         std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
    pinput .reserve(1024);
    poutput.reserve(1024);

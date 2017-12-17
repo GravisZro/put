@@ -40,7 +40,8 @@ struct ProcessEvent::platform_dependant // process notification (process events 
     : fd(posix::invalid_descriptor)
   {
     fd = posix::socket(EDomain::netlink, EType::datagram, EProtocol::connector);
-    flaw(fd == posix::invalid_descriptor, terminal::warning,,,
+    flaw(fd == posix::invalid_descriptor,
+         terminal::warning,,,
          "Unable to open a netlink socket for Process Events Connector: %s", std::strerror(errno))
 
     sockaddr_nl sa_nl;
@@ -48,19 +49,19 @@ struct ProcessEvent::platform_dependant // process notification (process events 
     sa_nl.nl_groups = CN_IDX_PROC;
     sa_nl.nl_pid = getpid();
 
-    flaw(!posix::bind(fd, reinterpret_cast<struct sockaddr *>(&sa_nl), sizeof(sa_nl)), terminal::warning,,,
+    flaw(!posix::bind(fd, reinterpret_cast<struct sockaddr *>(&sa_nl), sizeof(sa_nl)),
+         terminal::warning,,,
          "Process Events Connector requires root level access: %s", std::strerror(errno))
 
-    struct alignas(NLMSG_ALIGNTO) // 32-bit alignment
+#pragma pack(push, 1)
+    struct alignas(NLMSG_ALIGNTO) procconn_t // 32-bit alignment
     {
       nlmsghdr header; // 16 bytes
-      struct __attribute__((__packed__))
-      {
-        cn_msg message;
-        proc_cn_mcast_op operation;
-      };
+      cn_msg message;
+      proc_cn_mcast_op operation;
     } procconn;
-    static_assert(sizeof(nlmsghdr) + sizeof(cn_msg) + sizeof(proc_cn_mcast_op) == sizeof(procconn), "compiler failed to pack struct");
+#pragma pack(pop)
+    static_assert(sizeof(nlmsghdr) + sizeof(cn_msg) + sizeof(proc_cn_mcast_op) == sizeof(procconn_t), "compiler needs to pack struct");
 
     std::memset(&procconn, 0, sizeof(procconn));
     procconn.header.nlmsg_len = sizeof(procconn);
@@ -71,7 +72,8 @@ struct ProcessEvent::platform_dependant // process notification (process events 
     procconn.message.len = sizeof(proc_cn_mcast_op);
     procconn.operation = PROC_CN_MCAST_LISTEN;
 
-    flaw(posix::send(fd, &procconn, sizeof(procconn)) == posix::error_response, terminal::warning,,,
+    flaw(posix::send(fd, &procconn, sizeof(procconn)) == posix::error_response,
+         terminal::warning,,,
          "Failed to enable Process Events Connector notifications: %s", std::strerror(errno))
   }
 
@@ -100,32 +102,27 @@ struct ProcessEvent::platform_dependant // process notification (process events 
     return true;
   }
 
-  struct return_data
-  {
-    pid_t pid;
-    ProcessEvent::Flags_t flags;
-  };
 
-  return_data read(posix::fd_t procfd) noexcept
+  proc_event read(posix::fd_t procfd) noexcept
   {
-    struct alignas(NLMSG_ALIGNTO) // 32-bit alignment
+#pragma pack(push, 1)
+    struct alignas(NLMSG_ALIGNTO) procmsg_t // 32-bit alignment
     {
       nlmsghdr header; // 16 bytes
-      struct __attribute__((__packed__))
-      {
-        cn_msg message;
-        proc_event event;
-      };
+      cn_msg message;
+      proc_event event;
     } procmsg;
+#pragma pack(pop)
+    static_assert(sizeof(nlmsghdr) + sizeof(cn_msg) + sizeof(proc_event) == sizeof(procmsg_t), "compiler needs to pack struct");
 
     pollfd fds = { procfd, POLLIN, 0 };
     while(posix::poll(&fds, 1, 0) > 0) // while there are messages
     {
-      if(posix::recv(fd, reinterpret_cast<void*>(&procmsg), sizeof(procmsg), 0) > 0) // read process event message
-        return {fd, from_native_flags(procmsg.event.what) };
+      if(posix::recv(fd, reinterpret_cast<void*>(&procmsg), sizeof(procmsg_t), 0) > 0) // read process event message
+        return procmsg.event;
     }
     assert(false);
-    return {0, 0};
+    return {};
   }
 } ProcessEvent::s_platform;
 
@@ -136,10 +133,24 @@ ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
   EventBackend::add(m_fd, EventBackend::SimplePollReadFlags,
                     [this](posix::fd_t lambda_fd, native_flags_t) noexcept
                     {
-                      platform_dependant::return_data data = s_platform.read(lambda_fd);
-                      assert(m_pid == data.pid);
-                      assert(m_flags & data.flags);
-                      Object::enqueue(activated, data.pid, data.flags);
+                      proc_event data = s_platform.read(lambda_fd);
+                      switch(from_native_flags(data.what))
+                      {
+                        case Flags::Exec:
+                          Object::enqueue(execed,
+                                          data.event_data.exec.process_pid);
+                          break;
+                        case Flags::Exit:
+                          Object::enqueue(exited,
+                                          data.event_data.exit.process_pid,
+                                          *reinterpret_cast<posix::error_t*>(&data.event_data.exit.exit_code));
+                          break;
+                        case Flags::Fork:
+                          Object::enqueue(forked,
+                                          data.event_data.fork.parent_pid,
+                                          data.event_data.fork.child_pid);
+                          break;
+                      }
                     });
 }
 
@@ -183,9 +194,30 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
   : m_pid(_pid), m_flags(_flags), m_fd(posix::invalid_descriptor)
 {
+  /*
   EventBackend::add(m_pid, to_native_flags(m_flags), // connect FD with flags to signal
                     [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
                     { Object::enqueue_copy<pid_t, Flags_t>(activated, m_pid, from_native_flags(lambda_flags)); });
+  */
+  EventBackend::add(m_pid, to_native_flags(m_flags),
+                    [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
+                    {
+                      proc_event data = s_platform.read(lambda_fd);
+                      switch (from_native_flags(data.what))
+                      {
+                        case Flags::Exec:
+                          Object::enqueue(execed, m_pid);
+                          break;
+                        case Flags::Exit:
+                          Object::enqueue(exited, m_pid,
+                                          *reinterpret_cast<posix::error_t*>(&data.event_data.exit.exit_code));
+                          break;
+                        case Flags::Fork:
+                          Object::enqueue(forked, m_pid,
+                                          data.event_data.fork.child_pid);
+                          break;
+                      }
+                    });
 }
 
 ProcessEvent::~ProcessEvent(void) noexcept

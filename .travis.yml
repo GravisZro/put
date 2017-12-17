@@ -58,7 +58,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-4.0']
-          packages: ['clang-4.0']
+          packages: ['clang-4.0', 'libstdc++-4.9-dev']
       env:
         - COMPILER=clang++-4.0
 
@@ -74,7 +74,7 @@ matrix:
       env:
         - COMPILER=clang++
 
+before_script:
+  - git clone https://github.com/GravisZro/pdtk.git pdtk
 script:
-  - if false && [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install sdl2; fi
-  - if false && [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install libsdl2-dev; fi
   - make -e CXX=$COMPILER -e VERBOSE=true -f Makefile.travis

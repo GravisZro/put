@@ -3,6 +3,7 @@
 
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/error_helpers.h>
+#include <cxxutils/vterm.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
@@ -33,8 +34,10 @@ public:
 
   uint8_t& operator [](posix::size_t pos)
   {
-    flaw(pos >= m_size, terminal::critical,
-         std::exit(int(std::errc::bad_address)), m_mem[0],
+    flaw(pos >= m_size,
+         terminal::critical,
+         std::exit(int(std::errc::bad_address)),
+         m_mem[0],
         "Attempted to access memory out of bounds of the shared memory type!")
     return m_mem[pos];
   }

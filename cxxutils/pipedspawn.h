@@ -61,8 +61,11 @@ public:
 
     const char* args[2] = { SPAWN_PROGRAM_NAME, nullptr };
 
-    flaw(posix_spawnp(&m_pid, SPAWN_PROGRAM_NAME, &action, nullptr, static_cast<char* const*>(const_cast<char**>(args)), nullptr) != posix::success_response, terminal::severe,,,
-      "posix_spawnp failed with error: %s", std::strerror(errno))
+    flaw(posix_spawnp(&m_pid,
+                      SPAWN_PROGRAM_NAME, &action, nullptr,
+                      static_cast<char* const*>(const_cast<char**>(args)), nullptr) != posix::success_response,
+         terminal::severe,,,
+         "posix_spawnp failed with error: %s", std::strerror(errno))
   }
 
   ~PipedSpawn(void) noexcept
