@@ -386,3 +386,20 @@ bool ConfigManip::write(std::string& data) const noexcept
   }
   return true;
 }
+
+
+void exportKeyPairs_node(std::shared_ptr<node_t> node, std::string path, std::list<std::pair<std::string, std::string>>& output) noexcept
+{
+  if(!node->value.empty())
+    output.emplace_back(path, node->value);
+  else
+    for(const std::pair<std::string, std::shared_ptr<node_t>>& entry : node->children)
+      exportKeyPairs_node(entry.second, path + "/" + entry.first, output);
+}
+
+bool ConfigManip::exportKeyPairs(std::list<std::pair<std::string, std::string>>& data) const noexcept
+{
+  data.clear();
+  exportKeyPairs_node(*this, "", data);
+  return true;
+}

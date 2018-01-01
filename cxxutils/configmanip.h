@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <unordered_map>
+#include <list>
 
 struct node_t
 {
@@ -48,6 +49,7 @@ public:
 
   bool read(const std::string& data) noexcept;
   bool write(std::string& data) const noexcept;
+  bool exportKeyPairs(std::list<std::pair<std::string, std::string>>& data) const noexcept;
 };
 
 #endif // CONFIGMANIP_H
