@@ -25,13 +25,13 @@ constexpr bool operator ==(std::errc err, T err_num) noexcept
 
 template<typename T>
 constexpr bool operator ==(T err_num, std::errc err) noexcept
-  { return int(err) == err_num; }
+  { return T(err) == err_num; }
 
 namespace posix
 {
   typedef int error_t;
-  constexpr int success_response = 0;
-  constexpr int error_response = -1;
+  constexpr error_t success_response = 0;
+  constexpr error_t error_response = -1;
   static inline error_t success(void) noexcept { return errno = success_response; }
   static inline error_t error(error_t err) noexcept { errno = err; return error_response; }
   static inline error_t error(std::errc err) noexcept { return error(error_t(err)); }
