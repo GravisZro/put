@@ -37,6 +37,8 @@ class ClientSocket : public GenericSocket
 public:
   using GenericSocket::GenericSocket;
 
+  bool isConnected(void) const noexcept { return GenericSocket::m_connected; }
+
   bool connect(const char *socket_path) noexcept;
 
   bool write(const vfifo& buffer, posix::fd_t fd = posix::invalid_descriptor) const noexcept;
