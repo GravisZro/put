@@ -10,12 +10,12 @@ AsyncFD::AsyncFD(posix::fd_t fd) noexcept
   : m_fd(fd)
 {
 #if defined(O_NONBLOCK) // POSIX
-  int flags = fcntl(m_fd, F_GETFL, 0);
+  int flags = ::fcntl(m_fd, F_GETFL, 0);
   assert(flags != posix::error_response);
-  assert(fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) != posix::error_response);
+  assert(::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) != posix::error_response);
 #else // pre-POSIX
   int flags = 1;
-  assert(ioctl(m_fd, FIOBIO, &flags) != posix::error_response);
+  assert(posix::ioctl(m_fd, FIOBIO, &flags) != posix::error_response);
 #endif
 }
 
