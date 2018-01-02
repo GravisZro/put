@@ -24,6 +24,8 @@ bool use_socket_file(const char* file)
           errno == EOVERFLOW);
 }
 
+// GenericSocket
+
 GenericSocket::GenericSocket(EDomain   domain,
                              EType     type,
                              EProtocol protocol,
@@ -66,6 +68,7 @@ void GenericSocket::disconnect(void) noexcept
   m_connected = false;
 }
 
+// ClientSocket
 
 bool ClientSocket::connect(const char *socket_path) noexcept
 {
@@ -194,6 +197,8 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
   return true;
 }
 
+// ServerSocket
+
 bool ServerSocket::bind(const char* socket_path, EDomain domain, int socket_backlog) noexcept
 {
   flaw(m_connected,
@@ -240,7 +245,6 @@ bool ServerSocket::peerData(posix::fd_t socket, posix::sockaddr_t* addr, proccre
   return true;
 }
 
-
 void ServerSocket::acceptPeerRequest(posix::fd_t socket) noexcept
 {
   if(m_peers.find(socket) != m_peers.end())
@@ -268,7 +272,6 @@ void ServerSocket::disconnectPeer(posix::fd_t socket) noexcept
   m_connections.erase(socket);
   Object::enqueue(disconnectedPeer, socket);
 }
-
 
 // accepts socket connections and then enqueues newPeerRequest
 bool ServerSocket::read(posix::fd_t socket, Flags_t flags) noexcept
@@ -316,4 +319,3 @@ bool ServerSocket::write(posix::fd_t socket, const vfifo& buffer, posix::fd_t pa
     return connection->second.write(buffer, passfd);
   return false;
 }
-
