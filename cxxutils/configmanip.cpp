@@ -80,7 +80,7 @@ bool bailout(void)
   return false;
 }
 
-bool ConfigManip::read(const std::string& data) noexcept
+bool ConfigManip::importText(const std::string& data) noexcept
 {
   enum class state_e
   {
@@ -368,7 +368,7 @@ bool write_node(std::shared_ptr<node_t> node, std::string section_name, std::mul
   return true;
 }
 
-bool ConfigManip::write(std::string& data) const noexcept
+bool ConfigManip::exportText(std::string& data) const noexcept
 {
   std::multimap<std::string, std::string> sections = {{"",""}}; // include empty global section
 
@@ -397,9 +397,8 @@ void exportKeyPairs_node(std::shared_ptr<node_t> node, std::string path, std::li
       exportKeyPairs_node(entry.second, path + "/" + entry.first, output);
 }
 
-bool ConfigManip::exportKeyPairs(std::list<std::pair<std::string, std::string>>& data) const noexcept
+void ConfigManip::exportKeyPairs(std::list<std::pair<std::string, std::string>>& data) const noexcept
 {
   data.clear();
   exportKeyPairs_node(*this, "", data);
-  return true;
 }
