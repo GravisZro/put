@@ -74,6 +74,12 @@ std::shared_ptr<node_t> root_node_t::lookupNode(std::string path, NodeAction fun
   return node;
 }
 
+void ConfigManip::clear(void) noexcept
+{
+  (*this)->children.clear();
+  (*this)->value.clear();
+}
+
 bool bailout(void)
 {
   posix::syslog << posix::priority::error << "Configuration file parser has prematurely exited." << posix::eom;

@@ -47,6 +47,7 @@ public:
   using root_node_t::findNode;
   using root_node_t::getNode;
 
+  void clear(void) noexcept;
   bool importText(const std::string& data) noexcept;
   bool exportText(std::string& data) const noexcept;
   void exportKeyPairs(std::list<std::pair<std::string, std::string>>& data) const noexcept;
