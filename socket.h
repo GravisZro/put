@@ -20,7 +20,7 @@ public:
                 EType     type     = EType::stream,
                 EProtocol protocol = EProtocol::unspec,
                 int       flags    = 0) noexcept;
-  GenericSocket(posix::fd_t fd) noexcept;
+  GenericSocket(posix::fd_t socket) noexcept;
   virtual ~GenericSocket(void) noexcept;
 
   signal<posix::fd_t> disconnected; // connection with peer was severed
@@ -41,7 +41,7 @@ public:
 
   bool connect(const char *socket_path) noexcept;
 
-  bool write(const vfifo& buffer, posix::fd_t fd = posix::invalid_descriptor) const noexcept;
+  bool write(const vfifo& buffer, posix::fd_t passfd = posix::invalid_descriptor) const noexcept;
 
   signal<posix::fd_t, posix::sockaddr_t, proccred_t> connected; // peer is connected
   signal<posix::fd_t, vfifo, posix::fd_t> newMessage; // message received
@@ -67,7 +67,7 @@ public:
   signal<posix::fd_t> disconnectedPeer; // connection with peer was severed
   signal<posix::fd_t, vfifo, posix::fd_t> newPeerMessage; // message received from peer
 
-  bool write(posix::fd_t socket, const vfifo& buffer, posix::fd_t fd = posix::invalid_descriptor) const noexcept;
+  bool write(posix::fd_t socket, const vfifo& buffer, posix::fd_t passfd = posix::invalid_descriptor) const noexcept;
 private:
   struct peer_t
   {

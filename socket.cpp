@@ -101,7 +101,7 @@ bool ClientSocket::connect(const char *socket_path) noexcept
   return true;
 }
 
-bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
+bool ClientSocket::write(const vfifo& buffer, posix::fd_t passfd) const noexcept
 {
   msghdr header = {};
   iovec iov = {};
@@ -116,14 +116,14 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t fd) const noexcept
 
   header.msg_controllen = 0;
 
-  if(fd != posix::invalid_descriptor) // if a file descriptor needs to be sent
+  if(passfd != posix::invalid_descriptor) // if a file descriptor needs to be sent
   {
     header.msg_controllen = CMSG_SPACE(sizeof(int));
     cmsghdr* cmsg = CMSG_FIRSTHDR(&header);
     cmsg->cmsg_level = SOL_SOCKET;
     cmsg->cmsg_type = SCM_RIGHTS;
     cmsg->cmsg_len = CMSG_LEN(sizeof(int));
-    *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = fd;
+    *reinterpret_cast<int*>(CMSG_DATA(cmsg)) = passfd;
   }
 
   flaw(posix::sendmsg(m_socket, &header) == posix::error_response,
@@ -173,14 +173,14 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
        false,
        "Failed to resize buffer to %li bytes", byte_count)
 
-  posix::fd_t fd = posix::invalid_descriptor;
+  posix::fd_t passfd = posix::invalid_descriptor;
   if(header.msg_controllen == CMSG_SPACE(sizeof(int)))
   {
     cmsghdr* cmsg = CMSG_FIRSTHDR(&header);
     if(cmsg->cmsg_level == SOL_SOCKET &&
        cmsg->cmsg_type == SCM_RIGHTS &&
        cmsg->cmsg_len == CMSG_LEN(sizeof(int)))
-      fd = *reinterpret_cast<int*>(CMSG_DATA(cmsg));
+      passfd = *reinterpret_cast<int*>(CMSG_DATA(cmsg));
   }
   else
   {
@@ -190,7 +190,7 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
          "error, message flags: 0x%04x", header.msg_flags)
   }
 
-  Object::enqueue(newMessage, m_socket, m_buffer, fd);
+  Object::enqueue(newMessage, m_socket, m_buffer, passfd);
   return true;
 }
 
@@ -282,9 +282,9 @@ bool ServerSocket::read(posix::fd_t socket, Flags_t flags) noexcept
   proccred_t cred;
   posix::sockaddr_t peeraddr;
   socklen_t addrlen = 0;
-  posix::fd_t fd = posix::accept(m_socket, peeraddr, &addrlen); // accept a new socket connection
+  posix::fd_t connection = posix::accept(m_socket, peeraddr, &addrlen); // accept a new socket connection
 
-  flaw(fd == posix::error_response,
+  flaw(connection == posix::error_response,
        terminal::warning,,
        false,
        "accept() failure: %s", std::strerror(errno))
@@ -299,21 +299,21 @@ bool ServerSocket::read(posix::fd_t socket, Flags_t flags) noexcept
        false,
        "accept() implementation bug: %s", "address length does not match string length");
 
-  flaw(::peercred(fd, cred) != posix::success_response,
+  flaw(::peercred(connection, cred) != posix::success_response,
        terminal::warning,,
        false,
        "peercred() failure: %s", std::strerror(errno)) // get creditials of connected peer process
 
-  m_peers.emplace(fd, peer_t(fd, peeraddr, cred));
-  Object::enqueue(newPeerRequest, fd, peeraddr, cred);
+  m_peers.emplace(connection, peer_t(connection, peeraddr, cred));
+  Object::enqueue(newPeerRequest, connection, peeraddr, cred);
   return true;
 }
 
-bool ServerSocket::write(posix::fd_t socket, const vfifo& buffer, posix::fd_t fd) const noexcept
+bool ServerSocket::write(posix::fd_t socket, const vfifo& buffer, posix::fd_t passfd) const noexcept
 {
   auto connection = m_connections.find(socket);
   if(connection != m_connections.end())
-    return connection->second.write(buffer, fd);
+    return connection->second.write(buffer, passfd);
   return false;
 }
 
