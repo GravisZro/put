@@ -323,14 +323,19 @@ bool EventBackend::remove(posix::fd_t fd, native_flags_t flags) noexcept
 {
   native_flags_t remaining_flags = 0;
   auto entries = queue.equal_range(fd); // find modified entry!
-  for(auto& pos = entries.first; pos != entries.second; ++pos)
+  auto& pos = entries.first;
+  while(pos != entries.second)
   {
     if((pos->second.flags & flags) == pos->second.flags) // if all flags match
-      queue.erase(pos);
-    else if(pos->second.flags & flags) // if only some flags match
+      pos = queue.erase(pos);
+    else
     {
-      pos->second.flags ^= pos->second.flags & flags; // remove flags
-      remaining_flags |= pos->second.flags; // accumulate remaining flags
+      if(pos->second.flags & flags) // if only some flags match
+      {
+        pos->second.flags ^= pos->second.flags & flags; // remove flags
+        remaining_flags |= pos->second.flags; // accumulate remaining flags
+      }
+      ++pos;
     }
   }
   return remaining_flags
