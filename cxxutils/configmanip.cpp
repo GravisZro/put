@@ -50,6 +50,13 @@ std::shared_ptr<node_t> root_node_t::findNode(std::string path) noexcept
 std::shared_ptr<node_t> root_node_t::getNode(std::string path) noexcept
   { return lookupNode(path, [](std::shared_ptr<node_t>& node, std::string& str) noexcept { return node->getChild(str); }); }
 
+bool root_node_t::deleteNode(std::string path) noexcept
+{
+  auto split = path.rfind('/');
+  auto node = findNode(path.substr(0, split - 1));
+  return node->children.erase(path.substr(split + 1)) > 0;
+}
+
 std::shared_ptr<node_t> root_node_t::lookupNode(std::string path, NodeAction func) noexcept
 {
   std::shared_ptr<node_t> node = *this;

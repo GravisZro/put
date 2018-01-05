@@ -36,6 +36,7 @@ struct root_node_t : std::shared_ptr<node_t>
   root_node_t(void) noexcept;
   std::shared_ptr<node_t> findNode(std::string path) noexcept;
   std::shared_ptr<node_t> getNode (std::string path) noexcept;
+  bool deleteNode (std::string path) noexcept;
 
   typedef std::shared_ptr<node_t> (*NodeAction)(std::shared_ptr<node_t>& node, std::string& str);
   std::shared_ptr<node_t> lookupNode(std::string path, NodeAction func) noexcept;
@@ -46,6 +47,7 @@ class ConfigManip : protected root_node_t
 public:
   using root_node_t::findNode;
   using root_node_t::getNode;
+  using root_node_t::deleteNode;
 
   void clear(void) noexcept;
   bool importText(const std::string& data) noexcept;
