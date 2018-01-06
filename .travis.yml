@@ -3,7 +3,7 @@ language: cpp
 matrix:
   include:
     - os: linux
-      dist: precise
+      dist: trusty
       compiler: gcc
       addons:
         apt:
@@ -13,7 +13,7 @@ matrix:
         - COMPILER=g++-4.9
 
     - os: linux
-      dist: precise
+      dist: trusty
       compiler: gcc
       addons:
         apt:
@@ -23,7 +23,7 @@ matrix:
         - COMPILER=g++-5
 
     - os: linux
-      dist: precise
+      dist: trusty
       compiler: gcc
       addons:
         apt:
