@@ -257,7 +257,7 @@ Process::State Process::state(void) noexcept
       break;
     default:
       process_state_t data;
-      flaw(::procstat(processId(), &data) == posix::error_response && m_state != State::Finished,
+      flaw(::procstat(processId(), data) == posix::error_response && m_state != State::Finished,
            terminal::severe,
            m_state = State::Invalid,
            m_state,
