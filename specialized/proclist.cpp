@@ -9,6 +9,8 @@ static_assert(sizeof(pid_t) <= sizeof(int), "insufficient storage type for maxim
 
 posix::error_t proclist(std::vector<pid_t>& list)
 {
+  list.clear();
+
   DIR* dirp = ::opendir("/proc");
   if(dirp == nullptr)
     return posix::error_response;
@@ -68,7 +70,7 @@ posix::error_t proclist(std::vector<pid_t>& list)
   std::vector<struct kinfo_proc> proc_list;
   int request[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
 
-  std::memset(list, 0, max_length);
+  list.clear();
 
   if(::sysctl(request, arraylength(request), nullptr, &length, nullptr, 0) != posix::success_response)
     return posix::error_response;
