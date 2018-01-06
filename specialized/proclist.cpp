@@ -1,34 +1,35 @@
 #include "proclist.h"
 
-// PDTK
-#include <cxxutils/posix_helpers.h>
-
-static_assert(sizeof(pid_t) <= sizeof(int), "insufficient storage type for maximum number of pids");
-
 #if defined(__linux__) // Linux
 
 #include <dirent.h>
 #include <cstdlib>
 
-int proclist(pid_t* list, size_t max_length)
+static_assert(sizeof(pid_t) <= sizeof(int), "insufficient storage type for maximum number of pids");
+
+posix::error_t proclist(std::vector<pid_t>& list)
 {
   DIR* dirp = ::opendir("/proc");
   if(dirp == nullptr)
     return posix::error_response;
 
+  size_t length = 0;
   struct dirent* entry;
-  int count = 0;
+  while((entry = ::readdir(dirp)) != nullptr)
+    if(entry->d_type == DT_DIR && std::atoi(entry->d_name))
+      ++length;
 
-  while((entry = ::readdir(dirp)) != nullptr &&
-        count >= 0 &&
-        size_t(count) < max_length)
+  if(errno == posix::success_response)
   {
-    if(entry->d_type == DT_DIR)
-    {
-      list[count] = std::atoi(entry->d_name);
-      if(list[count])
-        ++count;
-    }
+    list.reserve(length);
+    if(list.capacity() < length) // if reserve failed to allocate the required memory
+      return posix::error(std::errc::not_enough_memory);
+
+    ::rewinddir(dirp);
+
+    while((entry = ::readdir(dirp)) != nullptr)
+      if(entry->d_type == DT_DIR && std::atoi(entry->d_name))
+        list.push_back(std::atoi(entry->d_name));
   }
 
   if(errno != posix::success_response)
@@ -41,13 +42,7 @@ int proclist(pid_t* list, size_t max_length)
   if(::closedir(dirp) == posix::error_response)
     return posix::error_response;
 
-  if(count < 0)
-    return posix::error(std::errc::result_out_of_range);
-
-  if(size_t(count) >= max_length)
-    return posix::error(std::errc::not_enough_memory);
-
-  return count;
+  return posix::success_response;
 }
 
 #elif defined(BSD) || defined(__APPLE__) // *BSD/Darwin
@@ -67,7 +62,7 @@ int proclist(pid_t* list, size_t max_length)
 // PDTK
 #include <cxxutils/misc_helpers.h>
 
-int proclist(pid_t* list, size_t max_length)
+posix::error_t proclist(std::vector<pid_t>& list)
 {
   size_t length = 0;
   std::vector<struct kinfo_proc> proc_list;
@@ -78,25 +73,22 @@ int proclist(pid_t* list, size_t max_length)
   if(::sysctl(request, arraylength(request), nullptr, &length, nullptr, 0) != posix::success_response)
     return posix::error_response;
 
-  if(length > max_length)
+  proc_list.resize(length);
+  if(proc_list.size() < length) // if resize failed to allocate the required memory
     return posix::error(std::errc::not_enough_memory);
 
-  proc_list.resize(length);
+  list.reserve(length);
+  if(list.capacity() < length) // if reserve failed to allocate the required memory
+    return posix::error(std::errc::not_enough_memory);
 
   if(::sysctl(request, arraylength(request), proc_list.data(), &length, nullptr, 0) != posix::success_response)
     return posix::error_response;
 
-  if(proc_list.size() >= length)
-    return posix::error(std::errc::not_enough_memory);
-
-  proc_list.resize(length);
-
-  struct kinfo_proc* proc_pos = proc_list.data();
-  for(pid_t* pos = list; pos != list + length; ++pos, ++proc_pos)
+  for(const auto& proc_info : proc_list)
 #if defined(__APPLE__)
-    *pos = proc_pos->kp_proc.p_pid;
+    list.push_back(proc_info.kp_proc.p_pid);
 #else
-    *pos = proc_pos->ki_pid;
+    list.push_back(proc_info.ki_pid);
 #endif
 
   return posix::success_response;

@@ -1,8 +1,5 @@
 #include "procstat.h"
 
-// PDTK
-#include <cxxutils/posix_helpers.h>
-
 #if defined(__linux__) // Linux
 // POSIX++
 #include <cstdio>
@@ -14,17 +11,14 @@
 #define ARG_MAX 131072
 #endif
 
-int procstat(pid_t pid, process_state_t* data) noexcept
+posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
 {
   static_assert(sizeof(gid_t) == sizeof(int), "size error");
   static_assert(sizeof(uid_t) == sizeof(int), "size error");
   static_assert(sizeof(pid_t) == sizeof(int), "size error");
 
-  if(data == nullptr)
-    return posix::error(std::errc::invalid_argument);
-
-  data->state = Invalid;
-  data->arguments.clear();
+  data.state = Invalid;
+  data.arguments.clear();
 
   char buffer[ARG_MAX];
 
@@ -76,22 +70,19 @@ int procstat(pid_t pid, process_state_t* data) noexcept
   procinfo_t process;
   std::sprintf(buffer, "/proc/%d/stat", pid);
 
-  if(!posix::access(buffer, R_OK))
-    return posix::error_response;
-
   FILE* file = std::fopen(buffer, "r");
   if(file == nullptr)
     return posix::error_response;
 
   //char state;
   std::fscanf(file, "%d %s %c %d %d %d %d %d %u %u %u %u %u %d %d %d %d %d %d %u %u %d %u %u %u %u %u %u %u %u %d %d %d %d %u",
-              &data->process_id,
+              &data.process_id,
               buffer,
-              reinterpret_cast<char*>(&data->state),
-              &data->parent_process_id,
-              &data->process_group_id,
-              &data->session_id,
-              &data->tty,
+              reinterpret_cast<char*>(&data.state),
+              &data.parent_process_id,
+              &data.process_group_id,
+              &data.session_id,
+              &data.tty,
               &process.tpgid,
               &process.flags,
               &process.minflt,
@@ -103,7 +94,7 @@ int procstat(pid_t pid, process_state_t* data) noexcept
               &process.cutime,
               &process.cstime,
               &process.counter,
-              &data->priority_value,
+              &data.priority_value,
               &process.timeout,
               &process.itrealvalue,
               &process.starttime,
@@ -115,20 +106,30 @@ int procstat(pid_t pid, process_state_t* data) noexcept
               &process.startstack,
               &process.kstkesp,
               &process.kstkeip,
-              &data->signals_pending,
-              &data->signals_blocked,
-              &data->signals_ignored,
-              &data->signals_caught,
+              &data.signals_pending,
+              &data.signals_blocked,
+              &data.signals_ignored,
+              &data.signals_caught,
               &process.wchan);
   std::fclose(file);
 
-  data->name.assign(buffer+1);
-  data->name.pop_back();
+  data.name.assign(buffer+1);
+  data.name.pop_back();
 
-  std::sprintf(buffer, "/proc/%d/cmdline", pid);
+  std::sprintf(buffer, "/proc/%d/exe", pid); // fill buffer
+  posix::ssize_t length = ::readlink(buffer, buffer, sizeof(buffer)); // result may contain " (deleted)" (which we don't want)
+  if(length != posix::error_response)
+  {
+    buffer[length] = 0; // add string terminator
+    char* pos = std::strrchr(buffer, ' '); // find last space
+    if(pos != nullptr && // contains a space (may be part of " (deleted)")
+       pos[sizeof(" (deleted)") - 1] == '\0' && // might end with " (deleted)"
+       pos == std::strstr(buffer, " (deleted)")) // definately ends with " (deleted)"
+      *pos = 0; // add string terminator to truncate at " (deleted)"
+    data.executable = buffer; // copy corrected string
+  }
 
-  if(!posix::access(buffer, R_OK))
-    return posix::error_response;
+  std::sprintf(buffer, "/proc/%d/cmdline", pid); // fill buffer
 
   file = std::fopen(buffer, "r");
   if(file == nullptr)
@@ -140,10 +141,17 @@ int procstat(pid_t pid, process_state_t* data) noexcept
   {
     std::fscanf(file, "%s ", buffer);
     if(std::strlen(buffer))
-      data->arguments.push_back(buffer);
+      data.arguments.push_back(buffer);
   }
 
   std::fclose(file);
+
+  if(!data.arguments.empty())
+  {
+    const std::string& farg = data.arguments.front();
+    if(farg.find(data.name) != std::string::npos)
+      data.name = farg.substr(farg.rfind(data.name));
+  }
 
   return posix::success_response;
 }
@@ -156,14 +164,11 @@ int procstat(pid_t pid, process_state_t* data) noexcept
 // PDTK
 #include <cxxutils/misc_helpers.h>
 
-int procstat(pid_t pid, process_state_t* data) noexcept
+posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
 {
   struct kinfo_proc info;
   posix::size_t length;
   int request[6] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid, sizeof(struct kinfo_proc), 0 };
-
-  if(data == nullptr)
-    return posix::error_response;
 
   if(sysctl(request, arraylength(request), nullptr, &length, nullptr, 0) != posix::success_response)
     return posix::error_response;
@@ -178,13 +183,13 @@ int procstat(pid_t pid, process_state_t* data) noexcept
   // kinfo_proc   : https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/sysctl.h.auto.html
   // extern_proc  : https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/proc.h.auto.html
 
-  data->process_id        = info.kp_proc.p_pid;
-  data->parent_process_id = info.kp_eproc.e_ppid;
-  data->process_group_id  = info.kp_eproc.e_pgid;
-//  data->session_id        = info.kp_eproc.e_sess->;
-//  data->priority_value    = info.kp_eproc
-//  data->state =
-//  data->name =
+  data.process_id        = info.kp_proc.p_pid;
+  data.parent_process_id = info.kp_eproc.e_ppid;
+  data.process_group_id  = info.kp_eproc.e_pgid;
+//  data.session_id        = info.kp_eproc.e_sess->;
+//  data.priority_value    = info.kp_eproc
+//  data.state =
+//  data.name =
 
 #else
   // BSD structure documentation
@@ -193,14 +198,14 @@ int procstat(pid_t pid, process_state_t* data) noexcept
   // priority   : http://fxr.watson.org/fxr/source/sys/priority.h#L126
   // pargs      : http://fxr.watson.org/fxr/source/sys/proc.h#L110
 
-  data->process_id        = info.ki_pid;
-  data->parent_process_id = info.ki_ppid;
-  data->process_group_id  = info.ki_pgid;
-  data->session_id        = info.ki_sid;
-  data->priority_value    = info.ki_pri.pri_user;
-//  data->state             = ;
-//  data->name              = ;
-//  data->arguments
+  data.process_id        = info.ki_pid;
+  data.parent_process_id = info.ki_ppid;
+  data.process_group_id  = info.ki_pgid;
+  data.session_id        = info.ki_sid;
+  data.priority_value    = info.ki_pri.pri_user;
+//  data.state             = ;
+//  data.name              = ;
+//  data.arguments
 #endif
 
   return posix::success_response;

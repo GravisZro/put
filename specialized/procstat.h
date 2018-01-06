@@ -5,11 +5,12 @@
 #include <string>
 #include <vector>
 
-// POSIX
-#include <sys/types.h>
-
 // POSIX++
 #include <cstdint>
+
+// PDTK
+#include <cxxutils/posix_helpers.h>
+
 
 enum ExecutionState : char
 {
@@ -26,6 +27,7 @@ struct process_state_t
 {
   pid_t process_id;         // process id
   std::string name;         // process name
+  std::string executable;   // full path to executable
   std::vector<std::string> arguments; // arguments of launched executable
   ExecutionState state;     // process execution state
   pid_t parent_process_id;  // process id of the parent process
@@ -42,6 +44,6 @@ struct process_state_t
   int priority_value; // nice value
 };
 
-int procstat(pid_t pid, process_state_t* data) noexcept;
+posix::error_t procstat(pid_t pid, process_state_t& data) noexcept;
 
 #endif // PROCSTAT_H

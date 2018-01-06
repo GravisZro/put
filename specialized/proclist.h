@@ -1,9 +1,12 @@
 #ifndef PROCLIST_H
 #define PROCLIST_H
 
-// POSIX
-#include <sys/types.h>
+// STL
+#include <vector>
 
-int proclist(pid_t* list, size_t max_length);
+// PDTK
+#include <cxxutils/posix_helpers.h>
+
+posix::error_t proclist(std::vector<pid_t>& list);
 
 #endif // PROCLIST_H
