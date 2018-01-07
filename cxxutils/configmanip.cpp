@@ -401,16 +401,16 @@ bool ConfigManip::exportText(std::string& data) const noexcept
 }
 
 
-void exportKeyPairs_node(std::shared_ptr<node_t> node, std::string path, std::list<std::pair<std::string, std::string>>& output) noexcept
+void exportKeyPairs_node(std::shared_ptr<node_t> node, std::string path, std::unordered_map<std::string, std::string>& output) noexcept
 {
   if(!node->value.empty())
-    output.emplace_back(path, node->value);
+    output.emplace(path, node->value);
   else
     for(const std::pair<std::string, std::shared_ptr<node_t>>& entry : node->children)
       exportKeyPairs_node(entry.second, path + "/" + entry.first, output);
 }
 
-void ConfigManip::exportKeyPairs(std::list<std::pair<std::string, std::string>>& data) const noexcept
+void ConfigManip::exportKeyPairs(std::unordered_map<std::string, std::string>& data) const noexcept
 {
   data.clear();
   exportKeyPairs_node(*this, "", data);
