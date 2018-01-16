@@ -72,22 +72,23 @@ static constexpr uint32_t crc_table[256] = {
 
 // compiletime hashing
 constexpr uint32_t crc32_compiletime(const char* str, posix::size_t idx) noexcept
-  { return idx == posix::size_t(-1) ? 0xFFFFFFFF : ((crc32_compiletime(str, idx - 1) >> 8) ^ crc_table[(crc32_compiletime(str, idx - 1) ^ str[idx]) & 0x000000FF]); }
+  { return idx == SIZE_MAX ? UINT32_MAX : ((crc32_compiletime(str, idx - 1) >> 8) ^ crc_table[(crc32_compiletime(str, idx - 1) ^ str[idx]) & UINT8_MAX]); }
 
-constexpr uint32_t compiletime_hash(const char* str, const posix::size_t sz) noexcept { return crc32_compiletime(str, sz - 1) ^ 0xFFFFFFFF; }
+constexpr uint32_t compiletime_hash(const char* str, const posix::size_t sz) noexcept { return crc32_compiletime(str, sz - 1) ^ UINT32_MAX; }
 constexpr uint32_t operator "" _hash(const char* str, const posix::size_t sz) noexcept { return compiletime_hash(str, sz); }
 
 // runtime hashing
 static inline uint32_t crc32_runtime(const char* str, posix::size_t idx) noexcept
 {
-  if(idx == posix::size_t(-1))
-    return 0xFFFFFFFF;
+  if(idx == SIZE_MAX)
+    return UINT32_MAX;
   uint32_t result = crc32_runtime(str, idx - 1);
-  return (result >> 8) ^ crc_table[(result ^ str[idx]) & 0x000000FF];
+  return (result >> 8) ^ crc_table[(result ^ str[idx]) & UINT8_MAX];
 }
 
-static inline uint32_t hash(const char* str) noexcept { return crc32_runtime(str, std::strlen(str) - 1) ^ 0xFFFFFFFF; }
-static inline uint32_t hash(const std::string& str) noexcept { return crc32_runtime(str.data(), str.size() - 1) ^ 0xFFFFFFFF; }
+static inline uint32_t hash(const char* str, const posix::size_t sz) noexcept { return crc32_runtime(str, sz) ^ UINT32_MAX; }
+static inline uint32_t hash(const char* str) noexcept { return hash(str, std::strlen(str) - 1); }
+static inline uint32_t hash(const std::string& str) noexcept { return crc32_runtime(str.data(), str.size() - 1) ^ UINT32_MAX; }
 
 #endif // HASHING_H
 
