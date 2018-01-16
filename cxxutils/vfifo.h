@@ -21,8 +21,13 @@ class vfifo
 public:
   template<typename... ArgTypes>
   vfifo(ArgTypes&... args) noexcept : vfifo() { serialize(args...); }
+
+  vfifo(char* data, posix::ssize_t length) noexcept
+    : m_data(data), m_capacity(length), m_external(true) { reset(); }
+
   vfifo(posix::ssize_t length = 0x0000FFFF) noexcept  // default size is 64 KiB
-    : m_capacity(0) { allocate(length); }
+    : m_data(nullptr), m_capacity(0), m_external(false) { allocate(length); }
+
   vfifo(const vfifo& that) noexcept { operator=(that); }
 
   vfifo& operator=(const vfifo& other) noexcept
@@ -34,6 +39,7 @@ public:
       m_virt_end   = other.m_virt_end;
       m_capacity   = other.m_capacity;
       m_ok         = other.m_ok;
+      m_external   = other.m_external;
     }
     return *this;
   }
@@ -78,27 +84,30 @@ public:
 // === manual queue manipulators ===
   bool allocate(posix::ssize_t length) noexcept
   {
+    if(m_external)
+      return m_ok = false;
+
     if(length <= capacity()) // reducing the allocated size is not allowed!
       return false;
     char* new_data = new char[length];
     std::memset(new_data, 0, length);
-    if(m_data.get() == nullptr) // if no memory allocated yet
+    if(m_data == nullptr) // if no memory allocated yet
     {
-      m_data.reset(new_data); // assign memory
+      m_data = new_data; // assign memory
       resize(0); // reset all the progress pointers status
     }
     else // expand memory
     {
-      std::memcpy(new_data, m_data.get(), capacity()); // copy old memory to new
-      m_virt_begin = new_data + (m_virt_begin - m_data.get()); // shift the progress pointers to the new memory
-      m_virt_end   = new_data + (m_virt_end   - m_data.get());
-      delete[] m_data.get(); // delete the old memory
-      m_data.reset(new_data); // use new memory
+      std::memcpy(new_data, m_data, capacity()); // copy old memory to new
+      m_virt_begin = new_data + (m_virt_begin - m_data); // shift the progress pointers to the new memory
+      m_virt_end   = new_data + (m_virt_end   - m_data);
+      delete[] m_data; // delete the old memory
+      m_data = new_data; // use new memory
     }
 
     m_capacity = length;
-    m_ok &= m_data.get() != nullptr;
-    return m_data.get() != nullptr;
+    m_ok &= m_data != nullptr;
+    return m_data != nullptr;
   }
 
   bool           empty (void) const noexcept { return dataEnd() == data   (); }
@@ -109,7 +118,7 @@ public:
 
   void reset(void) noexcept
   {
-    m_virt_end = m_virt_begin = m_data.get();
+    m_virt_end = m_virt_begin = m_data;
     clearError();
   }
 
@@ -117,8 +126,8 @@ public:
   {
     if(sz < 0)
       return m_ok = false;
-    m_virt_begin = m_data.get();
-    m_virt_end   = m_data.get() + sz;
+    m_virt_begin = m_data;
+    m_virt_end   = m_data + sz;
     m_ok &= m_virt_end <= end();
     return m_virt_end <= end();
   }
@@ -130,7 +139,7 @@ public:
     if(m_virt_begin + count < m_virt_end)
       m_virt_begin += count;
     else
-      m_virt_begin = m_virt_end = m_data.get(); // move back to start of buffer
+      m_virt_begin = m_virt_end = m_data; // move back to start of buffer
     return true;
   }
 
@@ -151,8 +160,8 @@ public:
   template<typename T = char> constexpr T* data    (void) const noexcept { return reinterpret_cast<T*>(m_virt_begin); }
   template<typename T = char> constexpr T* dataEnd (void) const noexcept { return reinterpret_cast<T*>(m_virt_end  ); }
 
-  template<typename T = char>           T* begin   (void) const noexcept { return reinterpret_cast<T*>(m_data.get()); }
-  template<typename T = char> constexpr T* end     (void) const noexcept { return reinterpret_cast<T*>(m_data.get() + m_capacity); }
+  template<typename T = char>           T* begin   (void) const noexcept { return reinterpret_cast<T*>(m_data); }
+  template<typename T = char> constexpr T* end     (void) const noexcept { return reinterpret_cast<T*>(m_data + m_capacity); }
 
   const posix::ssize_t& capacity(void) const { return m_capacity; }
 
@@ -174,15 +183,16 @@ private:
       return m_ok = false; // avoid buffer underflow!
     m_virt_begin += sizeof(T);
     if(m_virt_begin == m_virt_end) // if buffer is empty
-      m_virt_begin = m_virt_end = m_data.get(); // move back to start of buffer
+      m_virt_begin = m_virt_end = m_data; // move back to start of buffer
     return true;
   }
 
-  std::shared_ptr<char> m_data;
+  char* m_data;
   char* m_virt_begin;
   char* m_virt_end;
   posix::ssize_t m_capacity;
   bool m_ok;
+  bool m_external;
 
 // === serializer backends ===
 private:
