@@ -20,10 +20,11 @@ public:
   sharedmem_t(posix::size_t size)
     : m_size(size)
   {
-    m_shm_id = ::shmget(IPC_PRIVATE, m_size,  IPC_CREAT | SHM_R | SHM_W);
+    m_shm_id = ::shmget(IPC_PRIVATE, m_size, IPC_CREAT | SHM_R | SHM_W);
     m_mem = reinterpret_cast<uint8_t*>(::shmat(m_shm_id, nullptr, 0));
     m_rofile = ::fmemopen(::shmat(m_shm_id, nullptr, SHM_RDONLY), m_size, "r");
   }
+
   ~sharedmem_t(void)
   {
     std::fclose(m_rofile);
@@ -43,7 +44,7 @@ public:
   }
 
 private:
-  int m_shm_id;
+  posix::fd_t m_shm_id;
   posix::size_t m_size;
   uint8_t* m_mem;
   std::FILE* m_rofile;
