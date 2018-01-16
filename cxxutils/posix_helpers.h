@@ -144,13 +144,13 @@ namespace posix
   static inline uid_t getuserid(const char* name) noexcept
   {
     passwd* rval = posix::getpwnam(name);
-    return rval == nullptr ? error_response : rval->pw_uid;
+    return rval == nullptr ? uid_t(error_response) : rval->pw_uid;
   }
 
-  static inline uid_t getgroupid(const char* name) noexcept
+  static inline gid_t getgroupid(const char* name) noexcept
   {
     group* rval = posix::getgrnam(name);
-    return rval == nullptr ? error_response : rval->gr_gid;
+    return rval == nullptr ? gid_t(error_response) : rval->gr_gid;
   }
 
   static inline bool useringroup(const char* groupname, const char* username)
