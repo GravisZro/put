@@ -20,25 +20,6 @@
 #include <cxxutils/vterm.h>
 
 
-enum class command : uint8_t
-{
-  invoke = 0,
-  executable,
-  arguments,
-  environment,
-  environmentvar,
-  workingdir,
-  priority,
-  uid,
-  gid,
-  euid,
-  egid,
-  resource
-};
-
-static inline vfifo& operator << (vfifo& vq, command cmd) noexcept
-{ return vq << static_cast<uint8_t>(cmd); }
-
 static std::unordered_map<pid_t, Process*> process_map; // do not try to own Process memory
 
 void Process::init_once(void) noexcept
@@ -85,6 +66,15 @@ void Process::reaper(int sig) noexcept
   }
 }
 
+Process::Process(pid_t pid, posix::fd_t stdinfd, posix::fd_t stdoutfd, posix::fd_t stderrfd) noexcept
+  : PipedSpawn(pid, stdinfd, stdoutfd, stderrfd),
+    m_state(State::Invalid)
+{
+  init_once();
+  process_map.emplace(processId(), this); // add self to process map
+  state(); // to validate state
+}
+
 Process::Process(void) noexcept
   : m_state(State::Initializing)
 {
@@ -96,124 +86,12 @@ Process::~Process(void) noexcept
 {
   EventBackend::remove(getStdOut(), EventBackend::SimplePollReadFlags);
   EventBackend::remove(getStdErr(), EventBackend::SimplePollReadFlags);
-
-  if(m_state == State::Running)
-    sendSignal(posix::signal::Kill);
-  m_state = State::Invalid;
 }
 
-bool Process::write_then_read(void) noexcept
-{
-  if(!m_iobuf.empty()     && // ensure there is data to write
-     writeStdIn(m_iobuf)  && // write data to pipe
-     waitReadStdOut(1000) && // wait to read pipe
-     readStdOut(m_iobuf)  && // read data from pipe
-     !(m_iobuf >> errno).hadError()) // read return value
-    return errno == posix::success_response;
-  return false;
-}
-
-bool Process::setArguments(const std::vector<std::string>& arguments) noexcept
+bool Process::setOption(const std::string& name, const std::string& value) noexcept
 {
   m_iobuf.reset();
-  m_iobuf << command::arguments;
-  for(const std::string& arg : arguments)
-    m_iobuf << arg;
-  return write_then_read();
-}
-
-bool Process::setEnvironment(const std::unordered_map<std::string, std::string>& environment) noexcept
-{
-  m_iobuf.reset();
-  m_iobuf << command::environment;
-  for(const std::pair<std::string, std::string>& p : environment)
-    m_iobuf << p.first << p.second;
-  return write_then_read();
-}
-
-bool Process::setEnvironmentVariable(const std::string& name, const std::string& value) noexcept
-{
-  m_iobuf.reset();
-  m_iobuf << command::environment << name << value;
-  return write_then_read();
-}
-
-bool Process::setResourceLimit(Process::Resource which, rlim_t limit) noexcept
-{
-  m_iobuf.reset();
-  m_iobuf << command::resource
-          << static_cast<int>(which)
-          << static_cast<rlim_t>(RLIM_SAVED_CUR)
-          << limit;
-  return write_then_read();
-}
-
-bool Process::setWorkingDirectory(const std::string& dir) noexcept
-{
-  m_iobuf.reset();
-  m_iobuf << command::workingdir << dir;
-  return write_then_read();
-}
-
-bool Process::setExecutable(const std::string& executable) noexcept
-{
-  m_iobuf.reset();
-  m_iobuf << command::executable << executable;
-  return write_then_read();
-}
-
-bool Process::setUserID(uid_t id) noexcept
-{
-  if(posix::getpwuid(id) == nullptr)
-    return false;
-
-  m_iobuf.reset();
-  m_iobuf << command::uid << id;
-  return write_then_read();
-}
-
-bool Process::setGroupID(gid_t id) noexcept
-{
-  if(posix::getgrgid(id) == nullptr)
-    return false;
-
-  m_iobuf.reset();
-  m_iobuf << command::gid << id;
-  return write_then_read();
-}
-
-bool Process::setEffectiveUserID(uid_t id) noexcept
-{
-  if(posix::getpwuid(id) == nullptr)
-    return false;
-
-  m_iobuf.reset();
-  m_iobuf << command::euid << id;
-  return write_then_read();
-}
-
-bool Process::setEffectiveGroupID(gid_t id) noexcept
-{
-  if(posix::getgrgid(id) == nullptr)
-    return false;
-
-  m_iobuf.reset();
-  m_iobuf << command::egid << id;
-  return write_then_read();
-}
-
-bool Process::setPriority(int nval) noexcept
-{
-#if defined(PRIO_MIN) && defined(PRIO_MAX)
-  if(nval < PRIO_MIN || nval > PRIO_MAX)
-    return false;
-#else
-#warning PRIO_MIN or PRIO_MAX is not defined.  The safegaurd in Process::setPriority() is disabled.
-#endif
-
-  m_iobuf.reset();
-  m_iobuf << command::priority << nval;
-  return write_then_read();
+  return !(m_iobuf << name << value).hadError() && writeStdIn(m_iobuf);
 }
 
 bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
@@ -228,9 +106,8 @@ bool Process::invoke(void) noexcept
        "Called Process::invoke() on an active process!")
 
   m_iobuf.reset();
-  m_iobuf << command::invoke;
-
-  if(!writeStdIn(m_iobuf))
+  if((m_iobuf << "Launch").hadError() ||
+     !writeStdIn(m_iobuf))
     return false;
 
   m_state = State::Invalid;

@@ -51,21 +51,11 @@ public:
   };
   static_assert(sizeof(Resource) == sizeof(int), "size error");
 
+  Process(pid_t pid, posix::fd_t stdinfd, posix::fd_t stdoutfd, posix::fd_t stderrfd) noexcept;
   Process(void) noexcept;
  ~Process(void) noexcept;
 
-  bool setArguments(const std::vector<std::string>& arguments) noexcept;
-  bool setEnvironment(const std::unordered_map<std::string, std::string>& environment) noexcept;
-  bool setEnvironmentVariable(const std::string& name, const std::string& value) noexcept;
-  bool setResourceLimit(Resource which, rlim_t limit) noexcept;
-
-  bool setWorkingDirectory(const std::string& dir) noexcept;
-  bool setExecutable(const std::string& executable) noexcept;
-  bool setUserID(uid_t id) noexcept;
-  bool setGroupID(gid_t id) noexcept;
-  bool setEffectiveUserID(uid_t id) noexcept;
-  bool setEffectiveGroupID(gid_t id) noexcept;
-  bool setPriority(int nval) noexcept;
+  bool setOption(const std::string& name, const std::string& value) noexcept;
 
   State state(void) noexcept;
 
@@ -85,9 +75,7 @@ public:
   signal<posix::fd_t> started;
   signal<posix::fd_t> finished;
 private:
-  bool write_then_read(void) noexcept;
   vfifo m_iobuf;
-
   State m_state;
 
   static void reaper(int sig) noexcept;
