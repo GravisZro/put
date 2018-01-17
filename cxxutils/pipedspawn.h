@@ -2,20 +2,15 @@
 #define PIPEDSPAWN_H
 
 // PDTK
-#include <cxxutils/vfifo.h>
 #include <cxxutils/posix_helpers.h>
-#include <cxxutils/error_helpers.h>
-#include <cxxutils/socket_helpers.h>
 #include <cxxutils/vterm.h>
+#include <cxxutils/vfifo.h>
 
 // Realtime POSIX
 #include <spawn.h>
 
-// POSIX++
-#include <cstdlib> // for exit
-
 #ifndef SPAWN_PROGRAM_NAME
-#define SPAWN_PROGRAM_NAME "pldstub"
+#define SPAWN_PROGRAM_NAME "launcher"
 #endif
 
 class PipedSpawn
@@ -25,8 +20,19 @@ class PipedSpawn
     Write = 1,
   };
 public:
+  // for an existing process
+  PipedSpawn(pid_t pid, posix::fd_t stdinfd, posix::fd_t stdoutfd, posix::fd_t stderrfd) noexcept
+    : m_pid(pid),
+      m_stdin (stdinfd),
+      m_stdout(stdoutfd),
+      m_stderr(stderrfd)
+  {
+  }
+
+  // for a new process
   PipedSpawn(void) noexcept
     : m_pid(0),
+      m_stdin (posix::invalid_descriptor),
       m_stdout(posix::invalid_descriptor),
       m_stderr(posix::invalid_descriptor)
   {
@@ -38,7 +44,7 @@ public:
     flaw(!posix::pipe(stdin_pipe ) ||
          !posix::pipe(stdout_pipe) ||
          !posix::pipe(stderr_pipe),
-         terminal::critical, /*std::exit(errno)*/, ,
+         terminal::critical,,,
          "Unable to create a pipe: %s", std::strerror(errno))
 
     posix_spawn_file_actions_init(&action);
@@ -86,23 +92,13 @@ public:
   bool readStdOut(vfifo& vq) const noexcept { return read(m_stdout, vq); }
   bool readStdErr(vfifo& vq) const noexcept { return read(m_stderr, vq); }
 
-  bool waitReadStdOut(int timeout) const noexcept { return waitFDEvent(m_stdout, POLLIN , timeout); }
-  bool waitReadStdErr(int timeout) const noexcept { return waitFDEvent(m_stderr, POLLIN , timeout); }
-  bool waitWrite     (int timeout) const noexcept { return waitFDEvent(m_stdin , POLLOUT, timeout); }
-
 protected:
-  bool waitFDEvent(posix::fd_t fd, int16_t event, int timeout) const noexcept
-  {
-    pollfd fds = { fd, event, 0 };
-    return posix::poll(&fds, 1, timeout) == 1;
-  }
-
   static bool write(posix::fd_t fd, vfifo& vq) noexcept
-    { return !vq.empty() && posix::write(fd, vq.begin(), vq.size()) == posix::ssize_t(vq.size()); }
+    { return !vq.empty() && posix::write(fd, vq.begin(), posix::size_t(vq.size())) == vq.size(); }
 
   static bool read(posix::fd_t fd, vfifo& vq) noexcept
   {
-    posix::ssize_t sz = posix::read(fd, vq.data(), vq.capacity());
+    posix::ssize_t sz = posix::read(fd, vq.data(), posix::size_t(vq.capacity()));
     return sz > 0 && vq.resize(sz);
   }
 
