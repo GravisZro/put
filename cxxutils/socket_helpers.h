@@ -111,7 +111,7 @@ namespace posix
     {
       posix::fcntl(fd, F_SETFD, FD_CLOEXEC);
       if(flags & O_NONBLOCK)
-        posix::fcntl(fd, F_SETFL, posix::fcntl(fd, F_GETFL) | O_NONBLOCK);
+        posix::donotblock(fd);
     }
     return fd;
   }
@@ -123,7 +123,7 @@ namespace posix
     {
       posix::fcntl(fd, F_SETFD, FD_CLOEXEC);
       if(flags & O_NONBLOCK)
-        posix::fcntl(fd, F_SETFL, posix::fcntl(fd, F_GETFL) | O_NONBLOCK);
+        posix::donotblock(fd);
     }
     return fd;
   }
