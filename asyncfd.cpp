@@ -1,22 +1,12 @@
 #include "asyncfd.h"
 
-// POSIX
-#include <fcntl.h>
-
 // POSIX++
 #include <cassert>
 
 AsyncFD::AsyncFD(posix::fd_t fd) noexcept
   : m_fd(fd)
 {
-#if defined(O_NONBLOCK) // POSIX
-  int flags = ::fcntl(m_fd, F_GETFL, 0);
-  assert(flags != posix::error_response);
-  assert(::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) != posix::error_response);
-#else // pre-POSIX
-  int flags = 1;
-  assert(posix::ioctl(m_fd, FIOBIO, &flags) != posix::error_response);
-#endif
+  assert(posix::donotblock(m_fd));
 }
 
 void AsyncFD::read(void* buffer, posix::size_t size) noexcept
