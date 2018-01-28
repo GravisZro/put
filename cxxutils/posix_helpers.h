@@ -106,6 +106,9 @@ namespace posix
   static inline bool kill(pid_t pid, int signo) noexcept
     { return ignore_interruption<int, pid_t, int>(::kill, pid, signo) != error_response; }
 
+  static inline bool killpg(pid_t pid, int signo) noexcept
+    { return ignore_interruption<int, pid_t, int>(::killpg, pid, signo) != error_response; }
+
   using ::getopt;
 
   // fcntl.h
@@ -262,6 +265,9 @@ namespace posix
 #else
       { (void)value; return posix::kill(pid, id); }
 #endif
+
+    static inline bool sendpg(pid_t pgid, EId id) noexcept
+      { return posix::killpg(pgid, id); }
   }
 
 // POSIX wrappers
@@ -332,6 +338,18 @@ namespace posix
 
   static inline int fgetc(FILE* stream) noexcept
     { return ignore_interruption(std::fgetc, stream); }
+
+  static inline bool donotblock(fd_t fd)
+  {
+#if defined(O_NONBLOCK) // POSIX
+    int flags = posix::fcntl(fd, F_GETFL, 0);
+    return flags != posix::error_response &&
+           posix::fcntl(fd, F_SETFL, flags | O_NONBLOCK) != posix::error_response;
+#else // pre-POSIX
+    int flags = 1;
+    return ioctl(fd, FIOBIO, &flags) != posix::error_response);
+#endif
+  }
 }
 
 #endif // POSIX_HELPERS_H
