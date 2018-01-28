@@ -13,13 +13,12 @@ std::list<std::pair<posix::fd_t, native_flags_t>> EventBackend::results;
 
 #if defined(__linux__)
 #include <linux/version.h>
-#define LINUX_KERNEL_VERSION KERNEL_VERSION
-#elif !defined(LINUX_KERNEL_VERSION)
+#elif !defined(KERNEL_VERSION)
 #define LINUX_VERSION_CODE 0
-#define LINUX_KERNEL_VERSION(a, b, c) 0
+#define KERNEL_VERSION(a, b, c) 0
 #endif
 
-#if defined(__linux__) && LINUX_VERSION_CODE >= LINUX_KERNEL_VERSION(2,5,44) /* Linux 2.5.44+ */
+#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,44) /* Linux 2.5.44+ */
 
 // Linux
 #include <sys/epoll.h>

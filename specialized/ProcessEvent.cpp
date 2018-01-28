@@ -4,13 +4,12 @@
 
 #if defined(__linux__)
 #include <linux/version.h>
-#define LINUX_KERNEL_VERSION KERNEL_VERSION
-#elif !defined(LINUX_KERNEL_VERSION)
+#elif !defined(KERNEL_VERSION)
 #define LINUX_VERSION_CODE 0
-#define LINUX_KERNEL_VERSION(a, b, c) 0
+#define KERNEL_VERSION(a, b, c) 0
 #endif
 
-#if defined(__linux__) && LINUX_VERSION_CODE >= LINUX_KERNEL_VERSION(2,6,15) /* Linux 2.6.15+ */
+#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15) /* Linux 2.6.15+ */
 
 // Linux
 #include <linux/netlink.h>
