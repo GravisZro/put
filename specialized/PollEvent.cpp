@@ -2,8 +2,13 @@
 
 #include <functional>
 
-#if defined(__linux__) /* Linux 2.5.44+ */
+#if defined(__linux__)
+#include <linux/version.h>
+#endif
 
+#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,44) /* Linux 2.5.44+ */
+
+// Linux
 #include <sys/epoll.h>
 
 // FD flags

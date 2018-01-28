@@ -1,6 +1,10 @@
 #include "FileEvent.h"
 
-#if defined(__linux__) /* Linux 2.6.13+ */
+#if defined(__linux__)
+#include <linux/version.h>
+#endif
+
+#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,13) /* Linux 2.6.13+ */
 
 // POSIX++
 #include <cstring>

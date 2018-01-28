@@ -10,7 +10,12 @@
 lockable<std::unordered_multimap<posix::fd_t, EventBackend::callback_info_t>> EventBackend::queue;
 std::list<std::pair<posix::fd_t, native_flags_t>> EventBackend::results;
 
-#if defined(__linux__) /* Linux 2.5.44+ */
+
+#if defined(__linux__)
+#include <linux/version.h>
+#endif
+
+#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,44) /* Linux 2.5.44+ */
 
 // Linux
 #include <sys/epoll.h>
@@ -40,7 +45,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
   {
     struct epoll_event native_event;
     native_event.data.fd = wd;
-    native_event.events = flags; // be sure to convert to native events
+    native_event.events = uint32_t(flags); // be sure to convert to native events
     return ::epoll_ctl(fd, EPOLL_CTL_ADD, wd, &native_event) == posix::success_response || // add new event OR
         (errno == EEXIST && ::epoll_ctl(fd, EPOLL_CTL_MOD, wd, &native_event) == posix::success_response); // modify existing event
   }
@@ -314,7 +319,7 @@ bool EventBackend::add(posix::fd_t fd, native_flags_t flags, callback_t function
   }
 
   if(!found) // function wasn't found
-    queue.emplace(fd, (callback_info_t){flags, function}); // make a new entry for this FD
+    queue.emplace(fd, callback_info_t{flags, function}); // make a new entry for this FD
 
   return s_platform.add(fd, total_flags);
 }
