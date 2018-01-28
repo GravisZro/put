@@ -39,25 +39,12 @@ public:
     Finished,     // process executed and exited
   };
 
-  enum class Resource : int
-  {
-    CoreDumpSize    = RLIMIT_CORE,    // Limit on size of core file.
-    CPUTime         = RLIMIT_CPU,     // Limit on CPU time per process.
-    DataSegmentSize = RLIMIT_DATA,    // Limit on data segment size.
-    FileSize        = RLIMIT_FSIZE,   // Limit on file size.
-    FilesOpen       = RLIMIT_NOFILE,  // Limit on number of open files.
-    StackSize       = RLIMIT_STACK,   // Limit on stack size.
-    VirtualMemory   = RLIMIT_AS,      // Limit on address space size.
-  };
-  static_assert(sizeof(Resource) == sizeof(int), "size error");
-
-  Process(pid_t pid, posix::fd_t stdinfd, posix::fd_t stdoutfd, posix::fd_t stderrfd) noexcept;
   Process(void) noexcept;
  ~Process(void) noexcept;
 
   bool setOption(const std::string& name, const std::string& value) noexcept;
 
-  State state(void) noexcept;
+  State state    (void) noexcept;
 
   bool invoke    (void) noexcept;
 

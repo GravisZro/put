@@ -2,7 +2,6 @@
 
 // POSIX
 #include <unistd.h>
-#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 
@@ -24,10 +23,10 @@ static std::unordered_map<pid_t, Process*> process_map; // do not try to own Pro
 
 void Process::init_once(void) noexcept
 {
-  static bool ok = true;
-  if(ok)
+  static bool first = true;
+  if(first)
   {
-    ok = false;
+    first = false;
     struct sigaction actions;
     actions.sa_handler = &reaper;
     sigemptyset(&actions.sa_mask);
@@ -66,15 +65,6 @@ void Process::reaper(int sig) noexcept
   }
 }
 
-Process::Process(pid_t pid, posix::fd_t stdinfd, posix::fd_t stdoutfd, posix::fd_t stderrfd) noexcept
-  : PipedSpawn(pid, stdinfd, stdoutfd, stderrfd),
-    m_state(State::Invalid)
-{
-  init_once();
-  process_map.emplace(processId(), this); // add self to process map
-  state(); // to validate state
-}
-
 Process::Process(void) noexcept
   : m_state(State::Initializing)
 {
@@ -95,23 +85,19 @@ bool Process::setOption(const std::string& name, const std::string& value) noexc
 }
 
 bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
-  { return posix::signal::send(processId(), id, value); }
+{
+  return posix::signal::send(processId(), id, value);
+}
 
 bool Process::invoke(void) noexcept
 {
+  posix::success();
+
   flaw(m_state != State::Initializing,
        terminal::severe,
        posix::error(std::errc::device_or_resource_busy),
        false,
-       "Called Process::invoke() on an active process!")
-
-  m_iobuf.reset();
-  if((m_iobuf << "Launch").hadError() ||
-     !writeStdIn(m_iobuf))
-    return false;
-
-  m_state = State::Invalid;
-  state();
+       "Called Process::invoke() on an active process!");
 
   EventBackend::add(getStdOut(), EventBackend::SimplePollReadFlags,
                     [this](posix::fd_t lambda_fd, native_flags_t) noexcept
@@ -121,7 +107,14 @@ bool Process::invoke(void) noexcept
                     [this](posix::fd_t lambda_fd, native_flags_t) noexcept
                       { Object::enqueue(stderrMessage, lambda_fd); });
 
-  m_state = State::Running;
+  m_iobuf.reset();
+  if((m_iobuf << "Launch").hadError() ||
+     !writeStdIn(m_iobuf))
+    return false;
+
+  m_state = State::Invalid;
+  state();
+
   return errno == posix::success_response;
 }
 
