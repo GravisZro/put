@@ -35,7 +35,6 @@ public:
   signal<pid_t, posix::error_t> exited;
   signal<pid_t, pid_t         > forked;
   signal<pid_t                > execed;
-//  signal<pid_t, Flags_t> activated;
 private:
   pid_t m_pid;
   Flags_t m_flags;
