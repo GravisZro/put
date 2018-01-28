@@ -54,15 +54,15 @@ namespace posix
       { posix::openlog(name, LOG_PID | LOG_CONS | LOG_NOWAIT, int(f)); }
     static void close(void) { posix::closelog(); }
 
-    SyslogStream& operator << (priority p) { m_priority = p;  return *this; }
+    constexpr SyslogStream& operator << (priority p) { m_priority = p;  return *this; }
 
-    SyslogStream& operator << (char c) { m_buffer.push_back(c); return *this; }
-    SyslogStream& operator << (char* d) { m_buffer.append(d); return *this; }
-    SyslogStream& operator << (const char* d) { m_buffer.append(d); return *this; }
-    SyslogStream& operator << (const std::string& d) { m_buffer.append(d);  return *this; }
+    inline SyslogStream& operator << (char c) { m_buffer.push_back(c); return *this; }
+    inline SyslogStream& operator << (char* d) { return operator << (const_cast<const char*>(d)); }
+    inline SyslogStream& operator << (const char* d) { if(d == nullptr) { m_buffer.append("nullptr"); } else { m_buffer.append(d); } return *this; }
+    inline SyslogStream& operator << (const std::string& d) { m_buffer.append(d);  return *this; }
 
     template<typename T>
-    SyslogStream& operator << (T val) { m_buffer.append(std::to_string(val)); return *this; }
+    inline SyslogStream& operator << (T val) { m_buffer.append(std::to_string(val)); return *this; }
 
     SyslogStream& operator << (control cntl)
     {
