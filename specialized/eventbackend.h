@@ -25,7 +25,7 @@ namespace EventBackend
     callback_t function;
   };
 
-  extern bool add(posix::fd_t target, native_flags_t flags, callback_t function) noexcept; // add FD or process events to montior
+  extern bool add(posix::fd_t target, native_flags_t flags, callback_t function) noexcept; // add FD to montior
   extern bool remove(posix::fd_t target, native_flags_t flags) noexcept; // remove from watch queue
 
   extern bool poll(int timeout = -1) noexcept;
