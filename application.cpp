@@ -1,8 +1,5 @@
 #include "application.h"
 
-// POSIX
-#include <fcntl.h>
-
 // POSIX++
 #include <cstring> // for strerror()
 #include <cstdlib> // for exit
@@ -36,7 +33,7 @@ Application::Application(void) noexcept
          std::exit(errno),,
          "Unable to create pipe for execution stepper: %s", std::strerror(errno))
     posix::fcntl(s_pipeio[Read], F_SETFD, FD_CLOEXEC); // close on exec*()
-    posix::fcntl(s_pipeio[Read], F_SETFL, O_NONBLOCK); // just in case
+    posix::donotblock(s_pipeio[Read]); // just in case
     flaw(!EventBackend::add(s_pipeio[Read], EventBackend::SimplePollReadFlags, read),
          terminal::critical,
          std::exit(errno),, // watch for when execution stepper pipe has been triggered
