@@ -2,6 +2,9 @@
 
 #if defined(__linux__)
 #include <linux/version.h>
+#elif !defined(KERNEL_VERSION)
+#define LINUX_VERSION_CODE 0
+#define KERNEL_VERSION(a, b, c) 0
 #endif
 
 #if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,13) /* Linux 2.6.13+ */
