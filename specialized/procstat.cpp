@@ -24,27 +24,27 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
 
   struct procinfo_t
   {
-//    pid_t         pid;                      // The process id.
-//    char          name[PATH_MAX];           // The filename of the executable
-//    char          state;                    // R is running, S is sleeping, D is sleeping in an uninterruptible wait, Z is zombie, T is traced or stopped
+//  pid_t         pid;                      // The process id.
+//  char          name[PATH_MAX];           // The filename of the executable
+//  char          state;                    // R is running, S is sleeping, D is sleeping in an uninterruptible wait, Z is zombie, T is traced or stopped
     uid_t         euid;                     // effective user id
     gid_t         egid;                     // effective group id
-//    pid_t         ppid;                     // The pid of the parent.
-//    pid_t         pgrp;                     // The pgrp of the process.
-//    pid_t         session;                  // The session id of the process.
-//    int           tty;                      // The tty the process uses
+//  pid_t         ppid;                     // The pid of the parent.
+//  pid_t         pgrp;                     // The pgrp of the process.
+//  pid_t         session;                  // The session id of the process.
+//  int           tty;                      // The tty the process uses
     int           tpgid;                    // (too long)
-    unsigned int	flags;                    // The flags of the process.
-    unsigned int	minflt;                   // The number of minor faults
-    unsigned int	cminflt;                  // The number of minor faults with childs
-    unsigned int	majflt;                   // The number of major faults
+    unsigned int  flags;                    // The flags of the process.
+    unsigned int  minflt;                   // The number of minor faults
+    unsigned int  cminflt;                  // The number of minor faults with childs
+    unsigned int  majflt;                   // The number of major faults
     unsigned int  cmajflt;                  // The number of major faults with childs
     int           utime;                    // user mode jiffies
     int           stime;                    // kernel mode jiffies
     int           cutime;                   // user mode jiffies with childs
     int           cstime;                   // kernel mode jiffies with childs
     int           counter;                  // process's next timeslice
-//    int           priority;                 // the standard nice value, plus fifteen
+//  int           priority;                 // the standard nice value, plus fifteen
     unsigned int  timeout;                  // The time in jiffies of the next timeout
     unsigned int  itrealvalue;              // The time before the next SIGALRM is sent to the process
     int           starttime;                // Time the process started after system boot
@@ -54,17 +54,17 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
     unsigned int  rlim;                     // Current limit in bytes on the rss
 
     unsigned int  startcode;                // The address above which program text can run
-    unsigned int	endcode;                  // The address below which program text can run
+    unsigned int  endcode;                  // The address below which program text can run
     unsigned int  startstack;               // The address of the start of the stack
     unsigned int  kstkesp;                  // The current value of ESP
     unsigned int  kstkeip;                  // The current value of EIP
-//    int           signal;                   // The bitmap of pending signals
-//    int           blocked;                  // The bitmap of blocked signals
-//    int           sigignore;                // The bitmap of ignored signals
-//    int           sigcatch;                 // The bitmap of catched signals
+//  int           signal;                   // The bitmap of pending signals
+//  int           blocked;                  // The bitmap of blocked signals
+//  int           sigignore;                // The bitmap of ignored signals
+//  int           sigcatch;                 // The bitmap of catched signals
     unsigned int  wchan;                    // (too long)
-//    int           sched;                    // scheduler
-//    int           sched_priority;           // scheduler priority
+//  int           sched;                    // scheduler
+//  int           sched_priority;           // scheduler priority
   };
 
   procinfo_t process;
