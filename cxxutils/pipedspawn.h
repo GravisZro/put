@@ -15,27 +15,17 @@
 
 class PipedSpawn
 {
-  enum {
-    Read = 0,
-    Write = 1,
-  };
 public:
-  // for an existing process
-  PipedSpawn(pid_t pid, posix::fd_t stdinfd, posix::fd_t stdoutfd, posix::fd_t stderrfd) noexcept
-    : m_pid(pid),
-      m_stdin (stdinfd),
-      m_stdout(stdoutfd),
-      m_stderr(stderrfd)
-  {
-  }
-
-  // for a new process
   PipedSpawn(void) noexcept
     : m_pid(0),
       m_stdin (posix::invalid_descriptor),
       m_stdout(posix::invalid_descriptor),
       m_stderr(posix::invalid_descriptor)
   {
+    enum {
+      Read = 0,
+      Write = 1,
+    };
     posix::fd_t stdin_pipe[2];
     posix::fd_t stdout_pipe[2];
     posix::fd_t stderr_pipe[2];
