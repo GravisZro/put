@@ -23,10 +23,13 @@ public:
   using mslot_t = RType(ObjType::*)(ArgTypes...); // member slot
 
   template<typename RType, typename... ArgTypes>
-  using fslot_t = std::function<RType(ArgTypes...)>; // function slot
+  using fslot_t = std::function<RType(ArgTypes...) noexcept>; // function slot
+
+  template<typename RType, typename... ArgTypes>
+  using fpslot_t = RType(*)(ArgTypes...); // function pointer slot
 
   template<typename... ArgTypes>
-  using signal = std::multimap<ProtoObject*, std::function<void(ProtoObject*, ArgTypes...)>>;
+  using signal = std::multimap<ProtoObject*, fslot_t<void, ProtoObject*, ArgTypes...>>;
 
   inline  Object(void) noexcept { }
   inline ~Object(void) noexcept { }
@@ -58,6 +61,10 @@ public:
         { if(p == p->self) slot(static_cast<ObjType*>(p), args...); }); // if ProtoObject is valid (not deleted), call slot
   }
 
+  template<class ObjType, typename RType, typename... ArgTypes>
+  static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, fpslot_t<RType, ObjType*, ArgTypes...> slot) noexcept
+    { connect(sig, obj, fslot_t<RType, ArgTypes...>(slot)); }
+
   // connect to a function and ignore the object
   template<typename RType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, fslot_t<RType, ArgTypes...> slot) noexcept
@@ -66,6 +73,11 @@ public:
       [slot](ProtoObject*, ArgTypes... args) noexcept
         { slot(args...); });
   }
+
+  template<typename RType, typename... ArgTypes>
+  static inline void connect(signal<ArgTypes...>& sig, fpslot_t<RType, ArgTypes...> slot) noexcept
+    { connect(sig, fslot_t<RType, ArgTypes...>(slot)); }
+
 
   // disconnect all connections from signal
   template<typename... ArgTypes>
@@ -93,6 +105,10 @@ public:
     Application::ms_signal_queue.emplace(std::bind(slot, std::forward<ArgTypes>(args)...));
     Application::step(); // inform execution stepper
   }
+
+  template<typename RType, typename... ArgTypes>
+  static inline void singleShot(fpslot_t<RType, ArgTypes...> slot, ArgTypes&... args) noexcept
+    { singleShot(fslot_t<RType, ArgTypes...>(slot), args...);}
 
   // enqueue a call to the functions connected to the signal
   template<typename... ArgTypes>
