@@ -330,7 +330,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
       pos = io; // reset to beginning of poll list
       while(pos->fd != posix::invalid_descriptor && pos < end) // search fo empty slot
         ++pos;
-      if(io + max < pos) // if adding a new one
+      if(io + max == pos) // if adding a new one
         ++max; // increase fd count
     }
 
