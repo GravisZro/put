@@ -302,7 +302,75 @@ bool EventBackend::poll(int timeout) noexcept
 #error Unrecognized BSD derivative!
 
 #elif defined(__unix__) || defined(__unix)
-#error Unrecognized UNIX variant!
+#pragma message("No platform specific event backend code! Using standard POSIX polling function.")
+
+#include <poll.h>
+
+struct EventBackend::platform_dependant // poll notification (epoll)
+{
+  nfds_t max;
+  struct pollfd io[MAX_EVENTS];
+
+  platform_dependant(void) noexcept
+  {
+    max = 0;
+    for(size_t i = 0; i < MAX_EVENTS; ++i)
+      io[i].fd = posix::invalid_descriptor;
+  }
+
+  bool add(posix::fd_t wd, native_flags_t flags) noexcept
+  {
+    struct pollfd* pos = io;
+    struct pollfd* end = pos + MAX_EVENTS;
+
+    while(pos->fd != wd && pos < end) // search for existing slot
+      ++pos;
+    if(pos >= end) // if didn't find fd
+    {
+      pos = io; // reset to beginning of poll list
+      while(pos->fd != posix::invalid_descriptor && pos < end) // search fo empty slot
+        ++pos;
+      if(io + max < pos) // if adding a new one
+        ++max; // increase fd count
+    }
+
+    if(pos < end) // if found desired slot
+    {
+      pos->fd = wd;
+      pos->events = short(flags);
+    }
+    return pos < end;
+  }
+
+  bool remove(posix::fd_t wd) noexcept
+  {
+    struct pollfd* pos = io;
+    struct pollfd* end = pos + MAX_EVENTS;
+
+    while(pos->fd != wd && pos < end) // search for existing slot
+      ++pos;
+    if(pos < end) // if found desired slot
+      pos->fd = posix::invalid_descriptor;
+    if(io + max == pos) // if removing the last one
+      --max; // decrease fd count
+    return pos < end;
+  }
+} EventBackend::s_platform;
+
+const native_flags_t EventBackend::SimplePollReadFlags = POLLIN;
+
+bool EventBackend::poll(int timeout) noexcept
+{
+  int rval = posix::ignore_interruption<int, pollfd*, nfds_t, int>(::poll, s_platform.io, s_platform.max, -1);
+  if(rval == posix::error_response)
+    return false;
+
+  struct pollfd* pos = s_platform.io;
+  struct pollfd* end = pos + s_platform.max;
+  for(; pos != end; ++pos) // iterate through results
+    results.emplace_back(std::make_pair(pos->fd, native_flags_t(pos->revents))); // save result (in native format)
+  return true;
+}
 
 #else
 #error This platform is not supported.
