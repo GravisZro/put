@@ -376,27 +376,27 @@ namespace blockdevices
     if(flagsAreSet(data + offsets::incompat_flags  , incompat_flags::journal_dev))
       std::strcpy(dev->fstype, "jbd");
 
-    if(flagsNotSet(data + offsets::incompat_flags  , incompat_flags::journal_dev) &&
-       flagsAreSet(data + offsets::misc_flags      , misc_flags::dev_filesystem))
+    else if(flagsNotSet(data + offsets::incompat_flags  , incompat_flags::journal_dev) &&
+            flagsAreSet(data + offsets::misc_flags      , misc_flags::dev_filesystem))
       std::strcpy(dev->fstype, "ext4dev");
 
-    if(flagsNotSet(data + offsets::incompat_flags  , incompat_flags::journal_dev) &&
-       (getFlags(data + offsets::ro_compat_flags   , ~EXT2_RO_compat_flags) ||
-        getFlags(data + offsets::incompat_flags    , ~EXT3_incompat_flags)) &&
-       flagsNotSet(data + offsets::misc_flags      , misc_flags::dev_filesystem))
+    else if(flagsNotSet(data + offsets::incompat_flags  , incompat_flags::journal_dev) &&
+            (getFlags(data + offsets::ro_compat_flags   , ~EXT2_RO_compat_flags) ||
+             getFlags(data + offsets::incompat_flags    , ~EXT3_incompat_flags)) &&
+            flagsNotSet(data + offsets::misc_flags      , misc_flags::dev_filesystem))
       std::strcpy(dev->fstype, "ext4");
 
-    if(flagsAreSet(data + offsets::compat_flags    , compat_flags::has_journal) &&
-       flagsNotSet(data + offsets::ro_compat_flags , ~EXT2_RO_compat_flags) &&
-       flagsNotSet(data + offsets::incompat_flags  , ~EXT3_incompat_flags))
+    else if(flagsAreSet(data + offsets::compat_flags    , compat_flags::has_journal) &&
+            flagsNotSet(data + offsets::ro_compat_flags , ~EXT2_RO_compat_flags) &&
+            flagsNotSet(data + offsets::incompat_flags  , ~EXT3_incompat_flags))
       std::strcpy(dev->fstype, "ext3");
 
-    if(flagsNotSet(data + offsets::compat_flags    , compat_flags::has_journal) &&
-       flagsNotSet(data + offsets::ro_compat_flags , ~EXT2_RO_compat_flags) &&
-       flagsNotSet(data + offsets::incompat_flags  , ~EXT2_incompat_flags))
+    else if(flagsNotSet(data + offsets::compat_flags    , compat_flags::has_journal) &&
+            flagsNotSet(data + offsets::ro_compat_flags , ~EXT2_RO_compat_flags) &&
+            flagsNotSet(data + offsets::incompat_flags  , ~EXT2_incompat_flags))
       std::strcpy(dev->fstype, "ext2");
 
-    if(!dev->fstype[0])
+    else
       return false;
 
     std::memcpy(dev->uuid, data + offsets::uuid, 16);
