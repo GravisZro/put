@@ -7,7 +7,6 @@
 #include <cwchar>
 
 // STL
-#include <memory>
 #include <vector>
 #include <string>
 #include <utility>
