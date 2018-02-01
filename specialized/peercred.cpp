@@ -79,8 +79,6 @@ int peercred(int socket, proccred_t& cred) noexcept
 #elif defined(SCM_CREDS) // *BSD/Darwin/Hurd
 #pragma message("Information: using SCM_CREDS code")
 
-#include <memory>
-
 #if defined(LOCAL_CREDS) && !defined(SO_PASSCRED)
 # define SO_PASSCRED  LOCAL_CREDS
 #endif
@@ -112,11 +110,11 @@ int peercred(int socket, proccred_t& cred) noexcept
 
   msghdr header = {};
   iovec iov = { nullptr, 0 };
-  std::unique_ptr<char> aux_buffer(new char[CMSG_SPACE(sizeof(creds_t))]);
+  char* aux_buffer = new char[CMSG_SPACE(sizeof(creds_t))];
 
   header.msg_iov = &iov;
   header.msg_iovlen = 1;
-  header.msg_control = aux_buffer.get();
+  header.msg_control = aux_buffer;
   header.msg_controllen = CMSG_SPACE(sizeof(creds_t));
 
    cmsg_len = CMSG_LEN(SOCKCREDSIZE(ngroups))
@@ -135,6 +133,8 @@ int peercred(int socket, proccred_t& cred) noexcept
       cmsg->cmsg_level == SOL_SOCKET &&
       cmsg->cmsg_type == SCM_CREDS &&
       cmsg->cmsg_len == CMSG_LEN(sizeof(creds_t));
+
+  delete[] aux_buffer;
       */
 }
 
