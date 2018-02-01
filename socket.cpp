@@ -1,8 +1,5 @@
 #include "socket.h"
 
-// STL
-#include <memory>
-
 // POSIX
 #include <sys/stat.h>
 
@@ -108,14 +105,14 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t passfd) const noexcept
 {
   msghdr header = {};
   iovec iov = {};
-  std::unique_ptr<char> aux_buffer(new char[CMSG_SPACE(sizeof(int))]);
+  char* aux_buffer = new char[CMSG_SPACE(sizeof(int))];
 
   header.msg_iov = &iov;
   header.msg_iovlen = 1;
-  header.msg_control = aux_buffer.get();
+  header.msg_control = aux_buffer;
 
   iov.iov_base = buffer.begin();
-  iov.iov_len = posix::size_t(buffer.size());
+  iov.iov_len = CMSG_SPACE(sizeof(int));
 
   header.msg_controllen = 0;
 
@@ -132,7 +129,8 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t passfd) const noexcept
   flaw(posix::sendmsg(m_socket, &header) == posix::error_response,
        terminal::warning,,
        false,
-       "sendmsg() failure: %s", std::strerror(errno))
+       "sendmsg() failure: %s", std::strerror(errno));
+  delete[] aux_buffer;
   return true;
 }
 
@@ -147,11 +145,11 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
 
   msghdr header = {};
   iovec iov = {};
-  std::unique_ptr<char> aux_buffer(new char[CMSG_SPACE(sizeof(int))]);
+  char* aux_buffer = new char[CMSG_SPACE(sizeof(int))];
 
   header.msg_iov = &iov;
   header.msg_iovlen = 1;
-  header.msg_control = aux_buffer.get();
+  header.msg_control = aux_buffer;
 
   iov.iov_base = m_buffer.begin();
   iov.iov_len = posix::size_t(m_buffer.capacity());
@@ -192,8 +190,8 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
          false,
          "error, message flags: 0x%04x", header.msg_flags)
   }
-
   Object::enqueue(newMessage, m_socket, m_buffer, passfd);
+  delete[] aux_buffer;
   return true;
 }
 
