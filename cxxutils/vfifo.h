@@ -88,8 +88,8 @@ public:
 
     if(length <= capacity()) // reducing the allocated size is not allowed!
       return false;
-    char* new_data = new char[length];
-    std::memset(new_data, 0, length);
+    char* new_data = new char[posix::size_t(length)];
+    std::memset(new_data, 0, posix::size_t(length));
     if(m_data == nullptr) // if no memory allocated yet
     {
       m_data = new_data; // assign memory
@@ -97,7 +97,7 @@ public:
     }
     else // expand memory
     {
-      std::memcpy(new_data, m_data, capacity()); // copy old memory to new
+      std::memcpy(new_data, m_data, posix::size_t(capacity())); // copy old memory to new
       m_virt_begin = new_data + (m_virt_begin - m_data); // shift the progress pointers to the new memory
       m_virt_end   = new_data + (m_virt_end   - m_data);
       delete[] m_data; // delete the old memory
@@ -299,10 +299,10 @@ private:
 
 // string literals
   void serialize(const char* arg) noexcept
-    { serialize_arr(arg, std::strlen(arg)); }
+    { serialize_arr(arg, uint16_t(std::strlen(arg))); }
 
   void serialize(const wchar_t* arg) noexcept
-    { serialize_arr(arg, std::wcslen(arg)); }
+    { serialize_arr(arg, uint16_t(std::wcslen(arg))); }
 
 // string
   template<typename T>
