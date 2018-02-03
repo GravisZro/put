@@ -88,10 +88,10 @@ struct capability_t
   uint64_t value(void) const noexcept { return *data; }
 #endif
 
-  inline bool          isset (capflag flag) const noexcept { return data[(uint32_t(flag) >> 5) * CAPTYPE_COUNT] &   (1 << (uint32_t(flag) & 0x1F)); }
-  inline capability_t& set   (capflag flag) noexcept { data[(uint32_t(flag) >> 5) * CAPTYPE_COUNT] |=  (1 << (uint32_t(flag) & 0x1F)); return *this; }
-  inline capability_t& unset (capflag flag) noexcept { data[(uint32_t(flag) >> 5) * CAPTYPE_COUNT] &= ~(1 << (uint32_t(flag) & 0x1F)); return *this; }
-  inline capability_t& toggle(capflag flag) noexcept { data[(uint32_t(flag) >> 5) * CAPTYPE_COUNT] ^=  (1 << (uint32_t(flag) & 0x1F)); return *this; }
+  inline bool          isset (capflag flag) const noexcept { return data[(uint32_t(flag) >> 5) * CAPTYPE_COUNT] &   (1 << (uint32_t(flag) & 0x1F));               }
+  inline capability_t& set   (capflag flag)       noexcept {        data[(uint32_t(flag) >> 5) * CAPTYPE_COUNT] |=  (1 << (uint32_t(flag) & 0x1F)); return *this; }
+  inline capability_t& unset (capflag flag)       noexcept {        data[(uint32_t(flag) >> 5) * CAPTYPE_COUNT] &= ~(1 << (uint32_t(flag) & 0x1F)); return *this; }
+  inline capability_t& toggle(capflag flag)       noexcept {        data[(uint32_t(flag) >> 5) * CAPTYPE_COUNT] ^=  (1 << (uint32_t(flag) & 0x1F)); return *this; }
 };
 
 struct capability_data_t
