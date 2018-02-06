@@ -10,7 +10,7 @@
 #include <spawn.h>
 
 #ifndef SPAWN_PROGRAM_NAME
-#define SPAWN_PROGRAM_NAME "launcher"
+#define SPAWN_PROGRAM_NAME "executor"
 #endif
 
 class PipedSpawn
