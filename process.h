@@ -65,7 +65,7 @@ private:
   vfifo m_iobuf;
   State m_state;
 
-  static void reaper(int sig) noexcept;
+  static void handler(int signum) noexcept;
   static void init_once(void) noexcept;
 };
 

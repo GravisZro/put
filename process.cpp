@@ -28,7 +28,7 @@ void Process::init_once(void) noexcept
   {
     first = false;
     struct sigaction actions;
-    actions.sa_handler = &reaper;
+    actions.sa_handler = &handler;
     sigemptyset(&actions.sa_mask);
     actions.sa_flags = SA_RESTART | SA_NOCLDSTOP;
 
@@ -39,9 +39,9 @@ void Process::init_once(void) noexcept
   }
 }
 
-void Process::reaper(int sig) noexcept
+void Process::handler(int signum) noexcept
 {
-  flaw(sig != SIGCHLD,
+  flaw(signum != SIGCHLD,
        terminal::warning,
        posix::error(std::errc::invalid_argument),,
        "Process::reaper() has been called improperly")
