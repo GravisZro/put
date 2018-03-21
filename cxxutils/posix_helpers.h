@@ -2,10 +2,10 @@
 #define POSIX_HELPERS_H
 
 // POSIX
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <pwd.h>
-#include <grp.h>
+#include <sys/types.h> // system specific types
+#include <sys/stat.h>  // stat stuff
+#include <pwd.h>       // passwd stuff
+#include <grp.h>       // group stuff
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -16,6 +16,7 @@
 #include <cstring> // for useringroup()
 #include <csignal>
 #include <cstdio>
+#include <cstdint> // need standard types
 
 // PDTK
 #include "error_helpers.h"
