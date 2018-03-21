@@ -60,7 +60,7 @@ struct ProcessEvent::platform_dependant // process notification (process events 
   posix::fd_t fd;
   struct eventinfo_t
   {
-    posix::fd_t fd[2];
+    posix::fd_t fd[2]; // two fds for pipe based communication
     ProcessEvent::Flags_t flags;
   };
 
@@ -162,9 +162,9 @@ struct ProcessEvent::platform_dependant // process notification (process events 
     while(posix::poll(&fds, 1, 0) > 0 && // while there are messages AND
           posix::recv(procfd, reinterpret_cast<void*>(&procmsg), sizeof(procmsg_t), 0) > 0) // read process event message
     {
-      auto iter = events.find(procmsg.event.event_data.id.process_pid);
-      if(iter != events.end())
-        posix::write(iter->second.fd[Write], &procmsg.event, sizeof(procmsg.event));
+      auto iter = events.find(procmsg.event.event_data.id.process_pid); // find event info for this PID
+      if(iter != events.end()) // if found...
+        posix::write(iter->second.fd[Write], &procmsg.event, sizeof(procmsg.event)); // write process event info into the communications pipe
     }
   }
 } ProcessEvent::s_platform;
@@ -172,27 +172,27 @@ struct ProcessEvent::platform_dependant // process notification (process events 
 ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
   : m_pid(_pid), m_flags(_flags), m_fd(posix::invalid_descriptor)
 {
-  m_fd = s_platform.add(m_pid, m_flags);
+  m_fd = s_platform.add(m_pid, m_flags); // add PID to monitor and return communications pipe
 
-  EventBackend::add(m_fd, EventBackend::SimplePollReadFlags,
+  EventBackend::add(m_fd, EventBackend::SimplePollReadFlags, // connect communications pipe to a lambda function
                     [this](posix::fd_t lambda_fd, native_flags_t) noexcept
                     {
                       proc_event data;
                       pollfd fds = { lambda_fd, POLLIN, 0 };
-                      while(posix::poll(&fds, 1, 0) > 0 &&
-                            posix::read(lambda_fd, &data, sizeof(data)) > 0)
-                        switch(from_native_flags(data.what))
+                      while(posix::poll(&fds, 1, 0) > 0 && // while there is another event to be read
+                            posix::read(lambda_fd, &data, sizeof(data)) > 0) // read the event
+                        switch(from_native_flags(data.what)) // find the type of event
                         {
-                          case Flags::Exec:
+                          case Flags::Exec: // queue exec signal with PID
                             Object::enqueue(execed,
                                             data.event_data.exec.process_pid);
                             break;
-                          case Flags::Exit:
+                          case Flags::Exit: // queue exit signal with PID and exit code
                             Object::enqueue(exited,
                                             data.event_data.exit.process_pid,
                                             *reinterpret_cast<posix::error_t*>(&data.event_data.exit.exit_code));
                             break;
-                          case Flags::Fork:
+                          case Flags::Fork: // queue fork signal with PID and child PID
                             Object::enqueue(forked,
                                             data.event_data.fork.parent_pid,
                                             data.event_data.fork.child_pid);
@@ -239,20 +239,20 @@ static constexpr uint32_t extract_flags(native_flags_t flags) noexcept
 ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
   : m_pid(_pid), m_flags(_flags), m_fd(posix::invalid_descriptor)
 {
-  EventBackend::add(m_pid, to_native_flags(m_flags),
+  EventBackend::add(m_pid, to_native_flags(m_flags), // connect PID event to lambda function
                     [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
                     {
-                      uint32_t data = extract_flags(lambda_fd);
-                      switch(extract_filter(lambda_fd))
+                      uint32_t data = extract_flags(lambda_fd); // get return value (if any)
+                      switch(extract_filter(lambda_fd)) // switch by filtered event type
                       {
-                        case Flags::Exec:
+                        case Flags::Exec: // queue exec signal with PID
                           Object::enqueue(execed, m_pid);
                           break;
-                        case Flags::Exit:
+                        case Flags::Exit: // queue exit signal with PID and exit code
                           Object::enqueue(exited, m_pid,
                                           *reinterpret_cast<posix::error_t*>(&data));
                           break;
-                        case Flags::Fork:
+                        case Flags::Fork: // queue fork signal with PID and child PID
                           Object::enqueue(forked, m_pid,
                                           *reinterpret_cast<pid_t*>(&data));
                           break;

@@ -32,9 +32,9 @@ public:
   pid_t pid(void) const noexcept { return m_pid; }
   Flags_t flags(void) const noexcept { return m_flags; }
 
-  signal<pid_t, posix::error_t> exited;
-  signal<pid_t, pid_t         > forked;
-  signal<pid_t                > execed;
+  signal<pid_t, posix::error_t> exited; // exit signal with PID and process exit code
+  signal<pid_t, pid_t         > forked; // fork signal with PID and child PID
+  signal<pid_t                > execed; // exec signal with PID
 private:
   pid_t m_pid;
   Flags_t m_flags;
