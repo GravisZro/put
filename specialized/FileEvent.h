@@ -34,7 +34,7 @@ public:
     operator const uint8_t& (void) const noexcept { return *reinterpret_cast<const uint8_t*>(this); }
   };
 
-  FileEvent(const char* _file, Flags_t _flags) noexcept;
+  FileEvent(const char* file, Flags_t flags) noexcept;
   ~FileEvent(void) noexcept;
 
   const char* file(void) const noexcept { return m_file; }

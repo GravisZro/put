@@ -101,11 +101,11 @@ struct FileEvent::platform_dependant // file notification (inotify)
 } FileEvent::s_platform;
 
 
-FileEvent::FileEvent(const char* _file, Flags_t _flags) noexcept
-  : m_flags(_flags), m_fd(posix::invalid_descriptor)
+FileEvent::FileEvent(const char* file, Flags_t flags) noexcept
+  : m_flags(flags), m_fd(posix::invalid_descriptor)
 {
   std::memset(m_file, 0, sizeof(m_file));
-  std::strcpy(m_file, _file);
+  std::strcpy(m_file, file);
   m_fd = s_platform.add(m_file, m_flags);
   EventBackend::add(m_fd, EventBackend::SimplePollReadFlags,
                     [this](posix::fd_t lambda_fd, native_flags_t) noexcept
