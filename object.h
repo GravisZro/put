@@ -31,8 +31,8 @@ public:
   template<typename... ArgTypes>
   using signal = std::multimap<ProtoObject*, fslot_t<void, ProtoObject*, ArgTypes...>>;
 
-  inline  Object(void) noexcept { }
-  inline ~Object(void) noexcept { }
+  inline  Object(void) noexcept = default;
+  inline ~Object(void) noexcept = default;
 
   // connect to a member of an object
   template<class ObjType, typename RType, typename... ArgTypes>
