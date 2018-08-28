@@ -45,7 +45,7 @@ static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
       (flags & proc_event::PROC_EVENT_EXIT ? ProcessEvent::Exit : 0) |
       (flags & proc_event::PROC_EVENT_FORK ? ProcessEvent::Fork : 0) ;
 }
-
+/*
 static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 {
   return
@@ -53,7 +53,7 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
       (flags & ProcessEvent::Exit ? native_flags_t(proc_event::PROC_EVENT_EXIT) : 0) | // Process exited
       (flags & ProcessEvent::Fork ? native_flags_t(proc_event::PROC_EVENT_FORK) : 0) ; // Process forked
 }
-
+*/
 
 struct ProcessEvent::platform_dependant // process notification (process events connector)
 {
