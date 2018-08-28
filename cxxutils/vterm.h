@@ -13,10 +13,19 @@ constexpr bool strings_equal(string_literal a, string_literal b)
   { return *a == *b && (*a == '\0' || strings_equal(a + 1, b + 1)); }
 static_assert(strings_equal(CSI, "\x1b["), "Preprocessor variable \"CSI\" must equal \"\\x1b[\"");
 
+constexpr size_t string_length(string_literal str)
+  { return (*str == '\0') ? 0 : (1 + string_length(str + 1)); }
+
+
 namespace terminal
 {
+  inline int write(const char c) noexcept { return int(::write(STDOUT_FILENO, &c, size_t(1))); }
+  inline int write(string_literal str) noexcept { return int(::write(STDOUT_FILENO, str, string_length(str))); }
+
   template<typename... Args>
-  inline int write(const char* fmt, Args... args) noexcept { return ::dprintf(STDOUT_FILENO, fmt, args...); }
+  inline int write(string_literal fmt, Args... args) noexcept { return ::dprintf(STDOUT_FILENO, fmt, args...); }
+
+
 
   inline void getWindowSize(uint16_t& rows, uint16_t& columns) noexcept
   {
@@ -109,6 +118,10 @@ namespace terminal
     string_literal brightRed      = CSI "0;40;31;1m";
     string_literal brightGreen    = CSI "0;40;32;1m";
     string_literal brightYellow   = CSI "0;40;33;1m";
+    string_literal brightBlue     = CSI "0;40;34;1m";
+    string_literal brightMagenta  = CSI "0;40;35;1m";
+    string_literal brightCyan     = CSI "0;40;36;1m";
+    string_literal brightWhite    = CSI "0;40;37;1m";
   }
 
   string_literal information      = CSI "0;40;34m"   "INFORMATION:"     CSI "0m ";
