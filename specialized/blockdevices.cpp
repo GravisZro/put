@@ -280,7 +280,7 @@ namespace blockdevices
   {
     uint8_t low;
     uint8_t high;
-    constexpr operator uint16_t(void) const noexcept { return uint16_t(low) + uint16_t(uint16_t(high) << 8); }
+    constexpr operator uint16_t(void) const noexcept { return uint16_t(low) | uint16_t(uint16_t(high) << 8); }
   };
   static_assert(sizeof(uintle16_t) == sizeof(uint16_t), "naughty compiler!");
 
@@ -404,7 +404,7 @@ namespace blockdevices
     return true;
   }
 
-  bool detect_NULL(uint8_t* data, blockdevice_t* dev) noexcept
+  bool detect_NULL(uint8_t* , blockdevice_t* ) noexcept
   {
     printf("NOT A RECOGNIZED FILESYSTEM!  ");
     return true;
