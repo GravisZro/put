@@ -59,8 +59,10 @@ public:
 
   signal<posix::fd_t> stdoutMessage;
   signal<posix::fd_t> stderrMessage;
-  signal<posix::fd_t> started;
-  signal<posix::fd_t> finished;
+  signal<pid_t> started;
+  signal<pid_t> stopped;
+  signal<pid_t, posix::error_t> finished;
+  signal<pid_t, posix::signal::EId> killed;
 private:
   vfifo m_iobuf;
   State m_state;

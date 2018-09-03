@@ -54,13 +54,31 @@ void Process::handler(int signum) noexcept
     if(process_map_iter != process_map.end()) // if the dead process exists...
     {
       Process* p = process_map_iter->second;
-      EventBackend::remove(p->getStdOut(), EventBackend::SimplePollReadFlags);
-      EventBackend::remove(p->getStdErr(), EventBackend::SimplePollReadFlags);
-      posix::close(p->getStdOut());
-      posix::close(p->getStdErr());
-      posix::close(p->getStdIn());
-      p->m_state = Process::State::Finished;
-      process_map.erase(process_map_iter); // remove finished process from the process map
+      if(WIFEXITED(status))
+      {
+        EventBackend::remove(p->getStdOut(), EventBackend::SimplePollReadFlags);
+        EventBackend::remove(p->getStdErr(), EventBackend::SimplePollReadFlags);
+        posix::close(p->getStdOut());
+        posix::close(p->getStdErr());
+        posix::close(p->getStdIn());
+
+        p->m_state = Process::State::Finished;
+        if(WIFSIGNALED(status))
+          Object::enqueue_copy(p->killed, p->processId(), posix::signal::EId(WTERMSIG(status)));
+        else
+          Object::enqueue_copy(p->finished, p->processId(), posix::error_t(WEXITSTATUS(status)));
+        process_map.erase(process_map_iter); // remove finished process from the process map
+      }
+      else if(WIFSTOPPED(status))
+      {
+        p->m_state = Process::State::Stopped;
+        Object::enqueue_copy(p->stopped, p->processId());
+      }
+      else if(WIFCONTINUED(status))
+      {
+        p->m_state = Process::State::Running;
+        Object::enqueue_copy(p->started, p->processId());
+      }
     }
   }
 }
@@ -113,7 +131,8 @@ bool Process::invoke(void) noexcept
     return false;
 
   m_state = State::Invalid;
-  state();
+  if(state() == State::Running)
+    Object::enqueue_copy(started, processId());
 
   return errno == posix::success_response;
 }
