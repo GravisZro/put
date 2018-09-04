@@ -39,6 +39,20 @@ void Process::init_once(void) noexcept
   }
 }
 
+// in case of incomplete implementations
+#if !defined(WCONTINUED)
+#define WCONTINUED 0
+#endif
+#if !defined(WIFCONTINUED)
+#define WIFCONTINUED(x) false
+#endif
+#if !defined(WIFSTOPPED)
+#define WIFSTOPPED(x) false
+#endif
+#if !defined(WIFSIGNALED)
+#define WIFSIGNALED(x) false
+#endif
+
 void Process::handler(int signum) noexcept
 {
   flaw(signum != SIGCHLD,
@@ -48,7 +62,7 @@ void Process::handler(int signum) noexcept
 
   pid_t pid = posix::error_response; // set value just in case
   int status = 0;
-  while((pid = ::waitpid(pid_t(-1), &status, WNOHANG)) > 0) // get the next dead process (if there is one)... while the currently reaped process was valid
+  while((pid = ::waitpid(pid_t(-1), &status, WNOHANG | WCONTINUED | WUNTRACED)) > 0) // get the next dead process (if there is one)... while the currently reaped process was valid
   {
     auto process_map_iter = process_map.find(pid); // find dead process
     if(process_map_iter != process_map.end()) // if the dead process exists...
