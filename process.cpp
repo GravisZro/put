@@ -43,15 +43,6 @@ void Process::init_once(void) noexcept
 #if !defined(WCONTINUED)
 #define WCONTINUED 0
 #endif
-#if !defined(WIFCONTINUED)
-#define WIFCONTINUED(x) false
-#endif
-#if !defined(WIFSTOPPED)
-#define WIFSTOPPED(x) false
-#endif
-#if !defined(WIFSIGNALED)
-#define WIFSIGNALED(x) false
-#endif
 
 void Process::handler(int signum) noexcept
 {
@@ -77,22 +68,28 @@ void Process::handler(int signum) noexcept
         posix::close(p->getStdIn());
 
         p->m_state = Process::State::Finished;
+#if defined(WIFSIGNALED)
         if(WIFSIGNALED(status))
           Object::enqueue_copy(p->killed, p->processId(), posix::signal::EId(WTERMSIG(status)));
         else
+#endif
           Object::enqueue_copy(p->finished, p->processId(), posix::error_t(WEXITSTATUS(status)));
         process_map.erase(process_map_iter); // remove finished process from the process map
       }
+#if defined(WIFSTOPPED)
       else if(WIFSTOPPED(status))
       {
         p->m_state = Process::State::Stopped;
         Object::enqueue_copy(p->stopped, p->processId());
       }
+#endif
+#if defined(WIFCONTINUED)
       else if(WIFCONTINUED(status))
       {
         p->m_state = Process::State::Running;
         Object::enqueue_copy(p->started, p->processId());
       }
+#endif
     }
   }
 }
