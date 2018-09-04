@@ -171,11 +171,17 @@ bool EventBackend::poll(int timeout) noexcept
   return true;
 }
 
-#elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
+#elif defined(__unix__) || defined(__unix)
 
-#pragma message See: http://docs.oracle.com/cd/E19253-01/816-5168/port-get-3c/index.html
-#error The backend code in PDTK for Solaris / OpenSolaris / OpenIndiana / illumos is non-functional!  Please submit a patch!
 
+# if defined(__linux__)
+# pragma message("No event backend code exists in PDTK for pre-epoll Linux!  Please submit a patch!")
+
+# elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
+
+#pragma message("The backend code in PDTK for Solaris / OpenSolaris / OpenIndiana / illumos is non-functional!  Please submit a patch!")
+#pragma message("See: http://docs.oracle.com/cd/E19253-01/816-5168/port-get-3c/index.html")
+#  if 0
 // Solaris
 #include <port.h>
 
@@ -258,50 +264,50 @@ bool EventBackend::poll(int timeout) noexcept
   }
   return true;
 }
+#  endif
+# elif defined(__minix) // MINIX
+# pragma message("No event backend code exists in PDTK for MINIX!  Please submit a patch!")
 
-#elif defined(__minix) // MINIX
-#error No event backend code exists in PDTK for MINIX!  Please submit a patch!
-
-#elif defined(__QNX__) // QNX
+# elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
-#error No event backend code exists in PDTK for QNX!  Please submit a patch!
+# pragma message("No event backend code exists in PDTK for QNX!  Please submit a patch!")
 
-#elif defined(__hpux) // HP-UX
+# elif defined(__hpux) // HP-UX
 // see http://nixdoc.net/man-pages/HP-UX/man7/poll.7.html
 // and https://www.freebsd.org/cgi/man.cgi?query=poll&sektion=7&apropos=0&manpath=HP-UX+11.22
 // uses /dev/poll
-#error No event backend code exists in PDTK for HP-UX!  Please submit a patch!
+# pragma message("No event backend code exists in PDTK for HP-UX!  Please submit a patch!")
 
 #include <sys/devpoll.h>
 
-#elif defined(_AIX) // IBM AIX
+# elif defined(_AIX) // IBM AIX
 // see https://www.ibm.com/support/knowledgecenter/ssw_aix_61/com.ibm.aix.basetrf1/pollset.htm
 // uses pollset_* functions
 
-#include <sys/poll.h>
-#include <sys/pollset.h>
+//#include <sys/poll.h>
+//#include <sys/pollset.h>
 /*
   pollset_t n;
   n = pollset_create(-1);
   pollset_destroy(n);
 */
 
-#error No event backend code exists in PDTK for IBM AIX!  Please submit a patch!
+# pragma message("No event backend code exists in PDTK for IBM AIX!  Please submit a patch!")
 
 
-#elif defined(__osf__) || defined(__osf) // Tru64 (OSF/1)
-#error No event backend code exists in PDTK for Tru64!  Please submit a patch!
+# elif defined(__osf__) || defined(__osf) // Tru64 (OSF/1)
+# pragma message("No event backend code exists in PDTK for Tru64!  Please submit a patch!")
 
-#elif defined(_SCO_DS) // SCO OpenServer
-#error No event backend code exists in PDTK for SCO OpenServer!  Please submit a patch!
+# elif defined(_SCO_DS) // SCO OpenServer
+# pragma message("No event backend code exists in PDTK for SCO OpenServer!  Please submit a patch!")
 
-#elif defined(sinux) // Reliant UNIX
-#error No event backend code exists in PDTK for Reliant UNIX!  Please submit a patch!
+# elif defined(sinux) // Reliant UNIX
+# pragma message("No event backend code exists in PDTK for Reliant UNIX!  Please submit a patch!")
 
-#elif defined(BSD)
-#error Unrecognized BSD derivative!
+# elif defined(BSD)
+# pragma message("Unrecognized BSD derivative!")
+# endif
 
-#elif defined(__unix__) || defined(__unix)
 #pragma message("No platform specific event backend code! Using standard POSIX polling function.")
 
 #include <poll.h>

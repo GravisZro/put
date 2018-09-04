@@ -66,32 +66,56 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
       (flags & PollEvent::Writeable     ? composite_flag(0       , EVFILT_WRITE, 0) : 0) ;
 }
 
-#elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
-# error No poll event backend code exists in SXinit for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!
+#elif defined(__unix__) || defined(__unix)
 
-#elif defined(__minix) // MINIX
-# error No poll event backend code exists in PDTK for MINIX!  Please submit a patch!
+# if defined(__linux__)
+# pragma message("No poll event backend code exists in PDTK for pre-epoll Linux!  Please submit a patch!")
 
-#elif defined(__QNX__) // QNX
+# elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
+# pragma message("No poll event backend code exists in SXinit for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!")
+
+# elif defined(__minix) // MINIX
+# pragma message("No poll event backend code exists in PDTK for MINIX!  Please submit a patch!")
+
+# elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
-# error No poll event backend code exists in PDTK for QNX!  Please submit a patch!
+# pragma message("No poll event backend code exists in PDTK for QNX!  Please submit a patch!")
 
-#elif defined(__hpux) // HP-UX
+# elif defined(__hpux) // HP-UX
 // see http://nixdoc.net/man-pages/HP-UX/man7/poll.7.html
 // and https://www.freebsd.org/cgi/man.cgi?query=poll&sektion=7&apropos=0&manpath=HP-UX+11.22
 // uses /dev/poll
-# error No poll event backend code exists in PDTK for HP-UX!  Please submit a patch!
+# pragma message("No poll event backend code exists in PDTK for HP-UX!  Please submit a patch!")
 
-#elif defined(_AIX) // IBM AIX
+# elif defined(_AIX) // IBM AIX
 // see https://www.ibm.com/support/knowledgecenter/ssw_aix_61/com.ibm.aix.basetrf1/pollset.htm
 
-# error No poll event backend code exists in PDTK for IBM AIX!  Please submit a patch!
+# pragma message("No poll event backend code exists in PDTK for IBM AIX!  Please submit a patch!")
 
-#elif defined(BSD)
-# error Unrecognized BSD derivative!
+# elif defined(BSD)
+# pragma message("Unrecognized BSD derivative!")
+#endif
 
-#elif defined(__unix__) || defined(__unix)
-# error Unrecognized UNIX variant!
+#pragma message("No platform specific poll event backend code! Using standard POSIX polling.")
+
+// FD flags
+static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
+{
+  return
+      (flags & POLLERR ? PollEvent::Error          : 0) |
+      (flags & POLLHUP ? PollEvent::Disconnected   : 0) |
+      (flags & POLLIN  ? PollEvent::Readable       : 0) |
+      (flags & POLLOUT ? PollEvent::Writeable      : 0);
+}
+
+static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
+{
+  return
+      (flags & PollEvent::Error        ? native_flags_t(POLLERR ) : 0) |
+      (flags & PollEvent::Disconnected ? native_flags_t(POLLHUP ) : 0) |
+      (flags & PollEvent::Readable     ? native_flags_t(POLLIN  ) : 0) |
+      (flags & PollEvent::Writeable    ? native_flags_t(POLLOUT ) : 0);
+}
 
 #else
 # error This platform is not supported.
