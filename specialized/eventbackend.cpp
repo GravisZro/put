@@ -306,6 +306,10 @@ bool EventBackend::poll(int timeout) noexcept
 
 #include <poll.h>
 
+// force maximum event count to 1024 per POSIX
+#undef MAX_EVENTS
+#define MAX_EVENTS 1024
+
 struct EventBackend::platform_dependant // poll notification (epoll)
 {
   nfds_t max;
