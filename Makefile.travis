@@ -35,7 +35,7 @@ TARGET        = buildtest
 SOURCES       = buildtest.cpp \
 		application.cpp \
 		socket.cpp \
-		process.cpp \
+		childprocess.cpp \
 		cxxutils/configmanip.cpp \
 		specialized/eventbackend.cpp \
 		specialized/peercred.cpp \
