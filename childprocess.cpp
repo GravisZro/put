@@ -1,4 +1,4 @@
-#include "process.h"
+#include "childprocess.h"
 
 // POSIX
 #include <unistd.h>
@@ -19,9 +19,9 @@
 #include <cxxutils/vterm.h>
 
 
-static std::unordered_map<pid_t, Process*> process_map; // do not try to own Process memory
+static std::unordered_map<pid_t, ChildProcess*> process_map; // do not try to own Process memory
 
-void Process::init_once(void) noexcept
+void ChildProcess::init_once(void) noexcept
 {
   static bool first = true;
   if(first)
@@ -44,7 +44,7 @@ void Process::init_once(void) noexcept
 #define WCONTINUED 0
 #endif
 
-void Process::handler(int signum) noexcept
+void ChildProcess::handler(int signum) noexcept
 {
   flaw(signum != SIGCHLD,
        terminal::warning,
@@ -58,7 +58,7 @@ void Process::handler(int signum) noexcept
     auto process_map_iter = process_map.find(pid); // find dead process
     if(process_map_iter != process_map.end()) // if the dead process exists...
     {
-      Process* p = process_map_iter->second;
+      ChildProcess* p = process_map_iter->second;
       if(WIFEXITED(status))
       {
         EventBackend::remove(p->getStdOut(), EventBackend::SimplePollReadFlags);
@@ -67,7 +67,7 @@ void Process::handler(int signum) noexcept
         posix::close(p->getStdErr());
         posix::close(p->getStdIn());
 
-        p->m_state = Process::State::Finished;
+        p->m_state = ChildProcess::State::Finished;
         if(WIFSIGNALED(status))
           Object::enqueue_copy(p->killed, p->processId(), posix::signal::EId(WTERMSIG(status)));
         else
@@ -76,13 +76,13 @@ void Process::handler(int signum) noexcept
       }
       else if(WIFSTOPPED(status))
       {
-        p->m_state = Process::State::Stopped;
+        p->m_state = ChildProcess::State::Stopped;
         Object::enqueue_copy(p->stopped, p->processId());
       }
 #if defined(WIFCONTINUED)
       else if(WIFCONTINUED(status))
       {
-        p->m_state = Process::State::Running;
+        p->m_state = ChildProcess::State::Running;
         Object::enqueue_copy(p->started, p->processId());
       }
 #endif
@@ -90,31 +90,31 @@ void Process::handler(int signum) noexcept
   }
 }
 
-Process::Process(void) noexcept
+ChildProcess::ChildProcess(void) noexcept
   : m_state(State::Initializing)
 {
   init_once();
   process_map.emplace(processId(), this); // add self to process map
 }
 
-Process::~Process(void) noexcept
+ChildProcess::~ChildProcess(void) noexcept
 {
   EventBackend::remove(getStdOut(), EventBackend::SimplePollReadFlags);
   EventBackend::remove(getStdErr(), EventBackend::SimplePollReadFlags);
 }
 
-bool Process::setOption(const std::string& name, const std::string& value) noexcept
+bool ChildProcess::setOption(const std::string& name, const std::string& value) noexcept
 {
   m_iobuf.reset();
   return !(m_iobuf << name << value).hadError() && writeStdIn(m_iobuf);
 }
 
-bool Process::sendSignal(posix::signal::EId id, int value) const noexcept
+bool ChildProcess::sendSignal(posix::signal::EId id, int value) const noexcept
 {
   return posix::signal::send(processId(), id, value);
 }
 
-bool Process::invoke(void) noexcept
+bool ChildProcess::invoke(void) noexcept
 {
   posix::success();
 
@@ -144,7 +144,7 @@ bool Process::invoke(void) noexcept
   return errno == posix::success_response;
 }
 
-Process::State Process::state(void) noexcept
+ChildProcess::State ChildProcess::state(void) noexcept
 {
   switch(m_state)
   {

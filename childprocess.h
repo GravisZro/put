@@ -24,8 +24,8 @@
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/pipedspawn.h>
 
-class Process : public Object,
-                public PipedSpawn
+class ChildProcess : public Object,
+                     public PipedSpawn
 {
 public:
   enum class State
@@ -39,8 +39,8 @@ public:
     Finished,     // process executed and exited
   };
 
-  Process(void) noexcept;
- ~Process(void) noexcept;
+  ChildProcess(void) noexcept;
+ ~ChildProcess(void) noexcept;
 
   bool setOption(const std::string& name, const std::string& value) noexcept;
 
