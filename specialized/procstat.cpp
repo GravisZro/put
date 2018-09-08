@@ -20,131 +20,138 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
   data.state = Invalid;
   data.arguments.clear();
 
-  char buffer[ARG_MAX];
-
-  struct procinfo_t
   {
-//  pid_t         pid;                      // The process id.
-//  char          name[PATH_MAX];           // The filename of the executable
-//  char          state;                    // R is running, S is sleeping, D is sleeping in an uninterruptible wait, Z is zombie, T is traced or stopped
-    uid_t         euid;                     // effective user id
-    gid_t         egid;                     // effective group id
-//  pid_t         ppid;                     // The pid of the parent.
-//  pid_t         pgrp;                     // The pgrp of the process.
-//  pid_t         session;                  // The session id of the process.
-//  int           tty;                      // The tty the process uses
-    int           tpgid;                    // (too long)
-    unsigned int  flags;                    // The flags of the process.
-    unsigned int  minflt;                   // The number of minor faults
-    unsigned int  cminflt;                  // The number of minor faults with childs
-    unsigned int  majflt;                   // The number of major faults
-    unsigned int  cmajflt;                  // The number of major faults with childs
-    int           utime;                    // user mode jiffies
-    int           stime;                    // kernel mode jiffies
-    int           cutime;                   // user mode jiffies with childs
-    int           cstime;                   // kernel mode jiffies with childs
-    int           counter;                  // process's next timeslice
-//  int           priority;                 // the standard nice value, plus fifteen
-    unsigned int  timeout;                  // The time in jiffies of the next timeout
-    unsigned int  itrealvalue;              // The time before the next SIGALRM is sent to the process
-    int           starttime;                // Time the process started after system boot
+    struct //procinfo_t
+    {
+//    pid_t         pid;                      // The process id.
+//    char          name[PATH_MAX];           // The filename of the executable
+//    char          state;                    // R is running, S is sleeping, D is sleeping in an uninterruptible wait, Z is zombie, T is traced or stopped
+      uid_t         euid;                     // effective user id
+      gid_t         egid;                     // effective group id
+//    pid_t         ppid;                     // The pid of the parent.
+//    pid_t         pgrp;                     // The pgrp of the process.
+//    pid_t         session;                  // The session id of the process.
+//    int           tty;                      // The tty the process uses
+      int           tpgid;                    // (too long)
+      unsigned int  flags;                    // The flags of the process.
+      unsigned int  minflt;                   // The number of minor faults
+      unsigned int  cminflt;                  // The number of minor faults with childs
+      unsigned int  majflt;                   // The number of major faults
+      unsigned int  cmajflt;                  // The number of major faults with childs
+      int           utime;                    // user mode jiffies
+      int           stime;                    // kernel mode jiffies
+      int           cutime;                   // user mode jiffies with childs
+      int           cstime;                   // kernel mode jiffies with childs
+      int           counter;                  // process's next timeslice
+//    int           priority;                 // the standard nice value, plus fifteen
+      unsigned int  timeout;                  // The time in jiffies of the next timeout
+      unsigned int  itrealvalue;              // The time before the next SIGALRM is sent to the process
+      int           starttime;                // Time the process started after system boot
 
-    unsigned int  vsize;                    // Virtual memory size
-    unsigned int  rss;                      // Resident Set Size
-    unsigned int  rlim;                     // Current limit in bytes on the rss
+      unsigned int  vsize;                    // Virtual memory size
+      unsigned int  rss;                      // Resident Set Size
+      unsigned int  rlim;                     // Current limit in bytes on the rss
 
-    unsigned int  startcode;                // The address above which program text can run
-    unsigned int  endcode;                  // The address below which program text can run
-    unsigned int  startstack;               // The address of the start of the stack
-    unsigned int  kstkesp;                  // The current value of ESP
-    unsigned int  kstkeip;                  // The current value of EIP
-//  int           signal;                   // The bitmap of pending signals
-//  int           blocked;                  // The bitmap of blocked signals
-//  int           sigignore;                // The bitmap of ignored signals
-//  int           sigcatch;                 // The bitmap of catched signals
-    unsigned int  wchan;                    // (too long)
-//  int           sched;                    // scheduler
-//  int           sched_priority;           // scheduler priority
-  };
+      unsigned int  startcode;                // The address above which program text can run
+      unsigned int  endcode;                  // The address below which program text can run
+      unsigned int  startstack;               // The address of the start of the stack
+      unsigned int  kstkesp;                  // The current value of ESP
+      unsigned int  kstkeip;                  // The current value of EIP
+//    int           signal;                   // The bitmap of pending signals
+//    int           blocked;                  // The bitmap of blocked signals
+//    int           sigignore;                // The bitmap of ignored signals
+//    int           sigcatch;                 // The bitmap of catched signals
+      unsigned int  wchan;                    // (too long)
+//    int           sched;                    // scheduler
+//    int           sched_priority;           // scheduler priority
+    } process;
 
-  procinfo_t process;
-  std::sprintf(buffer, "/proc/%d/stat", pid);
+    char filename[FILENAME_MAX] = { 0 };
+    std::sprintf(filename, "/proc/%d/stat", pid);
 
-  FILE* file = std::fopen(buffer, "r");
-  if(file == nullptr)
-    return posix::error_response;
+    FILE* file = std::fopen(filename, "r");
+    if(file == nullptr)
+      return posix::error_response;
 
-  //char state;
-  std::fscanf(file, "%d %s %c %d %d %d %d %d %u %u %u %u %u %d %d %d %d %d %d %u %u %d %u %u %u %u %u %u %u %u %d %d %d %d %u",
-              &data.process_id,
-              buffer,
-              reinterpret_cast<char*>(&data.state),
-              &data.parent_process_id,
-              &data.process_group_id,
-              &data.session_id,
-              &data.tty,
-              &process.tpgid,
-              &process.flags,
-              &process.minflt,
-              &process.cminflt,
-              &process.majflt,
-              &process.cmajflt,
-              &process.utime,
-              &process.stime,
-              &process.cutime,
-              &process.cstime,
-              &process.counter,
-              &data.priority_value,
-              &process.timeout,
-              &process.itrealvalue,
-              &process.starttime,
-              &process.vsize,
-              &process.rss,
-              &process.rlim,
-              &process.startcode,
-              &process.endcode,
-              &process.startstack,
-              &process.kstkesp,
-              &process.kstkeip,
-              &data.signals_pending,
-              &data.signals_blocked,
-              &data.signals_ignored,
-              &data.signals_caught,
-              &process.wchan);
-  std::fclose(file);
+    //char state;
+    std::fscanf(file, "%d %s %c %d %d %d %d %d %u %u %u %u %u %d %d %d %d %d %d %u %u %d %u %u %u %u %u %u %u %u %d %d %d %d %u",
+                &data.process_id,
+                filename,
+                reinterpret_cast<char*>(&data.state),
+                &data.parent_process_id,
+                &data.process_group_id,
+                &data.session_id,
+                &data.tty,
+                &process.tpgid,
+                &process.flags,
+                &process.minflt,
+                &process.cminflt,
+                &process.majflt,
+                &process.cmajflt,
+                &process.utime,
+                &process.stime,
+                &process.cutime,
+                &process.cstime,
+                &process.counter,
+                &data.priority_value,
+                &process.timeout,
+                &process.itrealvalue,
+                &process.starttime,
+                &process.vsize,
+                &process.rss,
+                &process.rlim,
+                &process.startcode,
+                &process.endcode,
+                &process.startstack,
+                &process.kstkesp,
+                &process.kstkeip,
+                &data.signals_pending,
+                &data.signals_blocked,
+                &data.signals_ignored,
+                &data.signals_caught,
+                &process.wchan);
+    std::fclose(file);
 
-  data.name.assign(buffer+1);
-  data.name.pop_back();
-
-  std::sprintf(buffer, "/proc/%d/exe", pid); // fill buffer
-  posix::ssize_t length = ::readlink(buffer, buffer, sizeof(buffer)); // result may contain " (deleted)" (which we don't want)
-  if(length != posix::error_response)
-  {
-    buffer[length] = 0; // add string terminator
-    char* pos = std::strrchr(buffer, ' '); // find last space
-    if(pos != nullptr && // contains a space (may be part of " (deleted)")
-       pos[sizeof(" (deleted)") - 1] == '\0' && // might end with " (deleted)"
-       pos == std::strstr(buffer, " (deleted)")) // definately ends with " (deleted)"
-      *pos = 0; // add string terminator to truncate at " (deleted)"
-    data.executable = buffer; // copy corrected string
+    data.name.assign(filename+1);
+    data.name.pop_back();
   }
 
-  std::sprintf(buffer, "/proc/%d/cmdline", pid); // fill buffer
-
-  file = std::fopen(buffer, "r");
-  if(file == nullptr)
-    return posix::error_response;
-
-  std::memset(buffer, 0, sizeof(buffer));
-
-  while(!std::feof(file))
   {
-    std::fscanf(file, "%s ", buffer);
-    if(std::strlen(buffer))
-      data.arguments.push_back(buffer);
+    char linkname[FILENAME_MAX] = { 0 };
+    char filename[FILENAME_MAX] = { 0 };
+    std::sprintf(linkname, "/proc/%d/exe", pid); // fill buffer
+
+    posix::ssize_t length = ::readlink(linkname, filename, ARG_MAX); // result may contain " (deleted)" (which we don't want)
+    if(length != posix::error_response)
+    {
+      filename[length] = 0; // add string terminator
+      char* pos = std::strrchr(filename, ' '); // find last space
+      if(pos != nullptr && // contains a space (may be part of " (deleted)")
+         pos[sizeof(" (deleted)") - 1] == '\0' && // might end with " (deleted)"
+         pos == std::strstr(filename, " (deleted)")) // definately ends with " (deleted)"
+        *pos = 0; // add string terminator to truncate at " (deleted)"
+      data.executable = filename; // copy corrected string
+    }
   }
 
-  std::fclose(file);
+  {
+    char cmdbuffer[ARG_MAX] = { 0 };
+    char filename[FILENAME_MAX] = { 0 };
+    std::sprintf(filename, "/proc/%d/cmdline", pid); // fill buffer
+
+    FILE* file = std::fopen(filename, "r");
+    if(file == nullptr)
+      return posix::error_response;
+
+    while(!std::feof(file))
+    {
+      std::fscanf(file, "%s ", cmdbuffer);
+      if(std::strlen(cmdbuffer))
+        data.arguments.push_back(cmdbuffer);
+    }
+
+    std::fclose(file);
+  }
 
   if(!data.arguments.empty())
   {
