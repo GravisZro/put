@@ -25,7 +25,7 @@ void TimerEvent::init_once(void) noexcept
   }
 }
 
-void TimerEvent::handler(int signum, siginfo_t* info, void* data) noexcept
+void TimerEvent::handler(int, siginfo_t* info, void*) noexcept
 {
   static const uint8_t dummydata = 0; // dummy content
   flaw(posix::write(info->si_value.sival_int, &dummydata, 1) != 1,
