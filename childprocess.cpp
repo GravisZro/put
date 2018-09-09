@@ -28,9 +28,9 @@ void ChildProcess::init_once(void) noexcept
   {
     first = false;
     struct sigaction actions;
-    actions.sa_handler = &handler;
+    actions.sa_handler = &handler; // don't bother sending signal info (it's provided by waitpid())
     sigemptyset(&actions.sa_mask);
-    actions.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+    actions.sa_flags = SA_RESTART;
 
     flaw(::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response,
          terminal::critical,
