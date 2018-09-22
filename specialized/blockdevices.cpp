@@ -22,8 +22,10 @@
 #define BLOCK_SIZE 0x00000400
 #endif
 
+static_assert(sizeof(blockdevice_t::path) > sizeof(DEVFS_PATH) + 1, "DEVFS_PATH is too long!");
 
-uint64_t read(posix::fd_t fd, off_t offset, uint8_t* buffer, uint64_t length)
+
+uint64_t read(posix::fd_t fd, off_t offset, uint8_t* buffer, uint64_t length) noexcept
 {
   if(::lseek(fd, offset, SEEK_SET) != offset)
     return 0;
@@ -36,10 +38,10 @@ uint64_t read(posix::fd_t fd, off_t offset, uint8_t* buffer, uint64_t length)
   return length - remaining;
 }
 
-constexpr char uuid_digit(uint8_t* data, uint8_t digit)
+constexpr char uuid_digit(uint8_t* data, uint8_t digit) noexcept
   { return  "0123456789ABCDEF"[(digit & 1) ? (data[digit/2] & 0x0F) : (data[digit/2] >> 4)]; }
 
-static bool uuid_matches(const char* str, uint8_t* data)
+static bool uuid_matches(const char* str, uint8_t* data) noexcept
 {
   size_t length = std::strlen(str);
   for(uint8_t digit = 0; digit < 32; ++digit, ++str)
@@ -53,7 +55,7 @@ static bool uuid_matches(const char* str, uint8_t* data)
 }
 
 /*
-static void uuid_decode(uint8_t* data, std::string& uuid)
+static void uuid_decode(uint8_t* data, std::string& uuid) noexcept
 {
   for(uint8_t digit = 0; digit < 32; ++digit)
     uuid.push_back(uuid_digit(data, digit));

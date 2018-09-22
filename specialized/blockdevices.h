@@ -20,8 +20,8 @@ struct blockdevice_t
   uint64_t size;
   bool     clean;
 
-  blockdevice_t(void) { std::memset(this, 0, sizeof(blockdevice_t)); }
-  blockdevice_t(blockdevice_t& other) { std::memcpy(this, &other, sizeof(blockdevice_t)); }
+  blockdevice_t(void) noexcept { std::memset(this, 0, sizeof(blockdevice_t)); }
+  blockdevice_t(blockdevice_t& other) noexcept { std::memcpy(this, &other, sizeof(blockdevice_t)); }
 };
 
 namespace blockdevices
