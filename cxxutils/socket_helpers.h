@@ -98,7 +98,7 @@ namespace posix
     operator EDomain(void) const noexcept { return static_cast<EDomain>(sun_family); }
     sockaddr_t& operator = (sa_family_t family) noexcept { sun_family = family; return *this; }
     sockaddr_t& operator = (EDomain family) noexcept { return operator =(static_cast<sa_family_t>(family)); }
-    sockaddr_t& operator = (const char* path) noexcept { std::strcpy(sun_path, path); return *this; }
+    sockaddr_t& operator = (const char* path) noexcept { std::strncpy(sun_path, path, sizeof(sockaddr_un::sun_path)); return *this; }
   };
 
 // POSIX wrappers

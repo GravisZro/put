@@ -22,10 +22,8 @@
 #define BLOCK_SIZE 0x00000400
 #endif
 
-static_assert(sizeof(blockdevice_t::path) > sizeof(DEVFS_PATH) + 1, "DEVFS_PATH is too long!");
 
-
-uint64_t read(posix::fd_t fd, off_t offset, uint8_t* buffer, uint64_t length) noexcept
+uint64_t read(posix::fd_t fd, off_t offset, uint8_t* buffer, uint64_t length)
 {
   if(::lseek(fd, offset, SEEK_SET) != offset)
     return 0;
@@ -38,10 +36,10 @@ uint64_t read(posix::fd_t fd, off_t offset, uint8_t* buffer, uint64_t length) no
   return length - remaining;
 }
 
-constexpr char uuid_digit(uint8_t* data, uint8_t digit) noexcept
+constexpr char uuid_digit(uint8_t* data, uint8_t digit)
   { return  "0123456789ABCDEF"[(digit & 1) ? (data[digit/2] & 0x0F) : (data[digit/2] >> 4)]; }
 
-static bool uuid_matches(const char* str, uint8_t* data) noexcept
+static bool uuid_matches(const char* str, uint8_t* data)
 {
   size_t length = std::strlen(str);
   for(uint8_t digit = 0; digit < 32; ++digit, ++str)
@@ -55,7 +53,7 @@ static bool uuid_matches(const char* str, uint8_t* data) noexcept
 }
 
 /*
-static void uuid_decode(uint8_t* data, std::string& uuid) noexcept
+static void uuid_decode(uint8_t* data, std::string& uuid)
 {
   for(uint8_t digit = 0; digit < 32; ++digit)
     uuid.push_back(uuid_digit(data, digit));
@@ -77,7 +75,7 @@ namespace blockdevices
   void fill_device_list(const char* procfs_path) noexcept
   {
     char filename[PATH_MAX] = { 0 };
-    std::strcpy(filename, procfs_path);
+    std::strncpy(filename, procfs_path, sizeof(filename) - sizeof("/partitions"));
     std::strcat(filename, "/partitions");
 
     std::FILE* file = posix::fopen(filename, "r");
@@ -116,7 +114,7 @@ namespace blockdevices
 
       // read device name
       blockdevice_t dev;
-      std::strcpy(dev.path, DEVFS_PATH);
+      std::strncpy(dev.path, DEVFS_PATH, sizeof(blockdevice_t::path) - sizeof("/"));
       std::strcat(dev.path, "/");
       for(char* field = dev.path + std::strlen(dev.path);
           *pos && pos < dev.path + sizeof(blockdevice_t::path) && std::isgraph(*pos);
@@ -221,7 +219,7 @@ namespace blockdevices
   blockdevice_t* probe(const char* path) noexcept
   {
     blockdevice_t dev;
-    std::strcpy(dev.path, path);
+    std::strncpy(dev.path, path, sizeof(blockdevice_t::path));
     detect_filesystem(&dev);
     if(!dev.fstype[0]) // if filesystem wasn't detected
       return nullptr;
@@ -376,27 +374,27 @@ namespace blockdevices
     dev->size = blockcount * blocksize; // store partitions usable size
 
     if(flagsAreSet(data + offsets::incompat_flags  , incompat_flags::journal_dev))
-      std::strcpy(dev->fstype, "jbd");
+      std::strncpy(dev->fstype, "jbd", sizeof(blockdevice_t::fstype));
 
     else if(flagsNotSet(data + offsets::incompat_flags  , incompat_flags::journal_dev) &&
             flagsAreSet(data + offsets::misc_flags      , misc_flags::dev_filesystem))
-      std::strcpy(dev->fstype, "ext4dev");
+      std::strncpy(dev->fstype, "ext4dev", sizeof(blockdevice_t::fstype));
 
     else if(flagsNotSet(data + offsets::incompat_flags  , incompat_flags::journal_dev) &&
             (getFlags(data + offsets::ro_compat_flags   , ~EXT2_RO_compat_flags) ||
              getFlags(data + offsets::incompat_flags    , ~EXT3_incompat_flags)) &&
             flagsNotSet(data + offsets::misc_flags      , misc_flags::dev_filesystem))
-      std::strcpy(dev->fstype, "ext4");
+      std::strncpy(dev->fstype, "ext4", sizeof(blockdevice_t::fstype));
 
     else if(flagsAreSet(data + offsets::compat_flags    , compat_flags::has_journal) &&
             flagsNotSet(data + offsets::ro_compat_flags , ~EXT2_RO_compat_flags) &&
             flagsNotSet(data + offsets::incompat_flags  , ~EXT3_incompat_flags))
-      std::strcpy(dev->fstype, "ext3");
+      std::strncpy(dev->fstype, "ext3", sizeof(blockdevice_t::fstype));
 
     else if(flagsNotSet(data + offsets::compat_flags    , compat_flags::has_journal) &&
             flagsNotSet(data + offsets::ro_compat_flags , ~EXT2_RO_compat_flags) &&
             flagsNotSet(data + offsets::incompat_flags  , ~EXT2_incompat_flags))
-      std::strcpy(dev->fstype, "ext2");
+      std::strncpy(dev->fstype, "ext2", sizeof(blockdevice_t::fstype));
 
     else
       return false;

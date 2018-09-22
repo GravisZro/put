@@ -105,7 +105,7 @@ FileEvent::FileEvent(const char* file, Flags_t flags) noexcept
   : m_flags(flags), m_fd(posix::invalid_descriptor)
 {
   std::memset(m_file, 0, sizeof(m_file));
-  std::strcpy(m_file, file);
+  std::strncpy(m_file, file, sizeof(m_file));
   m_fd = s_platform.add(m_file, m_flags);
   EventBackend::add(m_fd, EventBackend::SimplePollReadFlags,
                     [this](posix::fd_t lambda_fd, native_flags_t) noexcept
@@ -166,7 +166,7 @@ FileEvent::FileEvent(const char* _file, Flags_t _flags) noexcept
   : m_flags(_flags), m_fd(posix::invalid_descriptor)
 {
   std::memset(m_file, 0, sizeof(m_file));
-  std::strcpy(m_file, _file);
+  std::strncpy(m_file, _file, sizeof(m_file));
   m_fd = posix::open(m_file, O_EVTONLY);
   EventBackend::add(m_fd, to_native_flags(m_flags), // connect FD with flags to signal
                     [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
