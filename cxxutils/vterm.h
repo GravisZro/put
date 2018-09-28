@@ -19,13 +19,11 @@ constexpr size_t string_length(string_literal str)
 
 namespace terminal
 {
-  inline int write(const char c) noexcept { return int(::write(STDOUT_FILENO, &c, size_t(1))); }
-  inline int write(string_literal str) noexcept { return int(::write(STDOUT_FILENO, str, string_length(str))); }
+  inline bool write(const char c) noexcept { return posix::write(STDOUT_FILENO, &c, size_t(1)) != posix::error_response; }
+  inline bool write(string_literal str) noexcept { return posix::write(STDOUT_FILENO, str, string_length(str)) != posix::error_response; }
 
   template<typename... Args>
-  inline int write(string_literal fmt, Args... args) noexcept { return ::dprintf(STDOUT_FILENO, fmt, args...); }
-
-
+  inline bool write(string_literal fmt, Args... args) noexcept { return ::dprintf(STDOUT_FILENO, fmt, args...) != posix::error_response; }
 
   inline void getWindowSize(uint16_t& rows, uint16_t& columns) noexcept
   {
@@ -52,24 +50,24 @@ namespace terminal
 #endif
   }
 
-  inline void hideCursor(void) noexcept { write(CSI "?25l"); }
-  inline void showCursor(void) noexcept { write(CSI "?25h"); }
+  inline bool hideCursor(void) noexcept { return write(CSI "?25l"); }
+  inline bool showCursor(void) noexcept { return write(CSI "?25h"); }
 
-  inline void moveCursorUp   (uint16_t rows = 1) noexcept { write(CSI "%huA", rows); }
-  inline void moveCursorDown (uint16_t rows = 1) noexcept { write(CSI "%huB", rows); }
-  inline void moveCursorLeft (uint16_t cols = 1) noexcept { write(CSI "%huC", cols); }
-  inline void moveCursorRight(uint16_t cols = 1) noexcept { write(CSI "%huD", cols); }
+  inline bool moveCursorUp   (uint16_t rows = 1) noexcept { return write(CSI "%huA", rows); }
+  inline bool moveCursorDown (uint16_t rows = 1) noexcept { return write(CSI "%huB", rows); }
+  inline bool moveCursorLeft (uint16_t cols = 1) noexcept { return write(CSI "%huC", cols); }
+  inline bool moveCursorRight(uint16_t cols = 1) noexcept { return write(CSI "%huD", cols); }
 
-  inline void setCursorHorizontalPosition(uint16_t column) noexcept { write(CSI "%huG", column); }
-  inline void setCursorPosition(uint16_t row, uint16_t column) noexcept { write(CSI "%hu;%huH", row, column); }
+  inline bool setCursorHorizontalPosition(uint16_t column) noexcept { return write(CSI "%huG", column); }
+  inline bool setCursorPosition(uint16_t row, uint16_t column) noexcept { return write(CSI "%hu;%huH", row, column); }
 
-  inline void clearScreenAfter  (void) noexcept { write(CSI "0J"); }
-  inline void clearScreenBefore (void) noexcept { write(CSI "1J"); }
-  inline void clearScreen       (void) noexcept { write(CSI "2J"); }
+  inline bool clearScreenAfter  (void) noexcept { return write(CSI "0J"); }
+  inline bool clearScreenBefore (void) noexcept { return write(CSI "1J"); }
+  inline bool clearScreen       (void) noexcept { return write(CSI "2J"); }
 
-  inline void clearLineAfter    (void) noexcept { write(CSI "0K"); }
-  inline void clearLineBefore   (void) noexcept { write(CSI "1K"); }
-  inline void clearLine         (void) noexcept { write(CSI "2K"); }
+  inline bool clearLineAfter    (void) noexcept { return write(CSI "0K"); }
+  inline bool clearLineBefore   (void) noexcept { return write(CSI "1K"); }
+  inline bool clearLine         (void) noexcept { return write(CSI "2K"); }
 
   namespace text
   {
@@ -115,6 +113,13 @@ namespace terminal
   namespace style
   {
     string_literal reset          = CSI "0m";
+    string_literal darkRed        = CSI "0;40;31m";
+    string_literal darkGreen      = CSI "0;40;32m";
+    string_literal darkYellow     = CSI "0;40;33m";
+    string_literal darkBlue       = CSI "0;40;34m";
+    string_literal darkMagenta    = CSI "0;40;35m";
+    string_literal darkCyan       = CSI "0;40;36m";
+    string_literal darkWhite      = CSI "0;40;37m";
     string_literal brightRed      = CSI "0;40;31;1m";
     string_literal brightGreen    = CSI "0;40;32;1m";
     string_literal brightYellow   = CSI "0;40;33;1m";
