@@ -269,7 +269,7 @@ namespace blockdevices
             !(*detectpos)(superblock, dev)) // run filesystem detection functions until you find one
         ++detectpos;
 
-      printf("device: %s - label: %s - fs: %s - size: %lu\n", dev->path, dev->label, dev->fstype, dev->size);
+      std::printf("device: %s - label: %s - fs: %s - size: %lu\n", dev->path, dev->label, dev->fstype, dev->size);
     }
   } // end detect()
 
@@ -406,7 +406,7 @@ namespace blockdevices
 
   bool detect_NULL(uint8_t* , blockdevice_t* ) noexcept
   {
-    printf("NOT A RECOGNIZED FILESYSTEM!  ");
+    std::printf("NOT A RECOGNIZED FILESYSTEM!  ");
     return true;
   }
 
