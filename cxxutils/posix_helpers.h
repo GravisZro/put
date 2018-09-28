@@ -15,7 +15,7 @@
 // POSIX++
 #include <cstring> // for useringroup()
 #include <csignal>
-#include <cstdio>
+#include <cstdio>  // file descriptor I/O
 #include <cstdint> // need standard types
 
 // PDTK
