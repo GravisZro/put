@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <utility>
+#include <new>
 
 // PDTK
 #include <cxxutils/posix_helpers.h>
@@ -88,7 +89,10 @@ public:
 
     if(length <= capacity()) // reducing the allocated size is not allowed!
       return false;
-    char* new_data = new char[posix::size_t(length)];
+    char* new_data = new(std::nothrow) char[posix::size_t(length)];
+    if(new_data == nullptr)
+      return false;
+
     std::memset(new_data, 0, posix::size_t(length));
     if(m_data == nullptr) // if no memory allocated yet
     {
