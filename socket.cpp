@@ -6,6 +6,9 @@
 // POSIX++
 #include <cstdlib>
 
+// STL
+#include <new>
+
 // PDTK
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/vterm.h>
@@ -105,7 +108,9 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t passfd) const noexcept
 {
   msghdr header = {};
   iovec iov = {};
-  char* aux_buffer = new char[CMSG_SPACE(sizeof(int))];
+  char* aux_buffer = new(std::nothrow) char[CMSG_SPACE(sizeof(int))];
+  if(aux_buffer == nullptr)
+    return false;
 
   header.msg_iov = &iov;
   header.msg_iovlen = 1;
@@ -145,7 +150,9 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
 
   msghdr header = {};
   iovec iov = {};
-  char* aux_buffer = new char[CMSG_SPACE(sizeof(int))];
+  char* aux_buffer = new(std::nothrow) char[CMSG_SPACE(sizeof(int))];
+  if(aux_buffer == nullptr)
+    return false;
 
   header.msg_iov = &iov;
   header.msg_iovlen = 1;
