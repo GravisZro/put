@@ -32,12 +32,12 @@ namespace posix
     kernel   = LOG_KERN,      // kernel messages
     user     = LOG_USER,      // random user-level messages
     mail     = LOG_MAIL,      // mail system
-    daemon   = LOG_DAEMON,    // system daemons
+    provider = LOG_DAEMON,    // system providers
     auth     = LOG_AUTH,      // security/authorization messages
     printer  = LOG_LPR,       // line printer subsystem
     news     = LOG_NEWS,      // network news subsystem
     uucp     = LOG_UUCP,      // UUCP subsystem
-    cron     = LOG_CRON,      // clock daemon
+    cron     = LOG_CRON,      // clock provider
     authpriv = LOG_AUTHPRIV,  // security/authorization messages (private)
   };
 
@@ -50,11 +50,11 @@ namespace posix
   class SyslogStream
   {
   public:
-    static void open(const char* name, facility f = facility::daemon)
+    static void open(const char* name, facility f = facility::provider) noexcept
       { posix::openlog(name, LOG_PID | LOG_CONS | LOG_NOWAIT, int(f)); }
-    static void close(void) { posix::closelog(); }
+    static void close(void) noexcept { posix::closelog(); }
 
-    inline SyslogStream& operator << (priority p) { m_priority = p;  return *this; }
+    inline SyslogStream& operator << (priority p) noexcept { m_priority = p;  return *this; }
     inline SyslogStream& operator << (char c) { m_buffer.push_back(c); return *this; }
     inline SyslogStream& operator << (char* d) { return operator << (const_cast<const char*>(d)); }
     inline SyslogStream& operator << (const char* d) { if(d == nullptr) { m_buffer.append("nullptr"); } else { m_buffer.append(d); } return *this; }
