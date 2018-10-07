@@ -69,22 +69,29 @@ namespace posix
         std::strncpy(m_buffer, arg, sizeof(m_buffer));
       else
       {
-        size_t tmplen = 0;
+        ssize_t buffer_remaining = sizeof(m_tmpbuf);
         const size_t arglen = std::strlen(arg);
         std::memset(m_tmpbuf, 0, sizeof(m_tmpbuf));
 
         char seach_token[3] = { '%', '0', '\0' };
         seach_token[1] = m_argId;
 
-        char* pos = m_buffer;
         char* lastpos = m_buffer;
-        while((pos = std::strtok(pos + 2, seach_token)) != nullptr)
+        for(char* pos = nullptr;
+            (pos = std::strstr(lastpos, seach_token)) != nullptr;
+            lastpos = pos + 2)
         {
-          std::strncat(m_tmpbuf, lastpos, size_t(pos - lastpos));
-          std::strncat(m_tmpbuf, arg, sizeof(m_tmpbuf) - tmplen - arglen);
-          tmplen += arglen;
-          lastpos = pos;
+          ssize_t slice = pos - lastpos;
+          buffer_remaining -= slice;
+          if(buffer_remaining > 0)
+            std::strncat(m_tmpbuf, lastpos, std::size_t(slice));
+
+          buffer_remaining -= arglen;
+          if(buffer_remaining > 0)
+            std::strncat(m_tmpbuf, arg, arglen);
         }
+        if(buffer_remaining > 0)
+          std::strncat(m_tmpbuf, lastpos, size_t(buffer_remaining));
         std::strncpy(m_buffer, m_tmpbuf, sizeof(m_buffer));
       }
 
