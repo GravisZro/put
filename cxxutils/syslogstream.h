@@ -109,7 +109,7 @@ namespace posix
     }
 
     priority m_priority;
-    char m_buffer[0x1000 + PATH_MAX + NAME_MAX];
+    char m_buffer[0x1000 + PATH_MAX];
     char m_tmpbuf[sizeof(m_buffer)];
     char m_argId;
   };
