@@ -89,7 +89,9 @@ void ConfigManip::clear(void) noexcept
 
 bool bailout(void)
 {
-  posix::syslog << posix::priority::error << "Configuration file parser has prematurely exited." << posix::eom;
+  posix::syslog << posix::priority::error
+                << "Configuration file parser has prematurely exited."
+                << posix::eom;
   return false;
 }
 

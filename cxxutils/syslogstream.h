@@ -9,12 +9,13 @@
 // POSIX
 #include <syslog.h>
 
+// POSIX++
+#include <climits>
+#include <cstring>
+#include <cassert>
+
 namespace posix
 {
-  using ::openlog;
-  using ::closelog;
-  //using ::syslog;
-
   enum class priority : int
   {
     emergency = LOG_EMERG,    // system is unusable
@@ -43,45 +44,74 @@ namespace posix
 
   enum control
   {
-    eol,
     eom,
   };
 
   class SyslogStream
   {
   public:
+    SyslogStream(void) { clear(); }
     static void open(const char* name, facility f = facility::provider) noexcept
-      { posix::openlog(name, LOG_PID | LOG_CONS | LOG_NOWAIT, int(f)); }
-    static void close(void) noexcept { posix::closelog(); }
+      { ::openlog(name, LOG_PID | LOG_CONS | LOG_NOWAIT, int(f)); }
+    static void close(void) noexcept { ::closelog(); }
 
     inline SyslogStream& operator << (priority p) noexcept { m_priority = p;  return *this; }
-    inline SyslogStream& operator << (char c) { m_buffer.push_back(c); return *this; }
-    inline SyslogStream& operator << (char* d) { return operator << (const_cast<const char*>(d)); }
-    inline SyslogStream& operator << (const char* d) { if(d == nullptr) { m_buffer.append("nullptr"); } else { m_buffer.append(d); } return *this; }
-    inline SyslogStream& operator << (const std::string& d) { m_buffer.append(d);  return *this; }
+    inline SyslogStream& operator << (char c) noexcept { char tmp[2] = { c, 0 }; return operator << (tmp); }
+    inline SyslogStream& operator << (char* str) noexcept { return operator << (const_cast<const char*>(str)); }
+    inline SyslogStream& operator << (const std::string& str) noexcept { return operator << (str.c_str()); }
 
     template<typename T>
-    inline SyslogStream& operator << (T val) { m_buffer.append(std::to_string(val)); return *this; }
+    inline SyslogStream& operator << (T val) noexcept { return operator << (std::to_string(val).c_str()); }
 
-    SyslogStream& operator << (control cntl)
+    inline SyslogStream& operator << (const char* arg) noexcept
     {
-      switch(cntl)
+      if(m_argId == '0')
+        std::strncpy(m_buffer, arg, sizeof(m_buffer));
+      else
       {
-        case eol:
-          m_buffer.push_back('\n');
-          break;
-        case eom:
-          ::syslog(int(m_priority), "%s", m_buffer.c_str());
-          m_buffer.clear();
-          m_priority = priority::info;
-          break;
+        size_t tmplen = 0;
+        const size_t arglen = std::strlen(arg);
+        std::memset(m_tmpbuf, 0, sizeof(m_tmpbuf));
+
+        char seach_token[3] = { '%', '0', '\0' };
+        seach_token[1] = m_argId;
+
+        char* pos = m_buffer;
+        char* lastpos = m_buffer;
+        while((pos = std::strtok(pos + 2, seach_token)) != nullptr)
+        {
+          std::strncat(m_tmpbuf, lastpos, size_t(pos - lastpos));
+          std::strncat(m_tmpbuf, arg, sizeof(m_tmpbuf) - tmplen - arglen);
+          tmplen += arglen;
+          lastpos = pos;
+        }
+        std::strncpy(m_buffer, m_tmpbuf, sizeof(m_buffer));
       }
+
+      ++m_argId;
+      return *this;
+    }
+
+    SyslogStream& operator << (control cntl) noexcept
+    {
+      assert(cntl == control::eom);
+      ::syslog(int(m_priority), "%s", m_buffer);
+      clear();
       return *this;
     }
 
   private:
+    void clear(void)
+    {
+      std::memset(m_buffer, 0, sizeof(m_buffer));
+      m_priority = priority::info;
+      m_argId = '0';
+    }
+
     priority m_priority;
-    std::string m_buffer;
+    char m_buffer[0x1000 + PATH_MAX + NAME_MAX];
+    char m_tmpbuf[sizeof(m_buffer)];
+    char m_argId;
   };
 
   static SyslogStream syslog;
