@@ -7,6 +7,8 @@
 #include <cxxutils/vterm.h>
 #include <specialized/eventbackend.h>
 
+#if defined(_POSIX_TIMERS)
+
 void TimerEvent::init_once(void) noexcept
 {
   static bool first = true;
@@ -79,3 +81,4 @@ TimerEvent::~TimerEvent(void) noexcept
   posix::close(m_pipeio[Write]);
   timer_delete(m_timer);
 }
+#endif
