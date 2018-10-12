@@ -392,8 +392,8 @@ bool EventBackend::add(posix::fd_t fd, native_flags_t flags, callback_t function
 {
   native_flags_t total_flags = flags;
   bool found = false;
-  auto entries = queue.equal_range(fd); // find modified entry!
-  for(auto& pos = entries.first; pos != entries.second; ++pos)
+  auto iter_pair = queue.equal_range(fd); // find modified entry!
+  for(auto& pos = iter_pair.first; pos != iter_pair.second; ++pos)
   {
     total_flags |= pos->second.flags;
     found |= &(pos->second.function) == &function; // save if function was ever found
@@ -410,9 +410,9 @@ bool EventBackend::add(posix::fd_t fd, native_flags_t flags, callback_t function
 bool EventBackend::remove(posix::fd_t fd, native_flags_t flags) noexcept
 {
   native_flags_t remaining_flags = 0;
-  auto entries = queue.equal_range(fd); // find modified entry!
-  auto& pos = entries.first;
-  while(pos != entries.second)
+  auto iter_pair = queue.equal_range(fd); // find modified entry!
+  auto& pos = iter_pair.first;
+  while(pos != iter_pair.second)
   {
     if((pos->second.flags & flags) == pos->second.flags) // if all flags match
       pos = queue.erase(pos);
