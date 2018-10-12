@@ -13,17 +13,6 @@
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/vterm.h>
 
-
-bool use_socket_file(const char* file)
-{
-  struct stat data;
-  if(::stat(file, &data) == posix::success_response)
-    return S_ISSOCK(data.st_dev);
-
-  return (errno == EACCES ||
-          errno == EOVERFLOW);
-}
-
 // GenericSocket
 
 GenericSocket::GenericSocket(EDomain   domain,
@@ -92,7 +81,7 @@ bool ClientSocket::connect(const char *socket_path) noexcept
   flaw(!posix::connect(m_socket, peeraddr, socklen_t(peeraddr.size())),
        terminal::warning,,
        false,
-       "connect() to %s \"%s\" failure: %s", (socket_path[0] ? "socket file" : "anonymous socket"), socket_path + (socket_path[0] ? 0 : 1), std::strerror(errno)) // connect to peer process
+       "connect() to socket file \"%s\" failure: %s", socket_path, std::strerror(errno)) // connect to peer process
   m_connected = true;
 
   flaw(::peercred(m_socket, cred) != posix::success_response,
@@ -254,9 +243,9 @@ void ServerSocket::acceptPeerRequest(posix::fd_t socket) noexcept
 {
   if(m_peers.find(socket) != m_peers.end())
   {
-    auto connection = m_connections.emplace(socket, socket).first;
-    Object::connect(connection->second.disconnected, this, &ServerSocket::disconnectPeer);
-    Object::connect(connection->second.newMessage, newPeerMessage);
+    auto iter = m_connections.emplace(socket, socket).first;
+    Object::connect(iter->second.disconnected, this, &ServerSocket::disconnectPeer);
+    Object::connect(iter->second.newMessage, newPeerMessage);
     Object::enqueue(connectedPeer, socket);
   }
 }
@@ -319,8 +308,8 @@ bool ServerSocket::read(posix::fd_t socket, Flags_t flags) noexcept
 
 bool ServerSocket::write(posix::fd_t socket, const vfifo& buffer, posix::fd_t passfd) const noexcept
 {
-  auto connection = m_connections.find(socket);
-  if(connection != m_connections.end())
-    return connection->second.write(buffer, passfd);
+  auto iter = m_connections.find(socket);
+  if(iter != m_connections.end())
+    return iter->second.write(buffer, passfd);
   return false;
 }
