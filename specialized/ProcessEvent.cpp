@@ -188,9 +188,14 @@ ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
                                             data.event_data.exec.process_pid);
                             break;
                           case Flags::Exit: // queue exit signal with PID and exit code
-                            Object::enqueue(exited,
-                                            data.event_data.exit.process_pid,
-                                            *reinterpret_cast<posix::error_t*>(&data.event_data.exit.exit_code));
+                            if(data.event_data.exit.exit_signal) // if killed by a signal
+                              Object::enqueue(killed,
+                                              data.event_data.exit.process_pid,
+                                              *reinterpret_cast<posix::signal::EId*>(&data.event_data.exit.exit_signal));
+                            else // else exited by itself
+                              Object::enqueue(exited,
+                                              data.event_data.exit.process_pid,
+                                              *reinterpret_cast<posix::error_t*>(&data.event_data.exit.exit_code));
                             break;
                           case Flags::Fork: // queue fork signal with PID and child PID
                             Object::enqueue(forked,
