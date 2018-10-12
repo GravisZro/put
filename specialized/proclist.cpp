@@ -7,7 +7,7 @@
 
 static_assert(sizeof(pid_t) <= sizeof(int), "insufficient storage type for maximum number of pids");
 
-posix::error_t proclist(std::vector<pid_t>& list)
+posix::error_t proclist(std::vector<pid_t>& list) noexcept
 {
   list.clear();
 
@@ -64,7 +64,7 @@ posix::error_t proclist(std::vector<pid_t>& list)
 // PDTK
 #include <cxxutils/misc_helpers.h>
 
-posix::error_t proclist(std::vector<pid_t>& list)
+posix::error_t proclist(std::vector<pid_t>& list) noexcept
 {
   size_t length = 0;
   std::vector<struct kinfo_proc> proc_list;
@@ -86,7 +86,7 @@ posix::error_t proclist(std::vector<pid_t>& list)
   if(::sysctl(request, arraylength(request), proc_list.data(), &length, nullptr, 0) != posix::success_response)
     return posix::error_response;
 
-  for(const auto& proc_info : proc_list)
+  for(const kinfo_proc& proc_info : proc_list)
 #if defined(__APPLE__)
     list.push_back(proc_info.kp_proc.p_pid);
 #else
