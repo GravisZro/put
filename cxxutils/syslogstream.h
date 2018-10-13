@@ -17,17 +17,26 @@
 #ifndef LOG_KERN
 #define LOG_KERN      LOG_LOCAL0
 #endif
+#ifndef LOG_MAIL
+#define LOG_MAIL      LOG_LOCAL1
+#endif
+#ifndef LOG_NEWS
+#define LOG_NEWS      LOG_LOCAL2
+#endif
+#ifndef LOG_UUCP
+#define LOG_UUCP      LOG_LOCAL3
+#endif
 #ifndef LOG_DAEMON
-#define LOG_DAEMON    LOG_LOCAL1
+#define LOG_DAEMON    LOG_LOCAL4
 #endif
 #ifndef LOG_AUTH
-#define LOG_AUTH      LOG_LOCAL2
+#define LOG_AUTH      LOG_LOCAL5
 #endif
 #ifndef LOG_CRON
-#define LOG_CRON      LOG_LOCAL3
+#define LOG_CRON      LOG_LOCAL6
 #endif
-#ifndef LOG_AUTHPRIV
-#define LOG_AUTHPRIV  LOG_LOCAL4
+#ifndef LOG_LPR
+#define LOG_LPR       LOG_LOCAL7
 #endif
 
 namespace posix
@@ -46,13 +55,17 @@ namespace posix
 
   enum class facility : int
   {
-    user     = LOG_USER,      // random user-level messages
     kernel   = LOG_KERN,      // kernel messages
+    user     = LOG_USER,      // user-level messages
+    mail     = LOG_MAIL,      // mail system
+    news     = LOG_NEWS,      // network news subsystem
+    uucp     = LOG_UUCP,      // UUCP subsystem
     provider = LOG_DAEMON,    // system providers
     auth     = LOG_AUTH,      // security/authorization messages
     cron     = LOG_CRON,      // clock provider
-    authpriv = LOG_AUTHPRIV,  // security/authorization messages (private)
+    printer  = LOG_LPR,       // line printer subsystem
   };
+
 
   enum control
   {
