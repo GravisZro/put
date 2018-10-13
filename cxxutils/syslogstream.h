@@ -14,6 +14,22 @@
 #include <cstring>
 #include <cassert>
 
+#ifndef LOG_KERN
+#define LOG_KERN      LOG_LOCAL0
+#endif
+#ifndef LOG_DAEMON
+#define LOG_DAEMON    LOG_LOCAL1
+#endif
+#ifndef LOG_AUTH
+#define LOG_AUTH      LOG_LOCAL2
+#endif
+#ifndef LOG_CRON
+#define LOG_CRON      LOG_LOCAL3
+#endif
+#ifndef LOG_AUTHPRIV
+#define LOG_AUTHPRIV  LOG_LOCAL4
+#endif
+
 namespace posix
 {
   enum class priority : int
@@ -30,14 +46,10 @@ namespace posix
 
   enum class facility : int
   {
-    kernel   = LOG_KERN,      // kernel messages
     user     = LOG_USER,      // random user-level messages
-    mail     = LOG_MAIL,      // mail system
+    kernel   = LOG_KERN,      // kernel messages
     provider = LOG_DAEMON,    // system providers
     auth     = LOG_AUTH,      // security/authorization messages
-    printer  = LOG_LPR,       // line printer subsystem
-    news     = LOG_NEWS,      // network news subsystem
-    uucp     = LOG_UUCP,      // UUCP subsystem
     cron     = LOG_CRON,      // clock provider
     authpriv = LOG_AUTHPRIV,  // security/authorization messages (private)
   };
