@@ -351,13 +351,6 @@ namespace posix
     return ioctl(fd, FIOBIO, &flags) != posix::error_response);
 #endif
   }
-
-  static inline bool closeonexec(fd_t fd)
-  {
-    int flags = posix::fcntl(fd, F_GETFL, 0);
-    return flags != posix::error_response &&
-           posix::fcntl(fd, F_SETFL, flags | FD_CLOEXEC) != posix::error_response;
-  }
 }
 
 #endif // POSIX_HELPERS_H

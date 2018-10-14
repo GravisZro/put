@@ -31,12 +31,11 @@ struct EventBackend::platform_dependant // poll notification (epoll)
   platform_dependant(void) noexcept
     : fd(posix::invalid_descriptor)
   {
-    fd = ::epoll_create(MAX_EVENTS);
+    fd = ::epoll_create1(EPOLL_CLOEXEC);
     flaw(fd == posix::invalid_descriptor,
          terminal::critical,
          std::exit(errno),,
          "Unable to create an instance of epoll! %s", std::strerror(errno))
-    posix::closeonexec(fd);
   }
 
   ~platform_dependant(void) noexcept
@@ -125,13 +124,12 @@ struct EventBackend::platform_dependant // poll notification (kqueue)
 
   platform_dependant(void)
   {
-    kq = posix::ignore_interruption(::kqueue);
+    kq = posix::ignore_interruption(::kqueue1, O_CLOEXEC);
     flaw(kq == posix::error_response,
          terminal::critical,
          std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
     koutput.resize(1024);
-    posix::closeonexec(kq);
   }
 
   ~platform_dependant(void)
@@ -217,10 +215,10 @@ struct EventBackend::platform_dependant
     flaw(port == posix::error_response,
          terminal::critical,
          std::exit(errno),,
-         "Unable to create a new kqueue: %s", std::strerror(errno))
+         "Unable to create a new poll port: %s", std::strerror(errno))
    pinput .reserve(1024);
    poutput.reserve(1024);
-   posix::closeonexec(port);
+   posix::fcntl(port, F_SETFL, FD_CLOEXEC); // does this work?
   }
 
   ~platform_dependant(void)
