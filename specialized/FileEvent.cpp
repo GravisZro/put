@@ -57,6 +57,7 @@ struct FileEvent::platform_dependant // file notification (inotify)
     flaw(fd == posix::invalid_descriptor,
          terminal::severe,,,
          "Unable to create an instance of inotify!: %s", std::strerror(errno))
+    posix::closeonexec(fd);
   }
 
   ~platform_dependant(void) noexcept

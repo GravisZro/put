@@ -212,6 +212,9 @@ ProcessEvent::~ProcessEvent(void) noexcept
   EventBackend::remove(m_fd, EventBackend::SimplePollReadFlags);
   s_platform.remove(m_pid);
 }
+#elif defined(__linux__)
+//&& LINUX_VERSION_CODE >= KERNEL_VERSION(X,X,X) /* Linux X.X.X+ */
+# error No process event backend code exists in PDTK for Linux before version 2.6.15!  Please submit a patch!
 
 #elif (defined(__APPLE__) && defined(__MACH__)) /* Darwin 7+     */ || \
       defined(__FreeBSD__)                      /* FreeBSD 4.1+  */ || \

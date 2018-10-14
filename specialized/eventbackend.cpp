@@ -36,6 +36,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
          terminal::critical,
          std::exit(errno),,
          "Unable to create an instance of epoll! %s", std::strerror(errno))
+    posix::closeonexec(fd);
   }
 
   ~platform_dependant(void) noexcept
@@ -105,7 +106,7 @@ bool EventBackend::poll(int timeout) noexcept
 #include <cxxutils/vterm.h>
 #include <cxxutils/error_helpers.h>
 
-struct EventBackend::platform_dependant // poll notification (epoll)
+struct EventBackend::platform_dependant // poll notification (kqueue)
 {
   posix::fd_t kq;
   std::vector<struct kevent> koutput;   // events that were triggered
@@ -130,6 +131,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
          std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
     koutput.resize(1024);
+    posix::closeonexec(kq);
   }
 
   ~platform_dependant(void)
@@ -218,6 +220,7 @@ struct EventBackend::platform_dependant
          "Unable to create a new kqueue: %s", std::strerror(errno))
    pinput .reserve(1024);
    poutput.reserve(1024);
+   posix::closeonexec(port);
   }
 
   ~platform_dependant(void)
@@ -385,7 +388,7 @@ bool EventBackend::poll(int timeout) noexcept
 }
 
 #else
-#error This platform is not supported.
+# error This platform is not supported.
 #endif
 
 bool EventBackend::add(posix::fd_t fd, native_flags_t flags, callback_t function) noexcept
