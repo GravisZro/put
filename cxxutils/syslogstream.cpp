@@ -5,7 +5,6 @@
 
 namespace posix
 {
-
   SyslogStream::SyslogStream(void) { clear(); }
 
   SyslogStream& SyslogStream::operator << (const char* arg) noexcept
