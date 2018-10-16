@@ -1,9 +1,5 @@
 #include "TimerEvent.h"
 
-// POSIX++
-#include <climits>
-#include <cassert>
-
 // PDTK
 #include <specialized/eventbackend.h>
 
@@ -16,31 +12,43 @@
 
 
 #if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25) /* Linux 2.6.25+ */
+
+// Linux
 #include <sys/timerfd.h>
 
-struct TimerEvent::platform_dependant // timer notification (Linux)
+static_assert(sizeof(itimerspec::it_interval.tv_nsec) == sizeof(microseconds_t), "opps");
+
+// timer notification (Linux)
+TimerEvent::TimerEvent(void) noexcept
 {
-  static posix::fd_t add(void) noexcept
-  {
-    posix::fd_t timer = ::timerfd_create(CLOCK_MONOTONIC, 0);
-    if(timer != posix::invalid_descriptor)
-      posix::fcntl(timer, F_SETFL, FD_CLOEXEC | O_NONBLOCK);
-    return timer;
-  }
+  m_fd = ::timerfd_create(CLOCK_MONOTONIC, 0);
+  if(m_fd != posix::invalid_descriptor)
+    posix::fcntl(m_fd, F_SETFL, FD_CLOEXEC | O_NONBLOCK);
 
-  static bool set(posix::fd_t fd, microseconds_t delay, microseconds_t repeat_interval)
+  EventBackend::add(m_fd, EventBackend::SimplePollReadFlags, // connect communications pipe to a lambda function
+                    [this](posix::fd_t fd, native_flags_t) noexcept
   {
-    struct itimerspec interval_spec;
-    interval_spec.it_interval.tv_sec = repeat_interval / 1000000;
-    interval_spec.it_interval.tv_nsec = (repeat_interval % 1000000) * 1000;
-    interval_spec.it_value.tv_sec = delay / 1000000;
-    interval_spec.it_value.tv_nsec = (delay % 1000000) * 1000;
-    return ::timerfd_settime(fd, TFD_TIMER_ABSTIME, &interval_spec, NULL) == posix::success_response;
-  }
+    uint64_t discard;
+    while(posix::read(fd, &discard, sizeof(discard)) != posix::error_response);
+    Object::enqueue(this->expired);
+  });
+}
 
-  static bool remove(posix::fd_t fd)
-    { return posix::close(fd); }
-};
+bool TimerEvent::start(microseconds_t delay, microseconds_t repeat_interval)
+{
+  struct itimerspec interval_spec;
+  interval_spec.it_interval.tv_sec = repeat_interval / 1000000;
+  interval_spec.it_interval.tv_nsec = (repeat_interval % 1000000) * 1000;
+  interval_spec.it_value.tv_sec = delay / 1000000;
+  interval_spec.it_value.tv_nsec = (delay % 1000000) * 1000;
+  return ::timerfd_settime(m_fd, TFD_TIMER_ABSTIME, &interval_spec, NULL) == posix::success_response;
+}
+
+TimerEvent::~TimerEvent(void) noexcept
+{
+  if(m_fd != posix::invalid_descriptor)
+    posix::close(m_fd);
+}
 
 #elif defined(__unix__) || defined(__unix)
 
@@ -83,7 +91,15 @@ struct TimerEvent::platform_dependant // timer notification (Linux)
 # if defined(_POSIX_TIMERS)
 # pragma message("No platform specific event backend code! Using standard POSIX timer functions.")
 
+// POSIX++
+#include <ctime>
+#include <climits>
+#include <cassert>
+
+// PDTK
 #include <cxxutils/vterm.h>
+
+static_assert(sizeof(itimerspec::it_interval.tv_nsec) == sizeof(microseconds_t), "opps");
 
 enum {
   Read = 0,
@@ -174,14 +190,9 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
     return false;
   }
 };
-# else
-#  error This platform is not supported.
-# endif
-#else
-# error This platform is not supported.
-#endif
 
-TimerEvent::TimerEvent(microseconds_t delay, microseconds_t repeat_interval) noexcept
+
+TimerEvent::TimerEvent(void) noexcept
 {
   m_fd = s_platform.add();
   EventBackend::add(m_fd, EventBackend::SimplePollReadFlags, // connect communications pipe to a lambda function
@@ -191,11 +202,21 @@ TimerEvent::TimerEvent(microseconds_t delay, microseconds_t repeat_interval) noe
     while(posix::read(fd, &discard, sizeof(discard)) != posix::error_response);
     Object::enqueue(this->expired);
   });
-
-  assert(s_platform.set(m_fd, delay, repeat_interval));
 }
 
 TimerEvent::~TimerEvent(void) noexcept
 {
   assert(s_platform.remove(m_fd));
 }
+
+bool TimerEvent::start(microseconds_t delay, microseconds_t repeat_interval) noexcept
+{
+  return s_platform.set(m_fd, delay, repeat_interval);
+}
+
+# else
+#  error This platform is not supported.
+# endif
+#else
+# error This platform is not supported.
+#endif
