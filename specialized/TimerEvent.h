@@ -19,11 +19,9 @@ public:
 
   signal<> expired;
 private:
-  static void init_once(void) noexcept;
-  static void handler(int, siginfo_t* info, void*) noexcept;
-
-  posix::fd_t m_pipeio[2];
-  timer_t m_timer;
+  posix::fd_t m_fd;
+  struct platform_dependant;
+  static struct platform_dependant s_platform;
 };
 
 #endif // TIMEREVENT_H
