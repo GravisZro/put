@@ -310,14 +310,14 @@ private:
 
 // string
   template<typename T>
-  void serialize(const std::basic_string<T>& arg) noexcept
-    { serialize_arr(arg.data(), arg.size()); }
-
-  template<typename T>
   void deserialize(std::basic_string<T>& arg) noexcept
   {
     arg.resize(data<uint16_t>()[1]);
     deserialize_arr(const_cast<T*>(arg.data()), arg.size()); // not guaranteed to work per the STL spec but should never fail catastrophically.
   }
 };
+
+// make sure strings are read in properly!
+template<> vfifo& vfifo::operator << (const std::string& arg) noexcept;
+template<> vfifo& vfifo::operator << (const std::wstring& arg) noexcept;
 #endif // VQUEUE_H
