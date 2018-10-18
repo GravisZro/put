@@ -35,6 +35,7 @@ namespace posix
 
   // unistd.h
   using ::access;
+  using ::faccessat;
   using ::alarm;
   using ::chdir;
   // ::chown EINTR
@@ -69,11 +70,11 @@ namespace posix
   static inline bool fexecve(int fd, char *const argv[], char *const envp[]);
 */
 
-  static inline bool faccessat(int fd, const char* path, int amode, int flag) noexcept
-    { return ignore_interruption<int, int, const char*, int, int>(::faccessat, fd, path, amode, flag) != error_response; }
+  typedef int fd_t;
+  static const fd_t invalid_descriptor = error_response;
 
-  static inline bool fchdir(int fd) noexcept
-    { return ignore_interruption<int, int>(::fchdir, fd) != error_response; }
+  static inline bool fchdir(fd_t fd) noexcept
+    { return ignore_interruption<int, fd_t>(::fchdir, fd) != error_response; }
 
 
   static inline bool setuid(uid_t uid) noexcept
@@ -93,7 +94,7 @@ namespace posix
   using ::getgid;
   using ::getegid;
 
-  static inline bool pipe(int fildes[2]) noexcept
+  static inline bool pipe(fd_t fildes[2]) noexcept
     { return ignore_interruption<int, int*>(::pipe, fildes) != error_response; }
 
   using ::dup;
@@ -116,8 +117,6 @@ namespace posix
   using ::fcntl;
 
 
-  typedef int fd_t;
-  static const fd_t invalid_descriptor = error_response;
 
 // POSIX wrappers
   static inline passwd* getpwuid(uid_t uid) noexcept
@@ -272,7 +271,7 @@ namespace posix
   }
 
 // POSIX wrappers
-  static inline bool dup2(int a, int b) noexcept
+  static inline bool dup2(fd_t a, fd_t b) noexcept
     { return ignore_interruption(::dup2, a, b) != error_response; }
 
   static inline bool close(fd_t fd) noexcept
