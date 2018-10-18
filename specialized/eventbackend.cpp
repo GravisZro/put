@@ -124,11 +124,12 @@ struct EventBackend::platform_dependant // poll notification (kqueue)
 
   platform_dependant(void)
   {
-    kq = posix::ignore_interruption(::kqueue1, O_CLOEXEC);
+    kq = posix::ignore_interruption(::kqueue);
     flaw(kq == posix::error_response,
          terminal::critical,
          std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
+    posix::fcntl(kq, F_SETFL, FD_CLOEXEC); // close on exec*
     koutput.resize(1024);
   }
 
