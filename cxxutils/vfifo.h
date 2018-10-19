@@ -10,7 +10,6 @@
 #include <vector>
 #include <string>
 #include <utility>
-#include <new>
 
 // PDTK
 #include <cxxutils/posix_helpers.h>
@@ -30,19 +29,7 @@ public:
 
   vfifo(const vfifo& that) noexcept { operator=(that); }
 
-  vfifo& operator=(const vfifo& other) noexcept
-  {
-    if (this != &other)
-    {
-      m_data       = const_cast<vfifo&>(other).m_data;
-      m_virt_begin = other.m_virt_begin;
-      m_virt_end   = other.m_virt_end;
-      m_capacity   = other.m_capacity;
-      m_ok         = other.m_ok;
-      m_external   = other.m_external;
-    }
-    return *this;
-  }
+  vfifo& operator=(const vfifo& other) noexcept;
 
 // === error functions ===
   bool hadError(void) const noexcept { return !m_ok; }
@@ -82,36 +69,7 @@ public:
   }
 
 // === manual queue manipulators ===
-  bool allocate(posix::ssize_t length) noexcept
-  {
-    if(m_external)
-      return m_ok = false;
-
-    if(length <= capacity()) // reducing the allocated size is not allowed!
-      return false;
-    char* new_data = new(std::nothrow) char[posix::size_t(length)];
-    if(new_data == nullptr)
-      return false;
-
-    std::memset(new_data, 0, posix::size_t(length));
-    if(m_data == nullptr) // if no memory allocated yet
-    {
-      m_data = new_data; // assign memory
-      resize(0); // reset all the progress pointers status
-    }
-    else // expand memory
-    {
-      std::memcpy(new_data, m_data, posix::size_t(capacity())); // copy old memory to new
-      m_virt_begin = new_data + (m_virt_begin - m_data); // shift the progress pointers to the new memory
-      m_virt_end   = new_data + (m_virt_end   - m_data);
-      delete[] m_data; // delete the old memory
-      m_data = new_data; // use new memory
-    }
-
-    m_capacity = length;
-    m_ok &= m_data != nullptr;
-    return m_data != nullptr;
-  }
+  bool allocate(posix::ssize_t length) noexcept;
 
   bool           empty (void) const noexcept { return dataEnd() == data   (); }
   posix::ssize_t size  (void) const noexcept { return dataEnd() -  data   (); }
@@ -119,43 +77,10 @@ public:
   posix::ssize_t unused(void) const noexcept { return end    () -  dataEnd(); }
 
 
-  void reset(void) noexcept
-  {
-    m_virt_end = m_virt_begin = m_data;
-    clearError();
-  }
-
-  bool resize(posix::ssize_t sz) noexcept
-  {
-    if(sz < 0)
-      return m_ok = false;
-    m_virt_begin = m_data;
-    m_virt_end   = m_data + sz;
-    m_ok &= m_virt_end <= end();
-    return m_virt_end <= end();
-  }
-
-  bool shrink(posix::ssize_t count) noexcept
-  {
-    if(count < 0)
-      return m_ok = false;
-    if(m_virt_begin + count < m_virt_end)
-      m_virt_begin += count;
-    else
-      m_virt_begin = m_virt_end = m_data; // move back to start of buffer
-    return true;
-  }
-
-  bool expand(posix::ssize_t count) noexcept
-  {
-    if(count < 0)
-      return m_ok = false;
-    if(m_virt_end + count < end())
-      m_virt_end += count;
-    else
-      m_virt_end = const_cast<char*>(end());
-    return true;
-  }
+  void reset(void) noexcept;
+  bool resize(posix::ssize_t sz) noexcept;
+  bool shrink(posix::ssize_t count) noexcept;
+  bool expand(posix::ssize_t count) noexcept;
 
   template<typename T = char> constexpr T& front   (void) noexcept       { return *data<T>(); }
   template<typename T = char> constexpr T& back    (void) noexcept       { return *dataEnd<T>(); }
