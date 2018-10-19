@@ -110,7 +110,7 @@ int peercred(int socket, proccred_t& cred) noexcept
 
   msghdr header = {};
   iovec iov = { nullptr, 0 };
-  char* aux_buffer = new char[CMSG_SPACE(sizeof(creds_t))];
+  char* aux_buffer = static_cast<char*>(::malloc(CMSG_SPACE(sizeof(creds_t))));
 
   header.msg_iov = &iov;
   header.msg_iovlen = 1;
@@ -134,7 +134,7 @@ int peercred(int socket, proccred_t& cred) noexcept
       cmsg->cmsg_type == SCM_CREDS &&
       cmsg->cmsg_len == CMSG_LEN(sizeof(creds_t));
 
-  delete[] aux_buffer;
+  ::free(aux_buffer);
       */
 }
 

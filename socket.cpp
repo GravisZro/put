@@ -6,9 +6,6 @@
 // POSIX++
 #include <cstdlib>
 
-// STL
-#include <new>
-
 // PDTK
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/vterm.h>
@@ -97,7 +94,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t passfd) const noexcept
 {
   msghdr header = {};
   iovec iov = {};
-  char* aux_buffer = new(std::nothrow) char[CMSG_SPACE(sizeof(int))];
+  char* aux_buffer = static_cast<char*>(::malloc(CMSG_SPACE(sizeof(int))));
   if(aux_buffer == nullptr)
     return false;
 
@@ -124,7 +121,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t passfd) const noexcept
        terminal::warning,,
        false,
        "sendmsg() failure: %s", std::strerror(errno));
-  delete[] aux_buffer;
+  ::free(aux_buffer);
   return true;
 }
 
@@ -139,7 +136,7 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
 
   msghdr header = {};
   iovec iov = {};
-  char* aux_buffer = new(std::nothrow) char[CMSG_SPACE(sizeof(int))];
+  char* aux_buffer = static_cast<char*>(::malloc(CMSG_SPACE(sizeof(int))));
   if(aux_buffer == nullptr)
     return false;
 
@@ -187,7 +184,7 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
          "error, message flags: 0x%04x", header.msg_flags)
   }
   Object::enqueue(newMessage, m_socket, m_buffer, passfd);
-  delete[] aux_buffer;
+  ::free(aux_buffer);
   return true;
 }
 
