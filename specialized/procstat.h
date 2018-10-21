@@ -11,7 +11,6 @@
 // PDTK
 #include <cxxutils/posix_helpers.h>
 
-
 enum ExecutionState : char
 {
   Invalid = 0,                  // invalid state (only used internally)
@@ -21,7 +20,6 @@ enum ExecutionState : char
   Zombie = 'Z',                 // zombie process
   Stopped = 'T',                // stopped/tracing execution
 };
-typedef uint32_t signals_t;
 
 struct process_state_t
 {
@@ -34,12 +32,12 @@ struct process_state_t
   pid_t process_group_id;   // process group id
   pid_t session_id;         // session id
 
-  int tty; // number of the tty the process running on
+  dev_t tty_device;         // device id of the tty device the process is running on
 
-  signals_t signals_pending;
-  signals_t signals_blocked;
-  signals_t signals_ignored;
-  signals_t signals_caught;
+  uint32_t signals_pending; // number of signals pending
+  sigset_t signals_blocked; // bitmask of signals blocked
+  sigset_t signals_ignored; // bitmask of signals ignored
+  sigset_t signals_caught;  // bitmask of signals caught
 
   int priority_value; // nice value
 };
