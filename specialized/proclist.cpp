@@ -2,8 +2,14 @@
 
 #if defined(__linux__) // Linux
 
-#include <dirent.h>
+// POSIX++
 #include <cstdlib>
+
+// POSIX
+#include <dirent.h>
+
+// PDTK
+#include <cxxutils/mountpoint_helpers.h>
 
 static_assert(sizeof(pid_t) <= sizeof(int), "insufficient storage type for maximum number of pids");
 
@@ -11,7 +17,7 @@ posix::error_t proclist(std::vector<pid_t>& list) noexcept
 {
   list.clear();
 
-  DIR* dirp = ::opendir("/proc");
+  DIR* dirp = ::opendir(procfs_path);
   if(dirp == nullptr)
     return posix::error_response;
 
