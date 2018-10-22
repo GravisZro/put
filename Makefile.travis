@@ -37,10 +37,16 @@ SOURCES       = buildtest.cpp \
 		socket.cpp \
 		childprocess.cpp \
 		cxxutils/configmanip.cpp \
+		cxxutils/mountpoint_helpers.cpp \
+		cxxutils/syslogstream.cpp \
+		cxxutils/translate.cpp \
+		cxxutils/vfifo.cpp \
 		specialized/eventbackend.cpp \
 		specialized/peercred.cpp \
 		specialized/procstat.cpp \
 		specialized/proclist.cpp \
+		specialized/fstable.cpp \
+		specialized/MountEvent.cpp \
 		specialized/FileEvent.cpp \
 		specialized/PollEvent.cpp \
 		specialized/ProcessEvent.cpp \
