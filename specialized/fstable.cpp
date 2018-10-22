@@ -101,8 +101,8 @@ int parse_table(std::set<struct fsentry_t>& table, const char* filename) noexcep
   return posix::success_response;
 }
 
-#elif defined(__unix__) || defined(__unix) || \
-      (defined(__APPLE__) && defined(__MACH__)) /* Darwin */
+#elif defined(__unix__) || defined(__unix)      /* Generic UNIX */ || \
+      (defined(__APPLE__) && defined(__MACH__)) /* Darwin       */
 
 # if defined(__unix__) || defined(__unix)
 #  pragma message("Unrecognized UNIX variant. Using low-level parser.")
