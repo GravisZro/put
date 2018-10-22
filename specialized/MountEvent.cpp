@@ -22,6 +22,8 @@
 #include <climits>
 #include <cstring>
 
+#include <memory>
+
 #ifndef MOUNT_TABLE_FILE
 #define MOUNT_TABLE_FILE  "/etc/mtab"
 #endif
@@ -34,8 +36,8 @@ MountEvent::MountEvent(void) noexcept
     EventBackend::callback_t comparison_func =
         [this](posix::fd_t, native_flags_t) noexcept
         {
-          std::string device;
-          std::string path;
+          std::basic_string<char, std::char_traits<char>, std::allocator<char>> device;
+          std::basic_string<char, std::char_traits<char>, std::allocator<char>> path;
           std::set<struct fsentry_t> new_table;
           parse_table(new_table, MOUNT_TABLE_FILE);
 
@@ -65,7 +67,7 @@ MountEvent::MountEvent(void) noexcept
       (defined(__APPLE__) && defined(__MACH__)) /* Darwin       */
     m_timer = new TimerEvent();
     m_timer->start(10000000, 10000000); // once per 10 seconds
-    Object::connect(m_timer->expired, fslot_t<void>([this](void) noexcept { comparison_func(0,0) }));
+    Object::connect(m_timer->expired, fslot_t<void>([comparison_func](void) noexcept { comparison_func(0,0); }));
 #endif
 }
 
