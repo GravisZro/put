@@ -23,6 +23,7 @@ fsentry_t::fsentry_t(const char* _device,
                      const char* _options,
                      const int _dump_frequency,
                      const int _pass) noexcept
+  : fsentry_t()
 {
   std::strncpy(device     , _device     , PATH_MAX);
   std::strncpy(path       , _path       , PATH_MAX);
