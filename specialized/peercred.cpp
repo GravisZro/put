@@ -76,7 +76,7 @@ int peercred(int socket, proccred_t& cred) noexcept
   return rval;
 }
 
-#elif defined(SCM_CREDS) // *BSD/Darwin/Hurd
+#elif defined(SCM_CREDS) /* *BSD/Darwin/Hurd */
 #pragma message("Information: using SCM_CREDS code")
 
 #if defined(LOCAL_CREDS) && !defined(SO_PASSCRED)
