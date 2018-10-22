@@ -12,7 +12,8 @@ public:
   TimerEvent(void) noexcept;
   ~TimerEvent(void) noexcept;
 
-  bool start(microseconds_t delay, microseconds_t repeat_interval = 0);
+  bool start(microseconds_t delay, microseconds_t repeat_interval = 0) noexcept;
+  bool stop(void) noexcept;
 
   signal<> expired;
 private:

@@ -34,7 +34,13 @@ TimerEvent::TimerEvent(void) noexcept
   });
 }
 
-bool TimerEvent::start(microseconds_t delay, microseconds_t repeat_interval)
+TimerEvent::~TimerEvent(void) noexcept
+{
+  if(m_fd != posix::invalid_descriptor)
+    posix::close(m_fd);
+}
+
+bool TimerEvent::start(microseconds_t delay, microseconds_t repeat_interval) noexcept
 {
   struct itimerspec interval_spec;
   interval_spec.it_interval.tv_sec = repeat_interval / 1000000;
@@ -44,10 +50,9 @@ bool TimerEvent::start(microseconds_t delay, microseconds_t repeat_interval)
   return ::timerfd_settime(m_fd, TFD_TIMER_ABSTIME, &interval_spec, NULL) == posix::success_response;
 }
 
-TimerEvent::~TimerEvent(void) noexcept
+bool TimerEvent::stop(void) noexcept
 {
-  if(m_fd != posix::invalid_descriptor)
-    posix::close(m_fd);
+  return start(0, 0);
 }
 
 #elif defined(__unix__) || defined(__unix)
@@ -161,7 +166,7 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
     return readfd;
   }
 
-  bool set(posix::fd_t fd, microseconds_t delay, microseconds_t repeat_interval)
+  bool set(posix::fd_t fd, microseconds_t delay, microseconds_t repeat_interval) noexcept
   {
     auto iter = events.find(fd);
     if(iter != events.end())
@@ -177,7 +182,7 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
     return false;
   }
 
-  bool remove(posix::fd_t fd)
+  bool remove(posix::fd_t fd) noexcept
   {
     auto iter = events.find(fd);
     if(iter != events.end())
@@ -212,6 +217,11 @@ TimerEvent::~TimerEvent(void) noexcept
 bool TimerEvent::start(microseconds_t delay, microseconds_t repeat_interval) noexcept
 {
   return s_platform.set(m_fd, delay, repeat_interval);
+}
+
+bool TimerEvent::stop(void) noexcept
+{
+  return start(0, 0);
 }
 
 # else
