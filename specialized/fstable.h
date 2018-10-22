@@ -1,7 +1,7 @@
 #ifndef FSTABLE_H
 #define FSTABLE_H
 
-#include <set>
+#include <list>
 
 struct fsentry_t
 {
@@ -21,9 +21,10 @@ struct fsentry_t
             const int _pass           = 0) noexcept;
   ~fsentry_t(void) noexcept;
 
-  bool operator < (const fsentry_t&) const { return false; }
+  //bool operator < (const fsentry_t&) const { return false; }
+  bool operator == (const fsentry_t& other) const;
 };
 
-int parse_table(std::set<struct fsentry_t>& table, const char* filename) noexcept;
+int parse_table(std::list<struct fsentry_t>& table, const char* filename) noexcept;
 
 #endif // FSTABLE_H

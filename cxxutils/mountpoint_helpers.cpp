@@ -27,7 +27,7 @@ inline void assign_data(char*& target, const char* str) noexcept
 
 posix::error_t initialize_paths(void) noexcept
 {
-  std::set<struct fsentry_t> table;
+  std::list<struct fsentry_t> table;
   if(parse_table(table, MOUNT_TABLE_FILE) != posix::success_response)
     return posix::error_response;
 

@@ -52,6 +52,16 @@ fsentry_t::~fsentry_t(void) noexcept
   pass = 0;
 }
 
+bool fsentry_t::operator == (const fsentry_t& other) const
+{
+  return std::strncmp(device, other.device, PATH_MAX) == 0 &&
+      std::strncmp(path, other.path, PATH_MAX) == 0 &&
+      std::strncmp(filesystems, other.filesystems, PATH_MAX) == 0 &&
+      std::strncmp(options, other.options, PATH_MAX) == 0 &&
+      dump_frequency == other.dump_frequency &&
+      pass == other.pass;
+}
+
 
 #if defined(__linux__)    /* Every Linux    */ || \
     defined(__OpenBSD__)  /* Every OpenBSD  */ || \
@@ -63,22 +73,24 @@ fsentry_t::~fsentry_t(void) noexcept
 
 #include <mntent.h>
 
-int parse_table(std::set<struct fsentry_t>& table, const char* filename) noexcept
+int parse_table(std::list<struct fsentry_t>& table, const char* filename) noexcept
 {
   table.clear();
-  FILE* file = std::fopen(filename, "r");
+  FILE* file = ::setmntent(filename, "r");
   if(file == nullptr)
     return posix::error_response;
 
   struct mntent* entry = nullptr;
   while((entry = ::getmntent(file)) != nullptr)
-    table.emplace(entry->mnt_fsname,
-                  entry->mnt_dir,
-                  entry->mnt_type,
-                  entry->mnt_opts,
-                  entry->mnt_freq,
-                  entry->mnt_passno);
-  std::fclose(file);
+  {
+    table.emplace_back(entry->mnt_fsname,
+                       entry->mnt_dir,
+                       entry->mnt_type,
+                       entry->mnt_opts,
+                       entry->mnt_freq,
+                       entry->mnt_passno);
+  }
+  ::endmntent(file);
   return posix::success_response;
 }
 
@@ -87,18 +99,18 @@ int parse_table(std::set<struct fsentry_t>& table, const char* filename) noexcep
 
 #include <fstab.h>
 
-int parse_table(std::set<struct fsentry_t>& table, const char* filename) noexcept
+int parse_table(std::list<struct fsentry_t>& table, const char* filename) noexcept
 {
   ::setfstab(filename);
 
   struct fstab* entry = nullptr;
   while((entry = ::getfsent()) != nullptr)
-    table.emplace(entry->fs_spec,
-                  entry->fs_file,
-                  entry->fs_vfstype,
-                  entry->fs_mntops,
-                  entry->fs_freq,
-                  entry->fs_passno);
+    table.emplace_back(entry->fs_spec,
+                       entry->fs_file,
+                       entry->fs_vfstype,
+                       entry->fs_mntops,
+                       entry->fs_freq,
+                       entry->fs_passno);
   return posix::success_response;
 }
 
@@ -117,7 +129,7 @@ static char* skip_spaces(char* data) noexcept
 }
 
 
-int parse_table(std::set<struct fsentry_t>& table, const char* filename) noexcept
+int parse_table(std::list<struct fsentry_t>& table, const char* filename) noexcept
 {
   struct fsentry_t entry;
   table.clear();

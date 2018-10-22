@@ -21,7 +21,7 @@ public:
 private:
   posix::fd_t m_fd;
   TimerEvent* m_timer;
-  std::set<struct fsentry_t> m_table;
+  std::list<struct fsentry_t> m_table;
 };
 
 #endif // MOUNTEVENT_H
