@@ -2,7 +2,6 @@
 #define FSTABLE_H
 
 #include <set>
-#include <climits>
 
 struct fsentry_t
 {

@@ -3,6 +3,7 @@
 // POSIX++
 #include <cstring>
 #include <cctype>
+#include <climits>
 
 // PDTK
 #include <cxxutils/posix_helpers.h>
