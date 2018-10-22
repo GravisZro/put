@@ -34,22 +34,24 @@ MountEvent::MountEvent(void) noexcept
     EventBackend::callback_t comparison_func =
         [this](posix::fd_t, native_flags_t) noexcept
         {
+          std::string device;
+          std::string path;
           std::set<struct fsentry_t> new_table;
           parse_table(new_table, MOUNT_TABLE_FILE);
 
           for(auto& entry : new_table)
             if(m_table.find(entry) == m_table.end())
             {
-              std::string device(entry.device);
-              std::string path (entry.path);
+              device = entry.device;
+              path = entry.path;
               Object::enqueue(mounted, device, path);
             }
 
           for(auto& entry : m_table)
             if(new_table.find(entry) == new_table.end())
             {
-              std::string device(entry.device);
-              std::string path (entry.path);
+              device = entry.device;
+              path = entry.path;
               Object::enqueue(mounted, device, path);
             }
 
