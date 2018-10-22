@@ -7,9 +7,9 @@
 
 #include <unistd.h>
 
-#if defined(__linux__)
+#if defined(__linux__) /* Linux */
 #include <linux/fs.h>
-#else // *BSD/Darwin
+#elif defined(BSD) || (defined(__APPLE__) && defined(__MACH__)) /* *BSD/Darwin */
 #include <sys/disklabel.h>
 #include <sys/disk.h>
 #endif
