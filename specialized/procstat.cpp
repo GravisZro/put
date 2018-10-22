@@ -1,10 +1,6 @@
 #include "procstat.h"
 
-#if (defined(__APPLE__) && defined(__MACH__)) /* Darwin 7+     */ || \
-    defined(__FreeBSD__)                      /* FreeBSD 4.1+  */ || \
-    defined(__DragonFly__)                    /* DragonFly BSD */ || \
-    defined(__OpenBSD__)                      /* OpenBSD 2.9+  */ || \
-    defined(__NetBSD__)                       /* NetBSD 2+     */
+#if defined(BSD) || (defined(__APPLE__) && defined(__MACH__)) /* *BSD/Darwin */
 
 // *BSD/Darwin
 #include <sys/sysctl.h>
@@ -59,7 +55,7 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
   return posix::success_response;
 }
 
-#elif defined(__unix__)
+#elif defined(__unix__) || defined(__unix) /* Generic UNIX */
 
 // POSIX
 #include <unistd.h>
@@ -356,12 +352,6 @@ posix::error_t proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
   }
 }
 
-
-
-# elif defined(__osf__) || defined(__osf) // Tru64 (OSF/1)
-#  error No /proc decoding is implemented in PDTK for Tru64!  Please submit a patch!
-# elif defined(__hpux) // HP-UX
-#  error No /proc decoding is implemented in PDTK for HP-UX!  Please submit a patch!
 # elif defined(_AIX) // IBM AIX
 
 #include <sys/procfs.h>
@@ -375,39 +365,50 @@ posix::error_t proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
   }
 }
 
-
-#  error No /proc decoding is implemented in PDTK for AIX!  Please submit a patch!
-# elif defined(BSD)
-#  error No /proc decoding is implemented in PDTK for unrecognized BSD derivative!  Please submit a patch!
-# else
-#  error No /proc decoding is implemented in PDTK for unrecognized UNIX!  Please submit a patch!
 # endif
+
+inline void clear_state(process_state_t& data) noexcept
+{
+  data.process_id = 0;
+  data.name.clear();
+  data.executable.clear();
+  data.arguments.clear();
+  data.state = Invalid;
+  data.parent_process_id = 0;
+  data.process_group_id = 0;
+  data.session_id = 0;
+  data.tty_device = 0;
+  data.signals_pending = 0;
+  data.signals_blocked = sigset_t();
+  data.signals_ignored = sigset_t();
+  data.signals_caught  = sigset_t();
+  data.priority_value  = 0;
+}
 
 posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
 {
-  static_assert(sizeof(gid_t) == sizeof(int), "size error");
-  static_assert(sizeof(uid_t) == sizeof(int), "size error");
-  static_assert(sizeof(pid_t) == sizeof(int), "size error");
-
+  clear_state(data);
   if(procfs_path == nullptr &&
     initialize_paths() == posix::error_response)
     return posix::error_response;
 
-  data.state = Invalid;
-  data.arguments.clear();
-
 # if defined(__linux__) // Linux
-  proc_decode(pid, "stat", proc_stat_decoder, data);
-  proc_decode(pid, "status", proc_status_decoder, data);
-  proc_decode(pid, "cmdline", proc_cmdline_decoder, data);
-  proc_exe_symlink(pid, "exe", data);
+  if(proc_decode(pid, "stat"    , proc_stat_decoder, data) == posix::error_response ||
+     proc_decode(pid, "status"  , proc_status_decoder, data) == posix::error_response ||
+     proc_decode(pid, "cmdline" , proc_cmdline_decoder, data) == posix::error_response ||
+     proc_exe_symlink(pid, "exe", data) == posix::error_response)
+    return posix::error_response;
 
 # elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
-  proc_decode(pid, "psinfo", proc_psinfo_decoder, data);
-  proc_exe_symlink(pid, "path/a.out", data);
+  if(proc_decode(pid, "psinfo", proc_psinfo_decoder, data) == posix::error_response ||
+     proc_exe_symlink(pid, "path/a.out", data) == posix::error_response ||
+     false) // imcomplete code
+    return posix::error_response;
 
 # elif defined(_AIX) // IBM AIX
-  proc_decode(pid, "psinfo", proc_psinfo_decoder, data);
+  if(proc_decode(pid, "psinfo", proc_psinfo_decoder, data) ||
+     true) // imcomplete code
+    return posix::error_response;
 
 # elif defined(__osf__) || defined(__osf) // Tru64 (OSF/1)
 #  error No /proc decoding is implemented in PDTK for Tru64!  Please submit a patch!
@@ -415,8 +416,6 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
 # elif defined(__hpux) // HP-UX
 #  error No /proc decoding is implemented in PDTK for HP-UX!  Please submit a patch!
 
-# elif defined(BSD)
-#  error No /proc decoding is implemented in PDTK for unrecognized BSD derivative!  Please submit a patch!
 # else
 #  error No /proc decoding is implemented in PDTK for unrecognized UNIX!  Please submit a patch!
 # endif
