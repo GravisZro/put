@@ -5,12 +5,6 @@
 #include <cstring>
 #include <climits>
 
-#if defined(__linux__)
-#define BLOCKDEV_ARGS const char* procfs_path
-#else
-#define BLOCKDEV_ARGS void
-#endif
-
 struct blockdevice_t
 {
   char     path  [PATH_MAX];
@@ -26,7 +20,7 @@ struct blockdevice_t
 
 namespace blockdevices
 {
-  extern void init(BLOCKDEV_ARGS) noexcept;
+  extern void init(void) noexcept;
   extern blockdevice_t* probe(const char* path) noexcept; // probe a device based on absolute path
 
   extern blockdevice_t* lookup(const char* id) noexcept; // finds device based on absolute path, uuid or label

@@ -1,7 +1,9 @@
 #include "blockdevices.h"
 
 #include <list>
+
 #include <cxxutils/posix_helpers.h>
+#include <cxxutils/mountpoint_helpers.h>
 
 #include <unistd.h>
 
@@ -13,10 +15,6 @@
 #endif
 
 #include <arpa/inet.h>
-
-#ifndef DEVFS_PATH
-#define DEVFS_PATH          "/dev"
-#endif
 
 #ifndef BLOCK_SIZE
 #define BLOCK_SIZE 0x00000400
@@ -114,7 +112,7 @@ namespace blockdevices
 
       // read device name
       blockdevice_t dev;
-      std::strncpy(dev.path, DEVFS_PATH, sizeof(blockdevice_t::path) - sizeof("/"));
+      std::strncpy(dev.path, devfs_path, sizeof(blockdevice_t::path) - sizeof("/"));
       std::strcat(dev.path, "/");
       for(char* field = dev.path + std::strlen(dev.path);
           *pos && pos < dev.path + sizeof(blockdevice_t::path) && std::isgraph(*pos);
@@ -132,7 +130,7 @@ namespace blockdevices
 #endif
 
 
-  void init(BLOCKDEV_ARGS) noexcept
+  void init(void) noexcept
   {
     devices.clear();
 
@@ -300,10 +298,10 @@ namespace blockdevices
   };
   static_assert(sizeof(uintle32_t) == sizeof(uint32_t), "naughty compiler!");
 
-  template<typename T> constexpr uint16_t get16(T* x) noexcept { return *reinterpret_cast<uint16_t*>(x); }
-  template<typename T> constexpr uint32_t get32(T* x) noexcept { return *reinterpret_cast<uint32_t*>(x); }
-  template<typename T> constexpr uint16_t getLE16(T* x) noexcept { return *reinterpret_cast<uintle16_t*>(x); }
-  template<typename T> constexpr uint32_t getLE32(T* x) noexcept { return *reinterpret_cast<uintle32_t*>(x); }
+  template<typename T> constexpr uint16_t getBE16(T* x) noexcept { return htons(*reinterpret_cast<uint16_t*>(x)); }
+  template<typename T> constexpr uint32_t getBE32(T* x) noexcept { return htonl(*reinterpret_cast<uint32_t*>(x)); }
+  template<typename T> constexpr uint16_t getLE16(T* x) noexcept { return ntohs(*reinterpret_cast<uint16_t*>(x)); }
+  template<typename T> constexpr uint32_t getLE32(T* x) noexcept { return ntohl(*reinterpret_cast<uint32_t*>(x)); }
 
   template<typename T> constexpr uint32_t getFlags(T addr, uint32_t flags) noexcept { return getLE32(addr) & flags; }
   template<typename T> constexpr bool flagsAreSet(T addr, uint32_t flags) noexcept { return getFlags(addr, flags) == flags; }
