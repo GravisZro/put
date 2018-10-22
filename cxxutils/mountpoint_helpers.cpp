@@ -1,8 +1,10 @@
 #include "mountpoint_helpers.h"
 
+// POSIX++
+#include <climits>
+
 // PDTK
-#include "posix_helpers.h"
-#include "hashing.h"
+#include <cxxutils/hashing.h>
 #include <specialized/fstable.h>
 
 #ifndef MOUNT_TABLE_FILE
@@ -16,12 +18,14 @@ char* scfs_path   = nullptr;
 
 inline void assign_data(char*& target, const char* str) noexcept
 {
+  if(target != nullptr)
+    ::free(target);
   size_t length = ::strnlen(str, PATH_MAX) + 1;
   target = static_cast<char*>(::malloc(length));
   std::strncpy(target, str, length);
 }
 
-inline int init_paths(void) noexcept
+posix::error_t initialize_paths(void) noexcept
 {
   std::set<struct fsentry_t> table;
   if(parse_table(table, MOUNT_TABLE_FILE) != posix::success_response)
@@ -49,5 +53,3 @@ inline int init_paths(void) noexcept
   }
   return posix::success_response;
 }
-
-static int path_init_ok = init_paths();
