@@ -41,10 +41,10 @@ namespace posix
   template<typename RType, typename... ArgTypes>
   static inline RType* ignore_interruption(function<RType*, ArgTypes...> func, ArgTypes... args) noexcept
   {
-    RType* rval = nullptr;
+    RType* rval = NULL;
     do {
       rval = func(args...);
-    } while(rval == nullptr && errno == std::errc::interrupted);
+    } while(rval == NULL && errno == std::errc::interrupted);
     return rval;
   }
 #endif

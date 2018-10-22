@@ -108,11 +108,7 @@ namespace posix
                        static_cast<int>(type),
                        static_cast<int>(protocol));
     if(fd != error_response)
-    {
-      posix::fcntl(fd, F_SETFD, FD_CLOEXEC);
-      if(flags & O_NONBLOCK)
-        posix::donotblock(fd);
-    }
+      posix::fcntl(fd, F_SETFD, FD_CLOEXEC | O_NONBLOCK);
     return fd;
   }
 
@@ -120,11 +116,7 @@ namespace posix
   {
     fd_t fd = ignore_interruption(::accept, sockfd, addr, addrlen);
     if(fd != error_response)
-    {
-      posix::fcntl(fd, F_SETFD, FD_CLOEXEC);
-      if(flags & O_NONBLOCK)
-        posix::donotblock(fd);
-    }
+      posix::fcntl(fd, F_SETFD, FD_CLOEXEC | O_NONBLOCK);
     return fd;
   }
 
