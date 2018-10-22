@@ -29,25 +29,25 @@ int mount(const char* device,
   std::string optionlist;
   unsigned long mountflags = 0;
 
-  for(const char* pos = filesystem, *next = nullptr; pos != nullptr; pos = next)
+  for(const char* pos = filesystem, *next = NULL; pos != NULL; pos = next)
   {
     if(*pos == ',')
       ++pos;
     next = std::strchr(pos, ',');
 
-    if(next == nullptr) // end of string
+    if(next == NULL) // end of string
       fslist.emplace_back(pos);
     else // not end of string
       fslist.emplace_back(pos, posix::size_t(next - pos));
   }
 
-  for(const char* pos = options, *next = nullptr; pos != nullptr; pos = next)
+  for(const char* pos = options, *next = NULL; pos != NULL; pos = next)
   {
     if(*pos == ',')
       ++pos;
     std::string option;
     next = std::strchr(pos, ',');
-    if(next == nullptr) // end of string
+    if(next == NULL) // end of string
       option.assign(pos);
     else // not end of string
       option.assign(pos, posix::size_t(next - pos));

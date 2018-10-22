@@ -18,7 +18,7 @@ int load_module(const char* filename, const char* module_arguments)
     if(rval == posix::success_response)
     {
       void* mem = ::mmap(0, state.st_size, PROT_READ | PROT_EXEC, MAP_PRIVATE, fd, 0);
-      if(mem != nullptr)
+      if(mem != NULL)
         rval = ::syscall(SYS_init_module, mem, state.st_size, module_arguments);
       ::munmap(mem, state.st_size);
     }

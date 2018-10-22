@@ -36,13 +36,13 @@ fsentry_t::fsentry_t(const char* _device,
 
 fsentry_t::~fsentry_t(void) noexcept
 {
-  if(device != nullptr)
+  if(device != NULL)
     ::free(device);
-  if(path != nullptr)
+  if(path != NULL)
     ::free(path);
-  if(filesystems != nullptr)
+  if(filesystems != NULL)
     ::free(filesystems);
-  if(options != nullptr)
+  if(options != NULL)
     ::free(options);
   device      = nullptr;
   path        = nullptr;
@@ -80,8 +80,8 @@ int parse_table(std::list<struct fsentry_t>& table, const char* filename) noexce
   if(file == nullptr)
     return posix::error_response;
 
-  struct mntent* entry = nullptr;
-  while((entry = ::getmntent(file)) != nullptr)
+  struct mntent* entry = NULL;
+  while((entry = ::getmntent(file)) != NULL)
   {
     table.emplace_back(entry->mnt_fsname,
                        entry->mnt_dir,
@@ -103,8 +103,8 @@ int parse_table(std::list<struct fsentry_t>& table, const char* filename) noexce
 {
   ::setfstab(filename);
 
-  struct fstab* entry = nullptr;
-  while((entry = ::getfsent()) != nullptr)
+  struct fstab* entry = NULL;
+  while((entry = ::getfsent()) != NULL)
     table.emplace_back(entry->fs_spec,
                        entry->fs_file,
                        entry->fs_vfstype,
@@ -136,43 +136,42 @@ int parse_table(std::list<struct fsentry_t>& table, const char* filename) noexce
 
   std::FILE* file = posix::fopen(filename, "r");
 
-  if(file == nullptr)
+  if(file == NULL)
     return posix::error_response;
 /*
   char* field = static_cast<char*>(::malloc(PATH_MAX));
-  if(field == nullptr)
+  if(field == NULL)
     return posix::error_response;
 
   posix::ssize_t count = 0;
   posix::size_t size = 0;
-  char* line = nullptr;
-  char* begin = nullptr;
+  char* line = NULL;
   while((count = ::getline(&line, &size, file)) != posix::error_response)
   {
     char* comment = std::strchr(line, '#');
-    if(comment != nullptr)
+    if(comment != NULL)
       *comment = '\0';
 
     char* pos = line;
 
     pos = skip_spaces(pos);
     pos = read_field<sizeof(fsentry_t::device)>(pos, entry.device);
-    if(pos == nullptr)
+    if(pos == NULL)
       continue;
 
     pos = skip_spaces(pos);
     pos = read_field<sizeof(fsentry_t::path)>(pos, entry.path);
-    if(pos == nullptr)
+    if(pos == NULL)
       continue;
 
     pos = skip_spaces(pos);
     pos = read_field<sizeof(fsentry_t::filesystems)>(pos, entry.filesystems);
-    if(pos == nullptr)
+    if(pos == NULL)
       continue;
 
     pos = skip_spaces(pos);
     pos = read_field<sizeof(fsentry_t::options)>(pos, entry.options);
-    if(pos == nullptr)
+    if(pos == NULL)
       continue;
 
     pos = skip_spaces(pos);

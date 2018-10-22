@@ -32,7 +32,7 @@ void ChildProcess::init_once(void) noexcept
     sigemptyset(&actions.sa_mask);
     actions.sa_flags = SA_RESTART;
 
-    flaw(::sigaction(SIGCHLD, &actions, nullptr) == posix::error_response,
+    flaw(::sigaction(SIGCHLD, &actions, NULL) == posix::error_response,
          terminal::critical,
          std::exit(errno),,
          "Unable assign action to a signal: %s", std::strerror(errno))

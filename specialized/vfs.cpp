@@ -74,8 +74,8 @@ constexpr void assign(A& a, B& b) { a = reinterpret_cast<A>(b); }
 
 VFS::VFS()
 {
-  getdir = nullptr;
-  utime  = nullptr;
+  getdir = NULL;
+  utime  = NULL;
 
   assign( getattr    , GetAttr     );
 /*
@@ -159,8 +159,8 @@ int VFS::ReadDir(const char* path,
                            off_t offset,
                            struct fuse_file_info* fileInfo)
 {
-  filler(buf, "." , nullptr, 0);
-  filler(buf, "..", nullptr, 0);
+  filler(buf, "." , NULL, 0);
+  filler(buf, "..", NULL, 0);
 
   return posix::success;
 }

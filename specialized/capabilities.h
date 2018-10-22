@@ -119,7 +119,7 @@ struct capability_data_t
     std::memset(data, 0, sizeof(data)); // zero out memory
     head.version = CAPABILITY_VERSION; // set version number
     head.pid = 0;
-    if(::capget(*this, nullptr)) // load the kernel-capability version???
+    if(::capget(*this, NULL)) // load the kernel-capability version???
       std::fprintf(stderr, "failed to init: %s\n", std::strerror(errno));
   }
 };

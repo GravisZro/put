@@ -141,15 +141,15 @@ struct EventBackend::platform_dependant // poll notification (kqueue)
   bool add(posix::fd_t fd, native_flags_t flags) noexcept
   {
     struct kevent ev;
-    EV_SET(&ev, fd, extract_filter(flags), EV_ADD | extract_actions(flags), extract_flags(flags), 0, nullptr);
-    return ::kevent(kq, &ev, 1, nullptr, 0, nullptr) == posix::success_response;
+    EV_SET(&ev, fd, extract_filter(flags), EV_ADD | extract_actions(flags), extract_flags(flags), 0, NULL);
+    return ::kevent(kq, &ev, 1, NULL, 0, NULL) == posix::success_response;
   }
 
   bool remove(posix::fd_t fd) noexcept
   {
     struct kevent ev;
-    EV_SET(&ev, fd, 0, EV_DELETE, 0, 0, nullptr);
-    return ::kevent(kq, &ev, 1, nullptr, 0, nullptr) == posix::success_response;
+    EV_SET(&ev, fd, 0, EV_DELETE, 0, 0, NULL);
+    return ::kevent(kq, &ev, 1, NULL, 0, NULL) == posix::success_response;
   }
 
 } EventBackend::s_platform;
@@ -162,7 +162,7 @@ bool EventBackend::poll(int timeout) noexcept
   tout.tv_sec = timeout / 1000;
   tout.tv_nsec = (timeout % 1000) * 1000;
 
-  int count = kevent(s_platform.kq, nullptr, 0, s_platform.koutput.data(), s_platform.koutput.size(), &tout);
+  int count = kevent(s_platform.kq, NULL, 0, s_platform.koutput.data(), s_platform.koutput.size(), &tout);
   if(count <= 0)
     return false;
 

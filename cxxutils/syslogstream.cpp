@@ -27,7 +27,7 @@ namespace posix
 
       char* lastpos = m_buffer;
       for(char* pos = nullptr;
-          (pos = std::strstr(lastpos, seach_token)) != nullptr;
+          (pos = std::strstr(lastpos, seach_token)) != NULL;
           lastpos = pos + 2)
       {
         ssize_t slice = pos - lastpos;

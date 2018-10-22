@@ -116,7 +116,7 @@ namespace posix
     return fd;
   }
 
-  static inline fd_t accept(fd_t sockfd, sockaddr* addr = nullptr, socklen_t* addrlen = nullptr, int flags = 0) noexcept
+  static inline fd_t accept(fd_t sockfd, sockaddr* addr = NULL, socklen_t* addrlen = NULL, int flags = 0) noexcept
   {
     fd_t fd = ignore_interruption(::accept, sockfd, addr, addrlen);
     if(fd != error_response)

@@ -21,14 +21,14 @@ public:
     : m_size(size)
   {
     m_shm_id = ::shmget(IPC_PRIVATE, m_size, IPC_CREAT | SHM_R | SHM_W);
-    m_mem = reinterpret_cast<uint8_t*>(::shmat(m_shm_id, nullptr, 0));
-    m_rofile = ::fmemopen(::shmat(m_shm_id, nullptr, SHM_RDONLY), m_size, "r");
+    m_mem = reinterpret_cast<uint8_t*>(::shmat(m_shm_id, NULL, 0));
+    m_rofile = ::fmemopen(::shmat(m_shm_id, NULL, SHM_RDONLY), m_size, "r");
   }
 
   ~sharedmem_t(void)
   {
     std::fclose(m_rofile);
-    ::shmctl(m_shm_id, IPC_RMID, nullptr);
+    ::shmctl(m_shm_id, IPC_RMID, NULL);
   }
 
   operator posix::fd_t(void) { return ::fileno(m_rofile); }

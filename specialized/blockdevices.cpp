@@ -78,7 +78,7 @@ namespace blockdevices
     std::snprintf(filename, PATH_MAX, "%s/partitions", procfs_path);
 
     std::FILE* file = posix::fopen(filename, "r");
-    if(file == nullptr)
+    if(file == NULL)
       return;
 
     posix::ssize_t count = 0;

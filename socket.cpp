@@ -95,7 +95,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t passfd) const noexcept
   msghdr header = {};
   iovec iov = {};
   char* aux_buffer = static_cast<char*>(::malloc(CMSG_SPACE(sizeof(int))));
-  if(aux_buffer == nullptr)
+  if(aux_buffer == NULL)
     return false;
 
   header.msg_iov = &iov;
@@ -137,7 +137,7 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
   msghdr header = {};
   iovec iov = {};
   char* aux_buffer = static_cast<char*>(::malloc(CMSG_SPACE(sizeof(int))));
-  if(aux_buffer == nullptr)
+  if(aux_buffer == NULL)
     return false;
 
   header.msg_iov = &iov;
@@ -197,7 +197,8 @@ bool ServerSocket::bind(const char* socket_path, EDomain domain, int socket_back
        false,
        "Server socket is already bound!")
 
-  flaw(socket_path == nullptr,
+  flaw(socket_path == nullptr ||
+       socket_path == NULL,
        terminal::warning,,
        false,
        "socket_path is a null value")

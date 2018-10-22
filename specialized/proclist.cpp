@@ -23,12 +23,12 @@ posix::error_t proclist(std::vector<pid_t>& list) noexcept
 
 
   DIR* dirp = ::opendir(procfs_path);
-  if(dirp == nullptr)
+  if(dirp == NULL)
     return posix::error_response;
 
   size_t length = 0;
   struct dirent* entry;
-  while((entry = ::readdir(dirp)) != nullptr)
+  while((entry = ::readdir(dirp)) != NULL)
     if(entry->d_type == DT_DIR && std::atoi(entry->d_name))
       ++length;
 
@@ -40,7 +40,7 @@ posix::error_t proclist(std::vector<pid_t>& list) noexcept
 
     ::rewinddir(dirp);
 
-    while((entry = ::readdir(dirp)) != nullptr)
+    while((entry = ::readdir(dirp)) != NULL)
       if(entry->d_type == DT_DIR && std::atoi(entry->d_name))
         list.push_back(std::atoi(entry->d_name));
   }
@@ -83,7 +83,7 @@ posix::error_t proclist(std::vector<pid_t>& list) noexcept
 
   list.clear();
 
-  if(::sysctl(request, arraylength(request), nullptr, &length, nullptr, 0) != posix::success_response)
+  if(::sysctl(request, arraylength(request), NULL, &length, NULL, 0) != posix::success_response)
     return posix::error_response;
 
   proc_list.resize(length);
@@ -94,7 +94,7 @@ posix::error_t proclist(std::vector<pid_t>& list) noexcept
   if(list.capacity() < length) // if reserve failed to allocate the required memory
     return posix::error(std::errc::not_enough_memory);
 
-  if(::sysctl(request, arraylength(request), proc_list.data(), &length, nullptr, 0) != posix::success_response)
+  if(::sysctl(request, arraylength(request), proc_list.data(), &length, NULL, 0) != posix::success_response)
     return posix::error_response;
 
   for(const kinfo_proc& proc_info : proc_list)

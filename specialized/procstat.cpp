@@ -18,12 +18,12 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
   posix::size_t length;
   int request[6] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid, sizeof(struct kinfo_proc), 0 };
 
-  if(sysctl(request, arraylength(request), nullptr, &length, nullptr, 0) != posix::success_response)
+  if(sysctl(request, arraylength(request), NULL, &length, NULL, 0) != posix::success_response)
     return posix::error_response;
 
   request[5] = (length / sizeof(struct kinfo_proc));
 
-  if(sysctl(request, arraylength(request), &info, &length, nullptr, 0) != posix::success_response)
+  if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response)
     return posix::error_response;
 
 #if defined(__APPLE__)
@@ -82,7 +82,7 @@ posix::error_t proc_decode(pid_t pid, const char* subfile, decode_func func, pro
   std::snprintf(filename, PATH_MAX, "%s/%d/%s", procfs_path, pid, subfile);
 
   FILE* file = std::fopen(filename, "r");
-  if(file == nullptr)
+  if(file == NULL)
     return posix::error_response;
 
   if(func(file, data) == posix::error_response)
@@ -102,7 +102,7 @@ posix::error_t proc_exe_symlink(pid_t pid, const char* subfile, process_state_t&
   {
     filename[length] = 0; // add string terminator
     char* pos = std::strrchr(filename, ' '); // find last space
-    if(pos != nullptr && // contains a space (may be part of " (deleted)")
+    if(pos != NULL && // contains a space (may be part of " (deleted)")
        pos[sizeof(" (deleted)") - 1] == '\0' && // might end with " (deleted)"
        pos == std::strstr(filename, " (deleted)")) // definately ends with " (deleted)"
       *pos = 0; // add string terminator to truncate at " (deleted)"
@@ -328,7 +328,7 @@ posix::error_t proc_status_decoder(FILE* file, process_state_t& data) noexcept
 posix::error_t proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
 {
   char* cmdbuffer = static_cast<char*>(::malloc(arg_max));
-  if(cmdbuffer != nullptr)
+  if(cmdbuffer != NULL)
   {
     while(!std::feof(file))
     {

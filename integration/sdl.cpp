@@ -20,17 +20,17 @@ static std::map<SDL_Window*, SDL::Window*> window_lookup;
 SDL::Window* sdl_window_lookup(uint32_t id)
 {
   SDL_Window* ptr = SDL_GetWindowFromID(id);
-  if(ptr == nullptr)
-    return nullptr;
+  if(ptr == NULL)
+    return NULL;
   auto pos = window_lookup.find(ptr);
   if(pos == window_lookup.end())
-    return nullptr;
+    return NULL;
   return pos->second;
 }
 
 int sdl_event_filter(SDL::Events* obj, SDL_Event* event) noexcept
 {
-  SDL::Window* win = nullptr;
+  SDL::Window* win = NULL;
   switch(event->type)
   {
     case SDL_AUDIODEVICEADDED:
@@ -108,14 +108,14 @@ int sdl_event_filter(SDL::Events* obj, SDL_Event* event) noexcept
 // KEYBOARD
     case SDL_KEYDOWN:
       win = sdl_window_lookup(event->key.windowID);
-      if(win != nullptr)
+      if(win != NULL)
         Object::enqueue(win->KeyPressed, event->key.keysym);
       Object::enqueue(obj->KeyPressed, event->key.windowID, event->key.keysym);
       break;
 
     case SDL_KEYUP:
       win = sdl_window_lookup(event->key.windowID);
-      if(win != nullptr)
+      if(win != NULL)
         Object::enqueue(win->KeyReleased, event->key.keysym);
       Object::enqueue(obj->KeyReleased, event->key.windowID, event->key.keysym);
       break;
