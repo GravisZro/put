@@ -1,6 +1,10 @@
 #ifndef MOUNTEVENT_H
 #define MOUNTEVENT_H
 
+// STL
+#include <string>
+
+// PDTK
 #include <object.h>
 #include <specialized/fstable.h>
 

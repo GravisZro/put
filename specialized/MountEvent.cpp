@@ -18,13 +18,6 @@
 # error Unsupported platform! >:(
 #endif
 
-// POSIX++
-#include <climits>
-#include <cstring>
-
-#include <memory>
-#include <string>
-
 #ifndef MOUNT_TABLE_FILE
 #define MOUNT_TABLE_FILE  "/etc/mtab"
 #endif
@@ -37,26 +30,16 @@ MountEvent::MountEvent(void) noexcept
     EventBackend::callback_t comparison_func =
         [this](posix::fd_t, native_flags_t) noexcept
         {
-          std::basic_string<char, std::char_traits<char>, std::allocator<char>> device;
-          std::basic_string<char, std::char_traits<char>, std::allocator<char>> path;
           std::set<struct fsentry_t> new_table;
           parse_table(new_table, MOUNT_TABLE_FILE);
 
           for(auto& entry : new_table)
             if(m_table.find(entry) == m_table.end())
-            {
-              device = entry.device;
-              path = entry.path;
-              Object::enqueue(mounted, device, path);
-            }
+              Object::enqueue_copy<std::string, std::string>(mounted, entry.device, entry.path);
 
           for(auto& entry : m_table)
             if(new_table.find(entry) == new_table.end())
-            {
-              device = entry.device;
-              path = entry.path;
-              Object::enqueue(mounted, device, path);
-            }
+              Object::enqueue_copy<std::string, std::string>(unmounted, entry.device, entry.path);
 
           m_table = new_table;
         };
