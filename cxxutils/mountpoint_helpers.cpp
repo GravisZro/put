@@ -53,3 +53,5 @@ posix::error_t initialize_paths(void) noexcept
   }
   return posix::success_response;
 }
+
+static posix::error_t onstart = initialize_paths();
