@@ -17,6 +17,11 @@ posix::error_t proclist(std::vector<pid_t>& list) noexcept
 {
   list.clear();
 
+  if(procfs_path == nullptr &&
+    initialize_paths() == posix::error_response)
+    return posix::error_response;
+
+
   DIR* dirp = ::opendir(procfs_path);
   if(dirp == nullptr)
     return posix::error_response;

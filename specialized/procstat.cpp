@@ -79,7 +79,7 @@ typedef posix::error_t (*decode_func)(FILE*, process_state_t&);
 posix::error_t proc_decode(pid_t pid, const char* subfile, decode_func func, process_state_t& data)
 {
   char filename[PATH_MAX] = { 0 };
-  std::sprintf(filename, "%s/%d/%s", procfs_path, pid, subfile);
+  std::snprintf(filename, PATH_MAX, "%s/%d/%s", procfs_path, pid, subfile);
 
   FILE* file = std::fopen(filename, "r");
   if(file == nullptr)
@@ -95,7 +95,7 @@ posix::error_t proc_exe_symlink(pid_t pid, const char* subfile, process_state_t&
 {
   char linkname[PATH_MAX] = { 0 };
   char filename[PATH_MAX] = { 0 };
-  std::sprintf(linkname, "%s/%d/%s", procfs_path, pid, subfile); // fill buffer
+  std::snprintf(linkname, PATH_MAX, "%s/%d/%s", procfs_path, pid, subfile); // fill buffer
 
   posix::ssize_t length = ::readlink(linkname, filename, arg_max); // result may contain " (deleted)" (which we don't want)
   if(length != posix::error_response)
@@ -388,6 +388,10 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
   static_assert(sizeof(gid_t) == sizeof(int), "size error");
   static_assert(sizeof(uid_t) == sizeof(int), "size error");
   static_assert(sizeof(pid_t) == sizeof(int), "size error");
+
+  if(procfs_path == nullptr &&
+    initialize_paths() == posix::error_response)
+    return posix::error_response;
 
   data.state = Invalid;
   data.arguments.clear();
