@@ -102,7 +102,7 @@ namespace posix
   };
 
 // POSIX wrappers
-  static inline fd_t socket(EDomain domain, EType type, EProtocol protocol, int flags = 0) noexcept
+  static inline fd_t socket(EDomain domain, EType type, EProtocol protocol) noexcept
   {
     fd_t fd = ::socket(static_cast<int>(domain),
                        static_cast<int>(type),
@@ -112,7 +112,7 @@ namespace posix
     return fd;
   }
 
-  static inline fd_t accept(fd_t sockfd, sockaddr* addr = NULL, socklen_t* addrlen = NULL, int flags = 0) noexcept
+  static inline fd_t accept(fd_t sockfd, sockaddr* addr = NULL, socklen_t* addrlen = NULL) noexcept
   {
     fd_t fd = ignore_interruption(::accept, sockfd, addr, addrlen);
     if(fd != error_response)

@@ -16,8 +16,7 @@ class GenericSocket : public PollEvent
 public:
   GenericSocket(EDomain   domain   = EDomain::local,
                 EType     type     = EType::stream,
-                EProtocol protocol = EProtocol::unspec,
-                int       flags    = 0) noexcept;
+                EProtocol protocol = EProtocol::unspec) noexcept;
   GenericSocket(posix::fd_t socket) noexcept;
   virtual ~GenericSocket(void) noexcept;
 

@@ -14,9 +14,8 @@
 
 GenericSocket::GenericSocket(EDomain   domain,
                              EType     type,
-                             EProtocol protocol,
-                             int       flags) noexcept
-  : GenericSocket(posix::socket(domain, type, protocol, flags)) { }
+                             EProtocol protocol) noexcept
+  : GenericSocket(posix::socket(domain, type, protocol)) { }
 
 GenericSocket::GenericSocket(posix::fd_t socket) noexcept
   : PollEvent(socket, Readable | Disconnected),
