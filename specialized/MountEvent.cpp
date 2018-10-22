@@ -23,6 +23,7 @@
 #include <cstring>
 
 #include <memory>
+#include <string>
 
 #ifndef MOUNT_TABLE_FILE
 #define MOUNT_TABLE_FILE  "/etc/mtab"
