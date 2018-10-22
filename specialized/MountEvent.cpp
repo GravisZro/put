@@ -39,11 +39,19 @@ MountEvent::MountEvent(void) noexcept
 
           for(auto& entry : new_table)
             if(m_table.find(entry) == m_table.end())
-              Object::enqueue_copy<std::string, std::string>(mounted, std::string(entry.device), std::string(entry.path));
+            {
+              std::string device(entry.device);
+              std::string path (entry.path);
+              Object::enqueue(mounted, device, path);
+            }
 
           for(auto& entry : m_table)
             if(new_table.find(entry) == new_table.end())
-              Object::enqueue_copy<std::string, std::string>(unmounted, std::string(entry.device), std::string(entry.path));
+            {
+              std::string device(entry.device);
+              std::string path (entry.path);
+              Object::enqueue(mounted, device, path);
+            }
 
           m_table = new_table;
         };
