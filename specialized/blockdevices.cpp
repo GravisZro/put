@@ -70,11 +70,12 @@ namespace blockdevices
   static std::list<detector_t> detectors = { detect_ext, detect_NULL };
 
 #if defined(__linux__)
-  void fill_device_list(const char* procfs_path) noexcept
+  void fill_device_list(void) noexcept
   {
     char filename[PATH_MAX] = { 0 };
-    std::strncpy(filename, procfs_path, sizeof(filename) - sizeof("/partitions"));
-    std::strcat(filename, "/partitions");
+    if(procfs_path == nullptr)
+      initialize_paths();
+    std::snprintf(filename, PATH_MAX, "%s/partitions", procfs_path);
 
     std::FILE* file = posix::fopen(filename, "r");
     if(file == nullptr)
@@ -135,7 +136,7 @@ namespace blockdevices
     devices.clear();
 
 #if defined(__linux__)
-    fill_device_list(procfs_path);
+    fill_device_list();
 
 #elif defined(__minix) // MINIX
 #error Detection of block partitions is not implemented in PDTK for MINIX!  Please submit a patch!
