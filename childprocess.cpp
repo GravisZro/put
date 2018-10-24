@@ -133,7 +133,7 @@ bool ChildProcess::invoke(void) noexcept
                       { Object::enqueue(stderrMessage, lambda_fd); });
 
   m_iobuf.reset();
-  if((m_iobuf << "Launch").hadError() ||
+  if((m_iobuf << "Execute").hadError() ||
      !writeStdIn(m_iobuf))
     return false;
 
