@@ -8,7 +8,6 @@
 #include <grp.h>       // group stuff
 #include <unistd.h>
 #include <fcntl.h>
-#include <poll.h>
 
 // POSIX-esque?
 #include <sys/ioctl.h>
@@ -270,10 +269,6 @@ namespace posix
     static inline bool sendpg(pid_t pgid, EId id) noexcept
       { return posix::killpg(pgid, id); }
   }
-
-// POSIX wrappers
-  static inline bool poll(struct pollfd* fds, nfds_t nfds, int timeout) noexcept
-    { return ignore_interruption<int, struct pollfd*, nfds_t, int>(::poll, fds, nfds, timeout) != error_response; }
 
 // POSIX wrappers
   static inline bool dup2(fd_t a, fd_t b) noexcept
