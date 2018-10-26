@@ -3,15 +3,13 @@
 
 // PDTK
 #include <cxxutils/posix_helpers.h>
-#include <cxxutils/error_helpers.h>
+#include <cxxutils/socket_helpers.h>
 #include <cxxutils/vterm.h>
 #include <cxxutils/vfifo.h>
 
 // POSIX++
 #include <cstdlib>
 
-// POSIX
-#include <poll.h>
 
 class PipedFork
 {
