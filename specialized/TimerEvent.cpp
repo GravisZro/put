@@ -23,7 +23,10 @@ TimerEvent::TimerEvent(void) noexcept
 {
   m_fd = ::timerfd_create(CLOCK_MONOTONIC, 0);
   if(m_fd != posix::invalid_descriptor)
-    posix::fcntl(m_fd, F_SETFL, FD_CLOEXEC | O_NONBLOCK);
+  {
+    posix::fcntl(m_fd, F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::donotblock(m_fd); // don't block
+  }
 
   EventBackend::add(m_fd, EventBackend::SimplePollReadFlags, // connect communications pipe to a lambda function
                     [this](posix::fd_t fd, native_flags_t) noexcept
@@ -150,7 +153,8 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
       return posix::invalid_descriptor;
 
     posix::fd_t& readfd = data.fd[Read];
-    posix::fcntl(readfd, F_SETFL, FD_CLOEXEC | O_NONBLOCK); // close on exec*() and don't block
+    posix::fcntl(readfd, F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::donotblock(readfd); // don't block
 
     struct sigevent timer_event;
     timer_event.sigev_notify = SIGEV_SIGNAL;

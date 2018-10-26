@@ -1,4 +1,4 @@
-#include "object.h"
+#include <object.h>
 
 #include <csignal>
 #include <iostream>
@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 /*
 
 ==== BUILD COMMAND ==== 
-g++ example.cpp application.cpp specialized/eventbackend.cpp -I. -std=c++14 -Os -fno-exceptions -fno-rtti -o example
+g++ example.cpp ../application.cpp ../specialized/eventbackend.cpp -I../ -std=c++14 -Os -fno-exceptions -fno-rtti -o example
 
 ==== OUTPUT ====
 before trigger

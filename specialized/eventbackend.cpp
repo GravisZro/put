@@ -129,7 +129,7 @@ struct EventBackend::platform_dependant // poll notification (kqueue)
          terminal::critical,
          std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
-    posix::fcntl(kq, F_SETFL, FD_CLOEXEC); // close on exec*
+    posix::fcntl(kq, F_SETFD, FD_CLOEXEC); // close on exec*()
     koutput.resize(1024);
   }
 
@@ -219,7 +219,7 @@ struct EventBackend::platform_dependant
          "Unable to create a new poll port: %s", std::strerror(errno))
    pinput .reserve(1024);
    poutput.reserve(1024);
-   posix::fcntl(port, F_SETFL, FD_CLOEXEC); // does this work?
+   posix::fcntl(port, F_SETFD, FD_CLOEXEC); // close on exec*()
   }
 
   ~platform_dependant(void)
