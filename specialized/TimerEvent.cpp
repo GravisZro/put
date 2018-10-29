@@ -33,7 +33,7 @@ TimerEvent::TimerEvent(void) noexcept
   {
     uint64_t discard;
     while(posix::read(fd, &discard, sizeof(discard)) != posix::error_response);
-    Object::enqueue(this->expired);
+    Object::enqueue(expired);
   });
 }
 
@@ -209,7 +209,7 @@ TimerEvent::TimerEvent(void) noexcept
   {
     uint64_t discard;
     while(posix::read(fd, &discard, sizeof(discard)) != posix::error_response);
-    Object::enqueue(this->expired);
+    Object::enqueue(expired);
   });
 }
 
