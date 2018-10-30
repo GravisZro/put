@@ -299,10 +299,17 @@ namespace blockdevices
   };
   static_assert(sizeof(uintle32_t) == sizeof(uint32_t), "naughty compiler!");
 
+#if defined(htons) || defined(htonl) || defined(ntohs) || defined(ntohl)
+  template<typename T> static inline uint16_t getBE16(T* x) noexcept { return htons(*reinterpret_cast<uint16_t*>(x)); }
+  template<typename T> static inline uint32_t getBE32(T* x) noexcept { return htonl(*reinterpret_cast<uint32_t*>(x)); }
+  template<typename T> static inline uint16_t getLE16(T* x) noexcept { return ntohs(*reinterpret_cast<uint16_t*>(x)); }
+  template<typename T> static inline uint32_t getLE32(T* x) noexcept { return ntohl(*reinterpret_cast<uint32_t*>(x)); }
+#else
   template<typename T> constexpr uint16_t getBE16(T* x) noexcept { return htons(*reinterpret_cast<uint16_t*>(x)); }
   template<typename T> constexpr uint32_t getBE32(T* x) noexcept { return htonl(*reinterpret_cast<uint32_t*>(x)); }
   template<typename T> constexpr uint16_t getLE16(T* x) noexcept { return ntohs(*reinterpret_cast<uint16_t*>(x)); }
   template<typename T> constexpr uint32_t getLE32(T* x) noexcept { return ntohl(*reinterpret_cast<uint32_t*>(x)); }
+#endif
 
   template<typename T> constexpr uint32_t getFlags(T addr, uint32_t flags) noexcept { return getLE32(addr) & flags; }
   template<typename T> constexpr bool flagsAreSet(T addr, uint32_t flags) noexcept { return getFlags(addr, flags) == flags; }
