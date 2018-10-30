@@ -3,12 +3,61 @@
 
 // STL
 #include <string>
+#include <list>
 
 // POSIX
 #include <syslog.h>
 
 // POSIX++
 #include <climits>
+#include <cstdio>
+
+namespace posix
+{
+  enum control { eom = EOF, };
+}
+
+#ifndef MESSAGE_BUFFER_SIZE
+#define MESSAGE_BUFFER_SIZE (0x1000 + PATH_MAX)
+#endif
+
+class ErrorMessageStream
+{
+public:
+
+  ErrorMessageStream(void) noexcept;
+  virtual ~ErrorMessageStream(void) noexcept = default;
+
+  inline ErrorMessageStream& operator << (char c) noexcept { char tmp[2] = { c, 0 }; return operator << (tmp); }
+  inline ErrorMessageStream& operator << (char* str) noexcept { return operator << (const_cast<const char*>(str)); }
+  inline ErrorMessageStream& operator << (const std::string& str) noexcept { return operator << (str.c_str()); }
+
+  template<typename T>
+  inline ErrorMessageStream& operator << (T val) noexcept { return operator << (std::to_string(val).c_str()); }
+
+  ErrorMessageStream& operator << (const char* arg) noexcept;
+  ErrorMessageStream& operator << (posix::control cntl) noexcept;
+
+protected:
+  virtual void purge_buffer(void) noexcept;
+  virtual void publish_buffer(void) noexcept = 0;
+
+  char m_buffer[MESSAGE_BUFFER_SIZE];
+  char m_tmpbuf[sizeof(m_buffer)];
+  uint8_t m_argId;
+};
+
+class ErrorLogStream : public ErrorMessageStream
+{
+public:
+  bool empty(void) const noexcept { return m_destination.empty(); }
+  void clear(void) noexcept { m_destination.clear(); }
+  std::list<std::string>& messages(void) noexcept { return m_destination; }
+
+private:
+  void publish_buffer(void) noexcept;
+  std::list<std::string> m_destination;
+};
 
 namespace posix
 {
@@ -37,38 +86,18 @@ namespace posix
     printer  = LOG_LPR,       // line printer subsystem
   };
 
-
-  enum control
-  {
-    eom,
-  };
-
-  class SyslogStream
+  class SyslogStream : public ErrorMessageStream
   {
   public:
-    SyslogStream(void);
     static void open(const char* name, facility f = facility::provider) noexcept
       { ::openlog(name, LOG_PID | LOG_CONS | LOG_NOWAIT, int(f)); }
     static void close(void) noexcept { ::closelog(); }
 
-    inline SyslogStream& operator << (priority p) noexcept { m_priority = p;  return *this; }
-    inline SyslogStream& operator << (char c) noexcept { char tmp[2] = { c, 0 }; return operator << (tmp); }
-    inline SyslogStream& operator << (char* str) noexcept { return operator << (const_cast<const char*>(str)); }
-    inline SyslogStream& operator << (const std::string& str) noexcept { return operator << (str.c_str()); }
-
-    template<typename T>
-    inline SyslogStream& operator << (T val) noexcept { return operator << (std::to_string(val).c_str()); }
-
-    SyslogStream& operator << (const char* arg) noexcept;
-    SyslogStream& operator << (control cntl) noexcept;
-
+    inline ErrorMessageStream& operator << (priority p) noexcept { m_priority = p;  return *this; }
   private:
-    void clear(void);
-
+    void purge_buffer(void) noexcept;
+    void publish_buffer(void) noexcept;
     priority m_priority;
-    char m_buffer[0x1000 + PATH_MAX];
-    char m_tmpbuf[sizeof(m_buffer)];
-    uint8_t m_argId;
   };
 
   static SyslogStream syslog;
