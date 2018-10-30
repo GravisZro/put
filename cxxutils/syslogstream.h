@@ -89,6 +89,8 @@ namespace posix
   class SyslogStream : public ErrorMessageStream
   {
   public:
+    SyslogStream(void) noexcept;
+
     static void open(const char* name, facility f = facility::provider) noexcept
       { ::openlog(name, LOG_PID | LOG_CONS | LOG_NOWAIT, int(f)); }
     static void close(void) noexcept { ::closelog(); }

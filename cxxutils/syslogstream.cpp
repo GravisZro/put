@@ -66,6 +66,8 @@ inline void ErrorLogStream::publish_buffer(void) noexcept
   m_destination.emplace_back(m_buffer);
 }
 
+posix::SyslogStream::SyslogStream(void) noexcept = default;
+
 inline void posix::SyslogStream::purge_buffer(void) noexcept
 {
   m_priority = priority::info;
