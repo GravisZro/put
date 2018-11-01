@@ -206,7 +206,6 @@ ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
                     });
 }
 
-
 ProcessEvent::~ProcessEvent(void) noexcept
 {
   EventBackend::remove(m_fd, EventBackend::SimplePollReadFlags);
@@ -241,7 +240,8 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 static constexpr ushort extract_filter(native_flags_t flags) noexcept
   { return (flags >> 16) & 0xFFFF; }
 
-static constexpr uint32_t extract_flags(native_flags_t flags) noexcept
+template<typename rtype>
+static constexpr rtype extract_flags(native_flags_t flags) noexcept
   { return flags >> 32; }
 
 ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
@@ -250,19 +250,16 @@ ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
   EventBackend::add(m_pid, to_native_flags(m_flags), // connect PID event to lambda function
                     [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
                     {
-                      uint32_t data = extract_flags(lambda_fd); // get return value (if any)
                       switch(extract_filter(lambda_fd)) // switch by filtered event type
                       {
                         case Flags::Exec: // queue exec signal with PID
-                          Object::enqueue(execed, m_pid);
+                          Object::enqueue_copy(execed, m_pid);
                           break;
                         case Flags::Exit: // queue exit signal with PID and exit code
-                          Object::enqueue(exited, m_pid,
-                                          *reinterpret_cast<posix::error_t*>(&data));
+                          Object::enqueue_copy(exited, m_pid, extract_flags<posix::error_t>(lambda_fd));
                           break;
                         case Flags::Fork: // queue fork signal with PID and child PID
-                          Object::enqueue(forked, m_pid,
-                                          *reinterpret_cast<pid_t*>(&data));
+                          Object::enqueue_copy(forked, m_pid, extract_flags<pid_t>(lambda_fd));
                           break;
                       }
                     });
