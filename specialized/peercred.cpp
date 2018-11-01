@@ -39,21 +39,21 @@ int send_cred(int) noexcept
 
 # if defined (SO_PEERCRED) && defined(__linux__)
 constexpr int socket_cred_option = SO_PEERCRED;
-typedef struct ucred cred_t;
+typedef ucred cred_t;
 constexpr pid_t peer_pid(const cred_t& data) { return data.pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.uid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.gid; }
 
 # elif defined (SO_PEERCRED) && defined(__OpenBSD__)
 constexpr int socket_cred_option = SO_PEERCRED;
-typedef struct sockpeercred cred_t;
+typedef sockpeercred cred_t;
 constexpr pid_t peer_pid(const cred_t& data) { return data.pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.uid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.gid; }
 
 # elif defined (LOCAL_PEEREID) && defined(__NetBSD__)
 constexpr int socket_cred_option = LOCAL_PEEREID;
-typedef struct unpcbid cred_t;
+typedef unpcbid cred_t;
 constexpr pid_t peer_pid(const cred_t& data) { return data.unp_pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.unp_euid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.unp_egid; }
@@ -89,14 +89,14 @@ int send_cred(int) noexcept
 
 # if defined (SCM_CREDENTIALS) && defined(__linux__)
 constexpr int credential_message = SCM_CREDENTIALS;
-typedef struct ucred cred_t;
+typedef ucred cred_t;
 constexpr pid_t peer_pid(const cred_t& data) { return data.pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.uid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.gid; }
 
 # elif defined (SCM_CREDS) && defined(__NetBSD__)
 constexpr int credential_message = SCM_CREDS;
-typedef struct cred cred_t;
+typedef cred cred_t;
 constexpr pid_t peer_pid(const cred_t& data) { return data.sc_pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.sc_euid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.sc_egid; }
@@ -105,7 +105,7 @@ constexpr gid_t peer_gid(const cred_t& data) { return data.sc_egid; }
   (defined(__FreeBSD__) /* FreeBSD */ || \
   (defined(__APPLE__) && defined(__MACH__)) /* Darwin */ )
 constexpr int credential_message = SCM_CREDS;
-typedef struct cmsgcred cred_t;
+typedef cmsgcred cred_t;
 constexpr pid_t peer_pid(const cred_t& data) { return data.cmcred_pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.cmcred_euid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.cmcred_groups[0]; }
