@@ -270,7 +270,7 @@ ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
 
 ProcessEvent::~ProcessEvent(void) noexcept
 {
-  EventBackend::remove(m_pid, to_native_flags(m_flags)); // disconnect FD with flags from signal
+  EventBackend::remove(m_pid, to_native_flags(m_flags)); // disconnect PID with flags
 }
 
 #elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
