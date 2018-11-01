@@ -32,7 +32,7 @@ CXXFLAGS      = -pipe -std=c++14 -Os -fno-exceptions -fno-rtti -fno-threadsafe-s
 LDFLAGS       = 
 
 TARGET        = buildtest
-SOURCES       = buildtest.cpp \
+SOURCES       = tests/build.cpp \
 		application.cpp \
 		socket.cpp \
 		childprocess.cpp \
@@ -70,6 +70,7 @@ $(TARGET): OUTPUT_DIR $(OBJS)
 	@echo [Completed]: $@
 
 OUTPUT_DIR:
+	$(QUIET) mkdir -p $(BUILD_PATH)/tests
 	$(QUIET) mkdir -p $(BUILD_PATH)/cxxutils
 	$(QUIET) mkdir -p $(BUILD_PATH)/integration
 	$(QUIET) mkdir -p $(BUILD_PATH)/specialized
