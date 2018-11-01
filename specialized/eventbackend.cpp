@@ -31,11 +31,12 @@ struct EventBackend::platform_dependant // poll notification (epoll)
   platform_dependant(void) noexcept
     : fd(posix::invalid_descriptor)
   {
-    fd = ::epoll_create1(EPOLL_CLOEXEC);
+    fd = ::epoll_create(1);
     flaw(fd == posix::invalid_descriptor,
          terminal::critical,
          std::exit(errno),,
-         "Unable to create an instance of epoll! %s", std::strerror(errno))
+         "Unable to create an instance of epoll! %s", std::strerror(errno));
+    posix::fcntl(fd, F_SETFD, FD_CLOEXEC); // close on exec*()
   }
 
   ~platform_dependant(void) noexcept
