@@ -11,8 +11,8 @@ struct proccred_t
   gid_t gid;
 };
 
-// NOTE: both client _and_ server must call this simutaneously (or it breaks _many_ platforms)
-int peercred(int socket, proccred_t& cred) noexcept;
+int recv_cred(int socket, proccred_t& cred) noexcept;
+int send_cred(int socket) noexcept;
 
 #endif // GETPEERID_H
 
