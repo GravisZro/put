@@ -125,14 +125,13 @@ int recv_cred(int socket, proccred_t& cred) noexcept
 int send_cred(int socket) noexcept
 {
   struct sockaddr_storage sockaddr;
-  struct sockaddr_un *addr;
+  struct sockaddr_un* addr;
   struct msghdr msg;
-  struct cmsghdr *cmsghdr;
-  struct cmsgcred *cmsgcred;
+  struct cmsghdr* cmsg_header;
   struct iovec iov[1];
   ssize_t nbytes;
   int i;
-  char buf[CMSG_SPACE(sizeof(struct cmsgcred))], c;
+  char buf[CMSG_SPACE(sizeof(cred_t))], c;
 
   addr = (struct sockaddr_un *)&sockaddr;
   addr->sun_family = AF_LOCAL;
@@ -143,16 +142,16 @@ int send_cred(int socket) noexcept
   iov[0].iov_base = &c;
   iov[0].iov_len = sizeof(c);
   memset(buf, 0x0b, sizeof(buf));
-  cmsghdr = (struct cmsghdr *)buf;
-  cmsghdr->cmsg_len = CMSG_LEN(sizeof(cred_t));
-  cmsghdr->cmsg_level = SOL_SOCKET;
-  cmsghdr->cmsg_type = credential_message;
+  cmsg_header = (struct cmsghdr *)buf;
+  cmsg_header->cmsg_len = CMSG_LEN(sizeof(cred_t));
+  cmsg_header->cmsg_level = SOL_SOCKET;
+  cmsg_header->cmsg_type = credential_message;
 
   msg.msg_name = NULL;
   msg.msg_namelen = 0;
   msg.msg_iov = iov;
   msg.msg_iovlen = sizeof(iov) / sizeof(iov[0]);
-  msg.msg_control = cmsghdr;
+  msg.msg_control = cmsg_header;
   msg.msg_controllen = CMSG_SPACE(sizeof(cred_t));
   msg.msg_flags = 0;
 
