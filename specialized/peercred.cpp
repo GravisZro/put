@@ -101,7 +101,9 @@ constexpr pid_t peer_pid(const cred_t& data) { return data.sc_pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.sc_euid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.sc_egid; }
 
-# elif defined (SCM_CREDS) && defined(__FreeBSD__)
+# elif defined (SCM_CREDS) && \
+  (defined(__FreeBSD__) /* FreeBSD */ || \
+  (defined(__APPLE__) && defined(__MACH__)) /* Darwin */ )
 constexpr int credential_message = SCM_CREDS;
 typedef struct cmsgcred creds_t;
 constexpr pid_t peer_pid(const cred_t& data) { return data.cmcred_pid; }
