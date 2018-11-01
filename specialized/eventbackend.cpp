@@ -175,11 +175,7 @@ bool EventBackend::poll(int timeout) noexcept
 
 #elif defined(__unix__) || defined(__unix)
 
-
-# if defined(__linux__)
-# pragma message("No event backend code exists in PDTK for pre-epoll Linux!  Please submit a patch!")
-
-# elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
+# if defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
 
 #pragma message("The backend code in PDTK for Solaris / OpenSolaris / OpenIndiana / illumos is non-functional!  Please submit a patch!")
 #pragma message("See: http://docs.oracle.com/cd/E19253-01/816-5168/port-get-3c/index.html")
@@ -268,8 +264,6 @@ bool EventBackend::poll(int timeout) noexcept
   return true;
 }
 #  endif
-# elif defined(__minix) // MINIX
-# pragma message("No event backend code exists in PDTK for MINIX!  Please submit a patch!")
 
 # elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
@@ -311,7 +305,10 @@ bool EventBackend::poll(int timeout) noexcept
 # pragma message("Unrecognized BSD derivative!")
 # endif
 
+# if !defined(__linux__) && /* Linux before epoll*/ \
+     !defined(__minix) /* MINIX 3 */
 #pragma message("No platform specific event backend code! Using standard POSIX polling function.")
+#endif
 
 #include <poll.h>
 
