@@ -85,6 +85,16 @@ int send_cred(int) noexcept
 { return posix::success_response; }
 
 
+#elif defined (SCM_CREDS) && (defined(__APPLE__) && defined(__MACH__)) /* Darwin */
+
+#pragma message("Warning: recv_cred/send_cred for Darwin is broken!")
+
+int recv_cred(int, proccred_t&) noexcept
+{ return posix::error_response; }
+
+int send_cred(int) noexcept
+{ return posix::error_response; }
+
 #elif defined(SCM_CREDENTIALS) || defined (SCM_CREDS)
 
 # if defined (SCM_CREDENTIALS) && defined(__linux__)
@@ -101,9 +111,7 @@ constexpr pid_t peer_pid(const cred_t& data) { return data.sc_pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.sc_euid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.sc_egid; }
 
-# elif defined (SCM_CREDS) && \
-  (defined(__FreeBSD__) /* FreeBSD */ || \
-  (defined(__APPLE__) && defined(__MACH__)) /* Darwin */ )
+# elif defined (SCM_CREDS) && defined(__FreeBSD__) /* FreeBSD */
 constexpr int credential_message = SCM_CREDS;
 typedef cmsgcred cred_t;
 constexpr pid_t peer_pid(const cred_t& data) { return data.cmcred_pid; }
