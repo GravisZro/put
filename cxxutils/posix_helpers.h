@@ -22,6 +22,22 @@
 #include "error_helpers.h"
 #include "signal_helpers.h"
 
+#if defined(__unix) && !defined(__unix__)
+#define __unix__
+#endif
+
+#if !defined(__kFreeBSD__) && defined(__FreeBSD_kernel__) && defined(__GLIBC__)
+#define __kFreeBSD__
+#endif
+
+#if !defined(__solaris__) && defined(__sun) && defined(__SVR4)
+#define __solaris__
+#endif
+
+#if !defined(__darwin__) && defined(__APPLE__) && defined(__MACH__)
+#define __darwin__
+#define __unix__
+#endif
 
 static_assert(sizeof(::size_t) == sizeof(std::size_t), "STL's size_t doesn't match the C standard!");
 static_assert(sizeof(::size_t) == sizeof(::off_t), "size_t not the same is as off_t!");
