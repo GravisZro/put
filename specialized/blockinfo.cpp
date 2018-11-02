@@ -19,7 +19,7 @@
 #elif defined(__APPLE__) // Darwin
 #error Detection of block partitions is not implemented in PDTK for Darwin!  Please submit a patch!
 
-#elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
+#elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
 #error Detection of block partitions is not implemented in PDTK for Solaris!  Please submit a patch!
 
 #elif defined(__FreeBSD__) || defined(__DragonFly__) // FreeBSD and DragonFly BSD

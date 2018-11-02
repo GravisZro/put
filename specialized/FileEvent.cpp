@@ -123,11 +123,11 @@ FileEvent::~FileEvent(void) noexcept
   assert(s_platform.remove(m_fd));
 }
 
-#elif (defined(__APPLE__) && defined(__MACH__)) /* Darwin 7+     */ || \
-      defined(__FreeBSD__)                      /* FreeBSD 4.1+  */ || \
-      defined(__DragonFly__)                    /* DragonFly BSD */ || \
-      defined(__OpenBSD__)                      /* OpenBSD 2.9+  */ || \
-      defined(__NetBSD__)                       /* NetBSD 2+     */
+#elif defined(__darwin__)    /* Darwin 7+     */ || \
+      defined(__FreeBSD__)   /* FreeBSD 4.1+  */ || \
+      defined(__DragonFly__) /* DragonFly BSD */ || \
+      defined(__OpenBSD__)   /* OpenBSD 2.9+  */ || \
+      defined(__NetBSD__)    /* NetBSD 2+     */
 
 #include <sys/event.h> // kqueue
 
@@ -180,7 +180,7 @@ FileEvent::~FileEvent(void) noexcept
   m_fd = posix::invalid_descriptor;
 }
 
-#elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
+#elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
 # error No file event backend code exists in PDTK for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!
 
 #elif defined(__minix) // MINIX
@@ -199,7 +199,7 @@ FileEvent::~FileEvent(void) noexcept
 #elif defined(BSD)
 # error Unrecognized BSD derivative!
 
-#elif defined(__unix__) || defined(__unix)
+#elif defined(__unix__)
 # error Unrecognized UNIX variant!
 
 #else

@@ -33,11 +33,11 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
       (flags & PollEvent::Writeable    ? native_flags_t(EPOLLOUT ) : 0);
 }
 
-#elif (defined(__APPLE__) && defined(__MACH__)) /* Darwin 7+     */ || \
-      defined(__FreeBSD__)                      /* FreeBSD 4.1+  */ || \
-      defined(__DragonFly__)                    /* DragonFly BSD */ || \
-      defined(__OpenBSD__)                      /* OpenBSD 2.9+  */ || \
-      defined(__NetBSD__)                       /* NetBSD 2+     */
+#elif defined(__darwin__)    /* Darwin 7+     */ || \
+      defined(__FreeBSD__)   /* FreeBSD 4.1+  */ || \
+      defined(__DragonFly__) /* DragonFly BSD */ || \
+      defined(__OpenBSD__)   /* OpenBSD 2.9+  */ || \
+      defined(__NetBSD__)    /* NetBSD 2+     */
 
 #include <sys/event.h> // kqueue
 
@@ -66,12 +66,12 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
       (flags & PollEvent::Writeable     ? composite_flag(0       , EVFILT_WRITE, 0) : 0) ;
 }
 
-#elif defined(__unix__) || defined(__unix)
+#elif defined(__unix__)
 
 # if defined(__linux__)
 # pragma message("No poll event backend code exists in PDTK for pre-epoll Linux!  Please submit a patch!")
 
-# elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
+# elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
 # pragma message("No poll event backend code exists in SXinit for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!")
 
 # elif defined(__minix) // MINIX

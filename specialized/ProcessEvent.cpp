@@ -215,11 +215,11 @@ ProcessEvent::~ProcessEvent(void) noexcept
 //&& LINUX_VERSION_CODE >= KERNEL_VERSION(X,X,X) /* Linux X.X.X+ */
 # error No process event backend code exists in PDTK for Linux before version 2.6.15!  Please submit a patch!
 
-#elif (defined(__APPLE__) && defined(__MACH__)) /* Darwin 7+     */ || \
-      defined(__FreeBSD__)                      /* FreeBSD 4.1+  */ || \
-      defined(__DragonFly__)                    /* DragonFly BSD */ || \
-      defined(__OpenBSD__)                      /* OpenBSD 2.9+  */ || \
-      defined(__NetBSD__)                       /* NetBSD 2+     */
+#elif defined(__darwin__)    /* Darwin 7+     */ || \
+      defined(__FreeBSD__)   /* FreeBSD 4.1+  */ || \
+      defined(__DragonFly__) /* DragonFly BSD */ || \
+      defined(__OpenBSD__)   /* OpenBSD 2.9+  */ || \
+      defined(__NetBSD__)    /* NetBSD 2+     */
 
 #include <sys/event.h> // kqueue
 
@@ -270,7 +270,7 @@ ProcessEvent::~ProcessEvent(void) noexcept
   EventBackend::remove(m_pid, to_native_flags(m_flags)); // disconnect PID with flags
 }
 
-#elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
+#elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
 # error No process event backend code exists in PDTK for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!
 
 #elif defined(__minix) // MINIX
@@ -289,7 +289,7 @@ ProcessEvent::~ProcessEvent(void) noexcept
 #elif defined(BSD)
 # error Unrecognized BSD derivative!
 
-#elif defined(__unix__) || defined(__unix)
+#elif defined(__unix__)
 # error Unrecognized UNIX variant!
 
 #else

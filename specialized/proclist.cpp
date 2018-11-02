@@ -58,7 +58,7 @@ posix::error_t proclist(std::vector<pid_t>& list) noexcept
   return posix::success_response;
 }
 
-#elif defined(BSD) || (defined(__APPLE__) && defined(__MACH__)) /* *BSD/Darwin */
+#elif defined(BSD) || defined(__darwin__) /* *BSD/Darwin */
 
 // Darwin structure documentation
 // kinfo_proc : https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/sysctl.h.auto.html
@@ -107,7 +107,7 @@ posix::error_t proclist(std::vector<pid_t>& list) noexcept
   return posix::success_response;
 }
 
-#elif defined(__unix__) || defined(__unix) /* Generic UNIX */
+#elif defined(__unix__) /* Generic UNIX */
 
 //system("ps -A -o pid=");
 

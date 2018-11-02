@@ -58,13 +58,13 @@ bool TimerEvent::stop(void) noexcept
   return start(0, 0);
 }
 
-#elif defined(__unix__) || defined(__unix)
+#elif defined(__unix__)
 
-# if (defined(__APPLE__) && defined(__MACH__)) /* Darwin 7+     */ || \
-      defined(__FreeBSD__)                      /* FreeBSD 4.1+  */ || \
-      defined(__DragonFly__)                    /* DragonFly BSD */ || \
-      defined(__OpenBSD__)                      /* OpenBSD 2.9+  */ || \
-      defined(__NetBSD__)                       /* NetBSD 2+     */
+# if defined(__darwin__)    /* Darwin 7+     */ || \
+     defined(__FreeBSD__)   /* FreeBSD 4.1+  */ || \
+     defined(__DragonFly__) /* DragonFly BSD */ || \
+     defined(__OpenBSD__)   /* OpenBSD 2.9+  */ || \
+     defined(__NetBSD__)    /* NetBSD 2+     */
 # pragma message("No timer backend code exists in PDTK for BSD derivatives!  Please submit a patch!")
 
 # elif defined(__minix) // MINIX

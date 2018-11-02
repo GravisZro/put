@@ -77,11 +77,11 @@ bool EventBackend::poll(int timeout) noexcept
   return true;
 }
 
-#elif (defined(__APPLE__) && defined(__MACH__)) /* Darwin 7+     */ || \
-      defined(__FreeBSD__)                      /* FreeBSD 4.1+  */ || \
-      defined(__DragonFly__)                    /* DragonFly BSD */ || \
-      defined(__OpenBSD__)                      /* OpenBSD 2.9+  */ || \
-      defined(__NetBSD__)                       /* NetBSD 2+     */
+#elif defined(__darwin__)     /* Darwin 7+     */ || \
+      defined(__FreeBSD__)    /* FreeBSD 4.1+  */ || \
+      defined(__DragonFly__)  /* DragonFly BSD */ || \
+      defined(__OpenBSD__)    /* OpenBSD 2.9+  */ || \
+      defined(__NetBSD__)     /* NetBSD 2+     */
 
 // BSD
 #include <sys/time.h>
@@ -173,9 +173,9 @@ bool EventBackend::poll(int timeout) noexcept
   return true;
 }
 
-#elif defined(__unix__) || defined(__unix)
+#elif defined(__unix__)
 
-# if defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
+# if defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
 
 #pragma message("The backend code in PDTK for Solaris / OpenSolaris / OpenIndiana / illumos is non-functional!  Please submit a patch!")
 #pragma message("See: http://docs.oracle.com/cd/E19253-01/816-5168/port-get-3c/index.html")

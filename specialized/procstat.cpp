@@ -1,6 +1,6 @@
 #include "procstat.h"
 
-#if defined(BSD) || (defined(__APPLE__) && defined(__MACH__)) /* *BSD/Darwin */
+#if defined(BSD) || defined(__darwin__) /* *BSD/Darwin */
 
 // *BSD/Darwin
 #include <sys/sysctl.h>
@@ -55,7 +55,7 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
   return posix::success_response;
 }
 
-#elif defined(__unix__) || defined(__unix) /* Generic UNIX */
+#elif defined(__unix__) /* Generic UNIX */
 
 // POSIX
 #include <unistd.h>
@@ -339,7 +339,7 @@ posix::error_t proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
   return posix::error_response;
 }
 
-# elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
+# elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
 
 #include <procfs.h>
 
@@ -399,7 +399,7 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
      proc_exe_symlink(pid, "exe", data) == posix::error_response)
     return posix::error_response;
 
-# elif defined(__sun) && defined(__SVR4) // Solaris / OpenSolaris / OpenIndiana / illumos
+# elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
   if(proc_decode(pid, "psinfo", proc_psinfo_decoder, data) == posix::error_response ||
      proc_exe_symlink(pid, "path/a.out", data) == posix::error_response ||
      false) // imcomplete code
