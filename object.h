@@ -113,6 +113,16 @@ public:
   // enqueue a call to the functions connected to the signal
   template<typename... ArgTypes>
   static inline bool enqueue(const signal<ArgTypes...>& sig, ArgTypes&... args) noexcept
+    { return enqueue_private(sig, args...);}
+
+  // enqueue a call to the functions connected to the signal with /copies/ of the arguments
+  template<typename... ArgTypes>
+  static inline bool enqueue_copy(const signal<ArgTypes...>& sig, ArgTypes... args) noexcept
+    { return enqueue_private(sig, args...);}
+
+private:
+  template<class signal_type, typename... ArgTypes>
+  static inline bool enqueue_private(const signal_type& sig, ArgTypes... args) noexcept
   {
     if(!sig.empty()) // ensure that invalid signals are not enqueued
     {
@@ -124,11 +134,6 @@ public:
     }
     return false;
   }
-
-  // enqueue a call to the functions connected to the signal with /copies/ of the arguments
-  template<typename... ArgTypes>
-  static inline bool enqueue_copy(const signal<ArgTypes...>& sig, ArgTypes... args) noexcept
-    { return enqueue(sig, args...);}
 };
 
 #endif // OBJECT_H
