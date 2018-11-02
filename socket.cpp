@@ -80,12 +80,12 @@ bool ClientSocket::connect(const char *socket_path) noexcept
        "connect() to socket file \"%s\" failure: %s", socket_path, std::strerror(errno)) // connect to peer process
   m_connected = true;
 
-  flaw(::send_cred(m_socket) != posix::success_response,
+  flaw(::send_cred(m_socket) == posix::error_response,
        terminal::warning,,
        false,
        "send_cred() failure: %s", std::strerror(errno)); // get creditials of connected peer process
 
-  flaw(::recv_cred(m_socket, cred) != posix::success_response,
+  flaw(::recv_cred(m_socket, cred) == posix::error_response,
        terminal::warning,,
        false,
        "recv_cred() failure: %s", std::strerror(errno)); // get creditials of connected peer process
@@ -298,12 +298,12 @@ bool ServerSocket::read(posix::fd_t socket, Flags_t flags) noexcept
        false,
        "accept() implementation bug: %s", "address length does not match string length");
 
-  flaw(::recv_cred(m_socket, cred) != posix::success_response,
+  flaw(::recv_cred(m_socket, cred) == posix::error_response,
        terminal::warning,,
        false,
        "recv_cred() failure: %s", std::strerror(errno)); // get creditials of connected peer process
 
-  flaw(::send_cred(m_socket) != posix::success_response,
+  flaw(::send_cred(m_socket) == posix::error_response,
        terminal::warning,,
        false,
        "send_cred() failure: %s", std::strerror(errno)); // get creditials of connected peer process
