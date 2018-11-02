@@ -1,7 +1,7 @@
 #ifndef EVENTS_POLL_H
 #define EVENTS_POLL_H
 
-// PDTK
+// PUT
 #include <object.h>
 
 class PollEvent : public Object

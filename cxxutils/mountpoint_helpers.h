@@ -1,7 +1,7 @@
 #ifndef MOUNTPOINT_HELPERS_H
 #define MOUNTPOINT_HELPERS_H
 
-// PDTK
+// PUT
 #include <cxxutils/error_helpers.h>
 
 extern char* procfs_path;

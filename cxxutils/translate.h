@@ -1,7 +1,7 @@
 #ifndef TRANSLATE_H
 #define TRANSLATE_H
 
-// PDTK
+// PUT
 #include <cxxutils/posix_helpers.h>
 
 #if defined(CATALOG_NAME)

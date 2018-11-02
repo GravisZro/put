@@ -4,7 +4,7 @@
 // POSIX
 #include <nl_types.h> // for catalog functions
 
-// PDTK
+// PUT
 #include <cxxutils/hashing.h>
 
 #define Q_uZ80A_s00(x) #x

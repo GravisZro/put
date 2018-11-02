@@ -4,8 +4,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-// PDTK
-#include <cxxutils/error_helpers.h>
+// PUT
+#include <cxxutils/posix_helpers.h>
 
 #if defined(__solaris__) // Solaris
 #pragma message("Information: using Solaris code")

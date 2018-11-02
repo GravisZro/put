@@ -4,7 +4,7 @@
 // POSIX++
 #include <csignal>
 
-// PDTK
+// PUT
 #include "error_helpers.h"
 
 #ifndef SIGPOLL

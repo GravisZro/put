@@ -18,7 +18,7 @@
 #include <cstdio>  // file descriptor I/O
 #include <cstdint> // need standard types
 
-// PDTK
+// PUT
 #include "error_helpers.h"
 #include "signal_helpers.h"
 

@@ -8,7 +8,7 @@
 // POSIX
 #include <dirent.h>
 
-// PDTK
+// PUT
 #include <cxxutils/mountpoint_helpers.h>
 
 static_assert(sizeof(pid_t) <= sizeof(int), "insufficient storage type for maximum number of pids");
@@ -72,7 +72,7 @@ posix::error_t proclist(std::vector<pid_t>& list) noexcept
 // STL
 #include <vector>
 
-// PDTK
+// PUT
 #include <cxxutils/misc_helpers.h>
 
 posix::error_t proclist(std::vector<pid_t>& list) noexcept

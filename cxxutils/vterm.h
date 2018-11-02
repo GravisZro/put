@@ -1,7 +1,7 @@
 #ifndef VTERM_H
 #define VTERM_H
 
-// PDTK
+// PUT
 #include <cxxutils/posix_helpers.h>
 
 typedef const char* const string_literal;

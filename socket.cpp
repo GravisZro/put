@@ -6,7 +6,7 @@
 // POSIX++
 #include <cstdlib>
 
-// PDTK
+// PUT
 #include <cxxutils/error_helpers.h>
 #include <cxxutils/vterm.h>
 

@@ -4,7 +4,7 @@
 #define MAX_EVENTS 1024
 #endif
 
-// PDTK
+// PUT
 #include <cxxutils/vterm.h>
 
 lockable<std::unordered_multimap<posix::fd_t, EventBackend::callback_info_t>> EventBackend::queue;
@@ -102,7 +102,7 @@ bool EventBackend::poll(int timeout) noexcept
 #include <algorithm>
 #include <iterator>
 
-// PDTK
+// PUT
 #include <cxxutils/vterm.h>
 #include <cxxutils/error_helpers.h>
 
@@ -196,7 +196,7 @@ bool EventBackend::poll(int timeout) noexcept
 // STL
 #include <vector>
 
-// PDTK
+// PUT
 #include <cxxutils/vterm.h>
 #include <cxxutils/error_helpers.h>
 

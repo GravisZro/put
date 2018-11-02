@@ -12,7 +12,7 @@
 #include <cstring>
 #include <cassert>
 
-// PDTK
+// PUT
 #include <specialized/procstat.h>
 #include <specialized/eventbackend.h>
 #include <cxxutils/error_helpers.h>

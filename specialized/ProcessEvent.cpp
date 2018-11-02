@@ -16,7 +16,7 @@
 #include <linux/connector.h>
 #include <linux/cn_proc.h>
 
-// PDTK
+// PUT
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/socket_helpers.h>
 #include <cxxutils/vterm.h>

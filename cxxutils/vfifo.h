@@ -11,7 +11,7 @@
 #include <string>
 #include <utility>
 
-// PDTK
+// PUT
 #include <cxxutils/posix_helpers.h>
 
 // virtual queue class

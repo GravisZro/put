@@ -12,7 +12,7 @@
 # include <sys/epoll.h>
 #elif defined(__unix__)   /* Generic UNIX */ || \
       defined(__darwin__) /* Darwin       */
-// PDTK
+// PUT
 # include "TimerEvent.h"
 #else
 # error Unsupported platform! >:(

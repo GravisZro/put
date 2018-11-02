@@ -1,7 +1,7 @@
 #ifndef PIPEDSPAWN_H
 #define PIPEDSPAWN_H
 
-// PDTK
+// PUT
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/vterm.h>
 #include <cxxutils/vfifo.h>

@@ -6,7 +6,7 @@
 // POSIX++
 #include <cctype>
 
-// PDTK
+// PUT
 #include "syslogstream.h"
 
 static inline std::string use_string(std::string& str) noexcept

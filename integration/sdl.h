@@ -97,4 +97,4 @@ namespace SDL
 }
 
 
-#endif // PDTK_SDL_H
+#endif // PUT_SDL_H

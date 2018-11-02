@@ -5,7 +5,7 @@
 #include <queue>
 #include <functional>
 
-// PDTK
+// PUT
 #include <cxxutils/posix_helpers.h>
 #include <specialized/eventbackend.h>
 

@@ -1,7 +1,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-// PDTK
+// PUT
 #include <cxxutils/posix_helpers.h>
 #include <application.h>
 

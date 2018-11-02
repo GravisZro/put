@@ -8,7 +8,7 @@
 #include <atomic>
 #include <list>
 
-// PDTK
+// PUT
 #include <cxxutils/vterm.h>
 
 // atomic vars are to avoid race conditions

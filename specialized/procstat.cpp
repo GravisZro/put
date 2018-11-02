@@ -5,7 +5,7 @@
 // *BSD/Darwin
 #include <sys/sysctl.h>
 
-// PDTK
+// PUT
 #include <cxxutils/misc_helpers.h>
 
 posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
@@ -65,7 +65,7 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
 #include <cstring>
 #include <climits>
 
-// PDTK
+// PUT
 #include <cxxutils/mountpoint_helpers.h>
 
 static posix::size_t arg_max = posix::size_t(sysconf(_SC_ARG_MAX));

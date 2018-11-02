@@ -1,7 +1,7 @@
 #ifndef MISC_HELPERS_H
 #define MISC_HELPERS_H
 
-// PDTK
+// PUT
 #include <cxxutils/posix_helpers.h>
 
 #ifndef arraylength

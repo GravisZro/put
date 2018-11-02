@@ -1,7 +1,7 @@
 #ifndef ASYNCFD_H
 #define ASYNCFD_H
 
-// PDTK
+// PUT
 #include <object.h>
 #include <cxxutils/posix_helpers.h>
 

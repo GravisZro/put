@@ -3,7 +3,7 @@
 // POSIX++
 #include <climits>
 
-// PDTK
+// PUT
 #include <cxxutils/hashing.h>
 #include <specialized/fstable.h>
 

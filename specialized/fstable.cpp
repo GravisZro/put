@@ -5,7 +5,7 @@
 #include <cctype>
 #include <climits>
 
-// PDTK
+// PUT
 #include <cxxutils/posix_helpers.h>
 
 fsentry_t::fsentry_t(void) noexcept

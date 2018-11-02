@@ -1,7 +1,7 @@
 #ifndef TIMEREVENT_H
 #define TIMEREVENT_H
 
-// PDTK
+// PUT
 #include <object.h>
 
 typedef uint64_t microseconds_t;

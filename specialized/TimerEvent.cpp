@@ -1,6 +1,6 @@
 #include "TimerEvent.h"
 
-// PDTK
+// PUT
 #include <specialized/eventbackend.h>
 
 #if defined(__linux__)
@@ -104,7 +104,7 @@ bool TimerEvent::stop(void) noexcept
 #include <climits>
 #include <cassert>
 
-// PDTK
+// PUT
 #include <cxxutils/vterm.h>
 
 static_assert(sizeof(itimerspec::it_interval.tv_nsec) == sizeof(microseconds_t), "opps");

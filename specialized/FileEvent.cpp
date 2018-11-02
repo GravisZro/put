@@ -16,7 +16,7 @@
 // Linux
 #include <sys/inotify.h>
 
-// PDTK
+// PUT
 #include <cxxutils/vterm.h>
 
 // file/directory flags
