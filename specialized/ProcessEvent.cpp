@@ -213,7 +213,7 @@ ProcessEvent::~ProcessEvent(void) noexcept
 }
 #elif defined(__linux__)
 //&& LINUX_VERSION_CODE >= KERNEL_VERSION(X,X,X) /* Linux X.X.X+ */
-# error No process event backend code exists in PDTK for Linux before version 2.6.15!  Please submit a patch!
+# error No process event backend code exists in PUT for Linux before version 2.6.15!  Please submit a patch!
 
 #elif defined(__darwin__)    /* Darwin 7+     */ || \
       defined(__FreeBSD__)   /* FreeBSD 4.1+  */ || \
@@ -250,16 +250,16 @@ ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
   EventBackend::add(m_pid, to_native_flags(m_flags), // connect PID event to lambda function
                     [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
                     {
-                      switch(extract_filter(lambda_fd)) // switch by filtered event type
+                      switch(extract_filter(lambda_flags)) // switch by filtered event type
                       {
                         case Flags::Exec: // queue exec signal with PID
                           Object::enqueue_copy(execed, m_pid);
                           break;
                         case Flags::Exit: // queue exit signal with PID and exit code
-                          Object::enqueue_copy(exited, m_pid, extract_flags<posix::error_t>(lambda_fd));
+                          Object::enqueue_copy(exited, m_pid, extract_flags<posix::error_t>(lambda_flags));
                           break;
                         case Flags::Fork: // queue fork signal with PID and child PID
-                          Object::enqueue_copy(forked, m_pid, extract_flags<pid_t>(lambda_fd));
+                          Object::enqueue_copy(forked, m_pid, extract_flags<pid_t>(lambda_flags));
                           break;
                       }
                     });
@@ -271,20 +271,20 @@ ProcessEvent::~ProcessEvent(void) noexcept
 }
 
 #elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
-# error No process event backend code exists in PDTK for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!
+# error No process event backend code exists in PUT for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!
 
 #elif defined(__minix) // MINIX
-# error No process event backend code exists in PDTK for MINIX!  Please submit a patch!
+# error No process event backend code exists in PUT for MINIX!  Please submit a patch!
 
 #elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
-# error No process event backend code exists in PDTK for QNX!  Please submit a patch!
+# error No process event backend code exists in PUT for QNX!  Please submit a patch!
 
 #elif defined(__hpux) // HP-UX
-# error No process event backend code exists in PDTK for HP-UX!  Please submit a patch!
+# error No process event backend code exists in PUT for HP-UX!  Please submit a patch!
 
 #elif defined(_AIX) // IBM AIX
-# error No process event backend code exists in PDTK for IBM AIX!  Please submit a patch!
+# error No process event backend code exists in PUT for IBM AIX!  Please submit a patch!
 
 #elif defined(BSD)
 # error Unrecognized BSD derivative!
