@@ -63,7 +63,7 @@ struct EventBackend::platform_dependant // poll notification (epoll)
 
 const native_flags_t EventBackend::SimplePollReadFlags = EPOLLIN;
 
-bool EventBackend::poll(int timeout) noexcept
+bool EventBackend::poll(milliseconds_t timeout) noexcept
 {
   int count = ::epoll_wait(s_platform.fd, s_platform.output, MAX_EVENTS, timeout); // wait for new results
   results.clear(); // clear old results
@@ -121,7 +121,10 @@ struct EventBackend::platform_dependant // poll notification (kqueue)
     { return (flags >> 16) & 0xFFFF; }
 
   static constexpr uint32_t extract_flags(native_flags_t flags) noexcept
-    { return flags >> 32; }
+    { return (flags & (EVFILT_TIMER << 16)) ? 0 : (flags >> 32); }
+
+  static constexpr uint32_t extract_data(native_flags_t flags) noexcept
+    { return (flags & (EVFILT_TIMER << 16)) ? (flags >> 32) : 0; }
 
   platform_dependant(void)
   {
@@ -142,7 +145,7 @@ struct EventBackend::platform_dependant // poll notification (kqueue)
   bool add(posix::fd_t fd, native_flags_t flags) noexcept
   {
     struct kevent ev;
-    EV_SET(&ev, fd, extract_filter(flags), EV_ADD | extract_actions(flags), extract_flags(flags), 0, NULL);
+    EV_SET(&ev, fd, extract_filter(flags), EV_ADD | extract_actions(flags), extract_flags(flags), extract_data(flags), NULL);
     return ::kevent(kq, &ev, 1, NULL, 0, NULL) == posix::success_response;
   }
 
@@ -157,7 +160,7 @@ struct EventBackend::platform_dependant // poll notification (kqueue)
 
 const native_flags_t EventBackend::SimplePollReadFlags = platform_dependant::composite_flag(0, EVFILT_READ, 0);
 
-bool EventBackend::poll(int timeout) noexcept
+bool EventBackend::poll(milliseconds_t timeout) noexcept
 {
   timespec tout;
   tout.tv_sec = timeout / 1000;
@@ -177,7 +180,7 @@ bool EventBackend::poll(int timeout) noexcept
 
 # if defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
 
-#pragma message("The backend code in PDTK for Solaris / OpenSolaris / OpenIndiana / illumos is non-functional!  Please submit a patch!")
+#pragma message("The backend code in PUT for Solaris / OpenSolaris / OpenIndiana / illumos is non-functional!  Please submit a patch!")
 #pragma message("See: http://docs.oracle.com/cd/E19253-01/816-5168/port-get-3c/index.html")
 #  if 0
 // Solaris
@@ -239,7 +242,7 @@ bool EventBackend::remove(posix::fd_t fd) noexcept
   return false;
 }
 
-bool EventBackend::poll(int timeout) noexcept
+bool EventBackend::poll(milliseconds_t timeout) noexcept
 {
   native_flags_t flags;
   uint_t count = 0;
@@ -267,13 +270,13 @@ bool EventBackend::poll(int timeout) noexcept
 
 # elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
-# pragma message("No event backend code exists in PDTK for QNX!  Please submit a patch!")
+# pragma message("No event backend code exists in PUT for QNX!  Please submit a patch!")
 
 # elif defined(__hpux) // HP-UX
 // see http://nixdoc.net/man-pages/HP-UX/man7/poll.7.html
 // and https://www.freebsd.org/cgi/man.cgi?query=poll&sektion=7&apropos=0&manpath=HP-UX+11.22
 // uses /dev/poll
-# pragma message("No event backend code exists in PDTK for HP-UX!  Please submit a patch!")
+# pragma message("No event backend code exists in PUT for HP-UX!  Please submit a patch!")
 
 #include <sys/devpoll.h>
 
@@ -289,17 +292,17 @@ bool EventBackend::poll(int timeout) noexcept
   pollset_destroy(n);
 */
 
-# pragma message("No event backend code exists in PDTK for IBM AIX!  Please submit a patch!")
+# pragma message("No event backend code exists in PUT for IBM AIX!  Please submit a patch!")
 
 
 # elif defined(__osf__) || defined(__osf) // Tru64 (OSF/1)
-# pragma message("No event backend code exists in PDTK for Tru64!  Please submit a patch!")
+# pragma message("No event backend code exists in PUT for Tru64!  Please submit a patch!")
 
 # elif defined(_SCO_DS) // SCO OpenServer
-# pragma message("No event backend code exists in PDTK for SCO OpenServer!  Please submit a patch!")
+# pragma message("No event backend code exists in PUT for SCO OpenServer!  Please submit a patch!")
 
 # elif defined(sinux) // Reliant UNIX
-# pragma message("No event backend code exists in PDTK for Reliant UNIX!  Please submit a patch!")
+# pragma message("No event backend code exists in PUT for Reliant UNIX!  Please submit a patch!")
 
 # elif defined(BSD)
 # pragma message("Unrecognized BSD derivative!")
@@ -371,9 +374,9 @@ struct EventBackend::platform_dependant // poll notification (epoll)
 
 const native_flags_t EventBackend::SimplePollReadFlags = POLLIN;
 
-bool EventBackend::poll(int timeout) noexcept
+bool EventBackend::poll(milliseconds_t timeout) noexcept
 {
-  int rval = posix::ignore_interruption<int, pollfd*, nfds_t, int>(::poll, s_platform.io, s_platform.max, -1);
+  int rval = posix::ignore_interruption<int, pollfd*, nfds_t, int>(::poll, s_platform.io, s_platform.max, timeout);
   if(rval == posix::error_response)
     return false;
 
