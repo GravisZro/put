@@ -10,8 +10,8 @@ ifndef CXX
   CXX:=g++
 endif
 
-ifndef CPPSTANDARD
-  CPPSTANDARD:=-std=c++14
+ifndef CXXSTANDARD
+  CXXSTANDARD:=-std=c++14
 endif
 
 ifndef CSTANDARD
@@ -27,8 +27,8 @@ ifndef BUILD_PATH
 endif
 
 INCPATH       = -I.
-CFLAGS        = -pipe -g -Wall -W -fPIC $(DEFINES) $(INCPATH)
-CXXFLAGS      = -pipe -std=c++14 -Os -fno-exceptions -fno-rtti -fno-threadsafe-statics -g -Wall -W -fPIC $(DEFINES) $(INCPATH)
+CFLAGS        = -pipe -g -Os -Wall -W -fPIC $(DEFINES) $(INCPATH)
+CXXFLAGS      = $(CFLAGS) -fno-exceptions -fno-rtti
 LDFLAGS       = 
 
 TARGET        = buildtest
@@ -36,11 +36,12 @@ SOURCES       = tests/build.cpp \
 		application.cpp \
 		socket.cpp \
 		childprocess.cpp \
+		cxxutils/mutex.cpp \
+		cxxutils/vfifo.cpp \
 		cxxutils/configmanip.cpp \
 		cxxutils/mountpoint_helpers.cpp \
 		cxxutils/syslogstream.cpp \
 		cxxutils/translate.cpp \
-		cxxutils/vfifo.cpp \
 		specialized/eventbackend.cpp \
 		specialized/peercred.cpp \
 		specialized/procstat.cpp \
