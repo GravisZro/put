@@ -1,6 +1,6 @@
 #include "mount.h"
 
-//PDTK
+// PUT
 #include <cxxutils/posix_helpers.h>
 
 #if defined(__linux__)
@@ -16,7 +16,7 @@
 #include <list>
 #include <string>
 
-//PDTK
+// PUT
 #include <cxxutils/hashing.h>
 
 

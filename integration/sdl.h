@@ -1,5 +1,5 @@
-#ifndef PDTK_SDL_H
-#define PDTK_SDL_H
+#ifndef PUT_SDL_H
+#define PUT_SDL_H
 
 #include <SDL2/SDL.h>
 #include <sys/types.h>

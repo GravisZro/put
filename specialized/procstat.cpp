@@ -411,13 +411,13 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
     return posix::error_response;
 
 # elif defined(__osf__) || defined(__osf) // Tru64 (OSF/1)
-#  error No /proc decoding is implemented in PDTK for Tru64!  Please submit a patch!
+#  error No /proc decoding is implemented in PUT for Tru64!  Please submit a patch!
 
 # elif defined(__hpux) // HP-UX
-#  error No /proc decoding is implemented in PDTK for HP-UX!  Please submit a patch!
+#  error No /proc decoding is implemented in PUT for HP-UX!  Please submit a patch!
 
 # else
-#  error No /proc decoding is implemented in PDTK for unrecognized UNIX!  Please submit a patch!
+#  error No /proc decoding is implemented in PUT for unrecognized UNIX!  Please submit a patch!
 # endif
 
   if(!data.arguments.empty())

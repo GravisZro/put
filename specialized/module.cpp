@@ -28,40 +28,40 @@ int load_module(const char* filename, const char* module_arguments)
 }
 
 #elif defined(__minix) // MINIX
-#error No kernel module operations code exists in PDTK for MINIX!  Please submit a patch!
+#error No kernel module operations code exists in PUT for MINIX!  Please submit a patch!
 
 #elif defined(__QNX__) // QNX
-#error No kernel module operations code exists in PDTK for QNX!  Please submit a patch!
+#error No kernel module operations code exists in PUT for QNX!  Please submit a patch!
 
 #elif defined(__hpux) // HP-UX
-#error No kernel module operations code exists in PDTK for HP-UX!  Please submit a patch!
+#error No kernel module operations code exists in PUT for HP-UX!  Please submit a patch!
 
 #elif defined(_AIX) // IBM AIX
 // https://www.ibm.com/developerworks/aix/library/au-kernelext.html
-#error No kernel module operations code exists in PDTK for IBM AIX!  Please submit a patch!
+#error No kernel module operations code exists in PUT for IBM AIX!  Please submit a patch!
 
 #elif defined(__APPLE__) // Darwin
 // kextload and kextunload
-#error No kernel module operations code exists in PDTK for Darwin!  Please submit a patch!
+#error No kernel module operations code exists in PUT for Darwin!  Please submit a patch!
 
 #elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
-#error No kernel module operations code exists in PDTK for Solaris!  Please submit a patch!
+#error No kernel module operations code exists in PUT for Solaris!  Please submit a patch!
 
 #elif defined(__FreeBSD__) || defined(__DragonFly__) // FreeBSD and DragonFly BSD
 // https://man.openbsd.org/FreeBSD-11.0/kldload.2
 // https://man.openbsd.org/FreeBSD-11.0/kldunload.2
 // kldload and kldunload
-#error No kernel module operations code exists in PDTK for FreeBSD/DragonFly BSD!  Please submit a patch!
+#error No kernel module operations code exists in PUT for FreeBSD/DragonFly BSD!  Please submit a patch!
 
 #elif defined(__OpenBSD__)
 // https://man.openbsd.org/OpenBSD-5.4/lkm.4
 // ioctl on /dev/lkm
-#error No kernel module operations code exists in PDTK for OpenBSD!  Please submit a patch!
+#error No kernel module operations code exists in PUT for OpenBSD!  Please submit a patch!
 
 #elif defined(__NetBSD__) // NetBSD
 // https://man.openbsd.org/NetBSD-7.1/module.9
 // module_load and module_unload
-#error No kernel module operations code exists in PDTK for NetBSD!  Please submit a patch!
+#error No kernel module operations code exists in PUT for NetBSD!  Please submit a patch!
 
 #elif defined(BSD)
 #error Unrecognized BSD derivative!

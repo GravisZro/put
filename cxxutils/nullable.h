@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <ostream>
 
-//PDTK
+// PUT
 #include <cxxutils/posix_helpers.h>
 
 template <typename T>

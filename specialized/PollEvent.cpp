@@ -69,28 +69,28 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 #elif defined(__unix__)
 
 # if defined(__linux__)
-# pragma message("No poll event backend code exists in PDTK for pre-epoll Linux!  Please submit a patch!")
+# pragma message("No poll event backend code exists in PUT for pre-epoll Linux!  Please submit a patch!")
 
 # elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
 # pragma message("No poll event backend code exists in SXinit for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!")
 
 # elif defined(__minix) // MINIX
-# pragma message("No poll event backend code exists in PDTK for MINIX!  Please submit a patch!")
+# pragma message("No poll event backend code exists in PUT for MINIX!  Please submit a patch!")
 
 # elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
-# pragma message("No poll event backend code exists in PDTK for QNX!  Please submit a patch!")
+# pragma message("No poll event backend code exists in PUT for QNX!  Please submit a patch!")
 
 # elif defined(__hpux) // HP-UX
 // see http://nixdoc.net/man-pages/HP-UX/man7/poll.7.html
 // and https://www.freebsd.org/cgi/man.cgi?query=poll&sektion=7&apropos=0&manpath=HP-UX+11.22
 // uses /dev/poll
-# pragma message("No poll event backend code exists in PDTK for HP-UX!  Please submit a patch!")
+# pragma message("No poll event backend code exists in PUT for HP-UX!  Please submit a patch!")
 
 # elif defined(_AIX) // IBM AIX
 // see https://www.ibm.com/support/knowledgecenter/ssw_aix_61/com.ibm.aix.basetrf1/pollset.htm
 
-# pragma message("No poll event backend code exists in PDTK for IBM AIX!  Please submit a patch!")
+# pragma message("No poll event backend code exists in PUT for IBM AIX!  Please submit a patch!")
 
 # elif defined(BSD)
 # pragma message("Unrecognized BSD derivative!")
