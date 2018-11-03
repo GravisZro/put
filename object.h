@@ -91,19 +91,27 @@ public:
 
   // enqueue a function call without a signal
   template<class ObjType, typename RType, typename... ArgTypes>
-  static inline void singleShot(ObjType* obj, mslot_t<ObjType, RType, ArgTypes...> slot, ArgTypes&... args) noexcept
+  static inline bool singleShot(ObjType* obj, mslot_t<ObjType, RType, ArgTypes...> slot, ArgTypes&... args) noexcept
   {
-    std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::ms_signal_queue); // multithread protection
-    Application::ms_signal_queue.emplace(std::bind(slot, obj, std::forward<ArgTypes>(args)...));
-    Application::step(); // inform execution stepper
+    if(Application::ms_signal_queue.lock()) // multithread protection
+    {
+      Application::ms_signal_queue.emplace(std::bind(slot, obj, std::forward<ArgTypes>(args)...));
+      Application::step(); // inform execution stepper
+      return Application::ms_signal_queue.unlock();
+    }
+    return false;
   }
 
   template<typename RType, typename... ArgTypes>
-  static inline void singleShot(fslot_t<RType, ArgTypes...> slot, ArgTypes&... args) noexcept
+  static inline bool singleShot(fslot_t<RType, ArgTypes...> slot, ArgTypes&... args) noexcept
   {
-    std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::ms_signal_queue); // multithread protection
-    Application::ms_signal_queue.emplace(std::bind(slot, std::forward<ArgTypes>(args)...));
-    Application::step(); // inform execution stepper
+    if(Application::ms_signal_queue.lock()) // multithread protection
+    {
+      Application::ms_signal_queue.emplace(std::bind(slot, std::forward<ArgTypes>(args)...));
+      Application::step(); // inform execution stepper
+      return Application::ms_signal_queue.unlock();
+    }
+    return false;
   }
 
   template<typename RType, typename... ArgTypes>
@@ -124,13 +132,13 @@ private:
   template<class signal_type, typename... ArgTypes>
   static inline bool enqueue_private(const signal_type& sig, ArgTypes... args) noexcept
   {
-    if(!sig.empty()) // ensure that invalid signals are not enqueued
+    if(!sig.empty() &&  // ensure that invalid signals are not enqueued
+       Application::ms_signal_queue.lock()) // multithread protection
     {
-      std::lock_guard<lockable<std::queue<vfunc>>> lock(Application::ms_signal_queue); // multithread protection
       for(auto sigpair : sig) // iterate through all connected slots
         Application::ms_signal_queue.emplace(std::bind(sigpair.second, sigpair.first, std::forward<ArgTypes>(args)...));
       Application::step(); // inform execution stepper
-      return true;
+      return Application::ms_signal_queue.unlock();
     }
     return false;
   }

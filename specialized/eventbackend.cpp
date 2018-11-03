@@ -7,7 +7,7 @@
 // PUT
 #include <cxxutils/vterm.h>
 
-lockable<std::unordered_multimap<posix::fd_t, EventBackend::callback_info_t>> EventBackend::queue;
+posix::lockable<std::unordered_multimap<posix::fd_t, EventBackend::callback_info_t>> EventBackend::queue;
 std::list<std::pair<posix::fd_t, native_flags_t>> EventBackend::results;
 
 

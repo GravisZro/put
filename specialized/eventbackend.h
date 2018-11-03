@@ -9,10 +9,7 @@
 
 // PUT
 #include <cxxutils/posix_helpers.h>
-
-template<typename T>
-struct lockable : T, std::mutex
-  { template<typename... ArgTypes> constexpr lockable(ArgTypes... args) noexcept : T(args...) { } };
+#include <cxxutils/mutex.h>
 
 typedef uint64_t native_flags_t;
 typedef int milliseconds_t;
@@ -31,7 +28,7 @@ namespace EventBackend
 
   extern bool poll(milliseconds_t timeout = -1) noexcept;
 
-  extern lockable<std::unordered_multimap<posix::fd_t, callback_info_t>> queue; // watch queue
+  extern posix::lockable<std::unordered_multimap<posix::fd_t, callback_info_t>> queue; // watch queue
   extern std::list<std::pair<posix::fd_t, native_flags_t>> results; // results from getevents()
 
   extern struct platform_dependant s_platform;

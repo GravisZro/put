@@ -15,7 +15,7 @@
 static std::atomic_int  s_return_value (0);
 static std::atomic_bool s_run (true); // quit signal
 
-lockable<std::queue<vfunc>> Application::ms_signal_queue;
+posix::lockable<std::queue<vfunc>> Application::ms_signal_queue;
 
 static posix::fd_t s_pipeio[2] = { posix::invalid_descriptor }; //  execution stepper pipe
 
