@@ -74,7 +74,7 @@ matrix:
       env:
         - COMPILER=clang++
 
-before_script:
-  - git clone https://github.com/GravisZro/pdtk.git pdtk
+git:
+  submodules: true
 script:
   - make -e CXX=$COMPILER -e VERBOSE=true -f Makefile.travis
