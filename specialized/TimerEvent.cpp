@@ -16,8 +16,6 @@
 // Linux
 #include <sys/timerfd.h>
 
-static_assert(sizeof(itimerspec::it_interval.tv_nsec) == sizeof(microseconds_t), "opps");
-
 // timer notification (Linux)
 TimerEvent::TimerEvent(void) noexcept
 {
@@ -43,19 +41,23 @@ TimerEvent::~TimerEvent(void) noexcept
     posix::close(m_fd);
 }
 
-bool TimerEvent::start(microseconds_t delay, microseconds_t repeat_interval) noexcept
+bool TimerEvent::start(milliseconds_t delay, bool repeat) noexcept
 {
   struct itimerspec interval_spec;
-  interval_spec.it_interval.tv_sec = repeat_interval / 1000000;
-  interval_spec.it_interval.tv_nsec = (repeat_interval % 1000000) * 1000;
-  interval_spec.it_value.tv_sec = delay / 1000000;
-  interval_spec.it_value.tv_nsec = (delay % 1000000) * 1000;
+  interval_spec.it_value.tv_sec = delay / 1000;
+  interval_spec.it_value.tv_nsec = (delay % 1000) * 1000000;
+
+  if(repeat)
+    std::memcpy(&interval_spec.it_interval, &interval_spec.it_value, sizeof(struct timespec));
+  else
+    std::memset(&interval_spec.it_interval, 0, sizeof(struct timespec));
+
   return ::timerfd_settime(m_fd, TFD_TIMER_ABSTIME, &interval_spec, NULL) == posix::success_response;
 }
 
 bool TimerEvent::stop(void) noexcept
 {
-  return start(0, 0);
+  return start(0, true);
 }
 
 #elif defined(__unix__)
@@ -65,28 +67,82 @@ bool TimerEvent::stop(void) noexcept
      defined(__DragonFly__) /* DragonFly BSD */ || \
      defined(__OpenBSD__)   /* OpenBSD 2.9+  */ || \
      defined(__NetBSD__)    /* NetBSD 2+     */
-# pragma message("No timer backend code exists in PDTK for BSD derivatives!  Please submit a patch!")
+
+
+#include <sys/event.h> // kqueue
+
+static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, int32_t flags) noexcept
+  { return native_flags_t(actions) | (native_flags_t(uint16_t(filters)) << 16) | (native_flags_t(flags) << 32); }
+
+
+struct TimerEvent::platform_dependant // timer notification (POSIX)
+{
+  std::unordered_map<TimerEvent*, posix::fd_t> timers;
+
+  posix::fd_t add(TimerEvent* ptr)
+  {
+    posix::fd_t fd = posix::dup(STDERR_FILENO);
+    if(fd == posix::invalid_descriptor ||
+       !timer.emplace(ptr, fd).second)
+      return posix::invalid_descriptor;
+    return fd;
+  }
+
+  void remove(TimerEvent* ptr)
+  {
+    auto iter = timers.find(ptr);
+    if(iter != timers.end())
+    {
+      posix::close(iter->second);
+      timers.erase(iter);
+    }
+  }
+}
+
+TimerEvent::TimerEvent(void) noexcept
+  : m_fd(posix::invalid_descriptor)
+{
+  m_fd = s_platform.add(this);
+}
+
+TimerEvent::~TimerEvent(void) noexcept
+{
+  stop();
+  s_platform.remove(this);
+}
+
+bool TimerEvent::start(milliseconds_t delay, bool repeat) noexcept
+{
+  return EventBackend::add(m_fd, composite_flag( repeat ? EV_ONESHOT : 0, EVFILT_TIMER, delay), // connect timer event to lambda function
+                    [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
+                      { Object::enqueue_copy(expired); });
+}
+
+bool TimerEvent::stop(void) noexcept
+{
+  return EventBackend::remove(m_fd, UINT64_MAX); // total removal
+}
 
 # elif defined(__minix) // MINIX
-# pragma message("No timer backend code exists in PDTK for MINIX!  Please submit a patch!")
+# pragma message("No timer backend code exists in PUT for MINIX!  Please submit a patch!")
 
 # elif defined(__QNX__) // QNX
-# pragma message("No timer backend code exists in PDTK for QNX!  Please submit a patch!")
+# pragma message("No timer backend code exists in PUT for QNX!  Please submit a patch!")
 
 # elif defined(__hpux) // HP-UX
-# pragma message("No timer backend code exists in PDTK for HP-UX!  Please submit a patch!")
+# pragma message("No timer backend code exists in PUT for HP-UX!  Please submit a patch!")
 
 # elif defined(_AIX) // IBM AIX
-# pragma message("No timer backend code exists in PDTK for IBM AIX!  Please submit a patch!")
+# pragma message("No timer backend code exists in PUT for IBM AIX!  Please submit a patch!")
 
 # elif defined(__osf__) || defined(__osf) // Tru64 (OSF/1)
-# pragma message("No timer backend code exists in PDTK for Tru64!  Please submit a patch!")
+# pragma message("No timer backend code exists in PUT for Tru64!  Please submit a patch!")
 
 # elif defined(_SCO_DS) // SCO OpenServer
-# pragma message("No timer backend code exists in PDTK for SCO OpenServer!  Please submit a patch!")
+# pragma message("No timer backend code exists in PUT for SCO OpenServer!  Please submit a patch!")
 
 # elif defined(sinux) // Reliant UNIX
-# pragma message("No timer backend code exists in PDTK for Reliant UNIX!  Please submit a patch!")
+# pragma message("No timer backend code exists in PUT for Reliant UNIX!  Please submit a patch!")
 
 # elif defined(BSD)
 # pragma message("Unrecognized BSD derivative!")
@@ -106,8 +162,6 @@ bool TimerEvent::stop(void) noexcept
 
 // PUT
 #include <cxxutils/vterm.h>
-
-static_assert(sizeof(itimerspec::it_interval.tv_nsec) == sizeof(microseconds_t), "opps");
 
 enum {
   Read = 0,
@@ -170,17 +224,21 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
     return readfd;
   }
 
-  bool set(posix::fd_t fd, microseconds_t delay, microseconds_t repeat_interval) noexcept
+  bool set(posix::fd_t fd, milliseconds_t delay, bool repeat) noexcept
   {
     auto iter = events.find(fd);
     if(iter != events.end())
     {
       const eventinfo_t& data = iter->second;
       struct itimerspec interval_spec;
-      interval_spec.it_interval.tv_sec = repeat_interval / 1000000;
-      interval_spec.it_interval.tv_nsec = (repeat_interval % 1000000) * 1000;
-      interval_spec.it_value.tv_sec = delay / 1000000;
-      interval_spec.it_value.tv_nsec = (delay % 1000000) * 1000;
+      interval_spec.it_value.tv_sec = delay / 1000;
+      interval_spec.it_value.tv_nsec = (delay % 1000) * 1000000;
+
+      if(repeat)
+        std::memcpy(&interval_spec.it_interval, &interval_spec.it_value, sizeof(struct timespec));
+      else
+        std::memset(&interval_spec.it_interval, 0, sizeof(struct timespec));
+
       return ::timer_settime(data.timer, 0, &interval_spec, NULL) == posix::success_response;
     }
     return false;
@@ -218,14 +276,14 @@ TimerEvent::~TimerEvent(void) noexcept
   assert(s_platform.remove(m_fd));
 }
 
-bool TimerEvent::start(microseconds_t delay, microseconds_t repeat_interval) noexcept
+bool TimerEvent::start(milliseconds_t delay, bool repeat) noexcept
 {
-  return s_platform.set(m_fd, delay, repeat_interval);
+  return s_platform.set(m_fd, delay, repeat);
 }
 
 bool TimerEvent::stop(void) noexcept
 {
-  return start(0, 0);
+  return start(0, true);
 }
 
 # else

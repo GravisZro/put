@@ -4,15 +4,13 @@
 // PUT
 #include <object.h>
 
-typedef uint64_t microseconds_t;
-
 class TimerEvent : public Object
 {
 public:
   TimerEvent(void) noexcept;
   ~TimerEvent(void) noexcept;
 
-  bool start(microseconds_t delay, microseconds_t repeat_interval = 0) noexcept;
+  bool start(milliseconds_t delay, bool repeat = false) noexcept;
   bool stop(void) noexcept;
 
   signal<> expired;
