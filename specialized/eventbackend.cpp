@@ -121,10 +121,10 @@ struct EventBackend::platform_dependant // poll notification (kqueue)
     { return (flags >> 16) & 0xFFFF; }
 
   static constexpr uint32_t extract_flags(native_flags_t flags) noexcept
-    { return (flags & (EVFILT_TIMER << 16)) ? 0 : (flags >> 32); }
+    { return (short(flags >> 16) & short(EVFILT_TIMER)) == EVFILT_TIMER ? 0 : (flags >> 32); }
 
   static constexpr uint32_t extract_data(native_flags_t flags) noexcept
-    { return (flags & (EVFILT_TIMER << 16)) ? (flags >> 32) : 0; }
+    { return (short(flags >> 16) & short(EVFILT_TIMER)) == EVFILT_TIMER ? (flags >> 32) : 0; }
 
   platform_dependant(void)
   {
