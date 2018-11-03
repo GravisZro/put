@@ -10,8 +10,10 @@
 #include <specialized/eventbackend.h>
 #include <specialized/peercred.h>
 #include <specialized/procstat.h>
+#include <specialized/capabilities.h>
 #include <cxxutils/pipedspawn.h>
 #include <cxxutils/vfifo.h>
+#include <cxxutils/mutex.h>
 #include <cxxutils/pipedfork.h>
 #include <cxxutils/cstringarray.h>
 #include <cxxutils/configmanip.h>
