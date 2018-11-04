@@ -268,7 +268,7 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 }
 #  endif
 
-# elif defined(__qnx__) // QNX
+# elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
 # pragma message("No event backend code exists in PUT for QNX!  Please submit a patch!")
 
@@ -309,7 +309,7 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 # endif
 
 # if !defined(__linux__) && /* Linux before epoll*/ \
-     !defined(__minix3__) /* MINIX 3 */
+     !defined(__minix__) /* MINIX */
 #pragma message("No platform specific event backend code! Using standard POSIX polling function.")
 #endif
 

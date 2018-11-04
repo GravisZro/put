@@ -67,7 +67,7 @@ bool fsentry_t::operator == (const fsentry_t& other) const
     defined(__OpenBSD__)  /* Every OpenBSD  */ || \
     defined(__NetBSD__)   /* Every NetBSD   */ || \
     defined(__aix__)      /* Every AIX      */ || \
-    defined(__qnx__)      /* Every QNX      */ || \
+    defined(__QNX__)      /* Every QNX      */ || \
     defined(__sunos__)    /* Every SunOS    */ || \
     defined(__solaris__)  /* Every Solaris / OpenSolaris / OpenIndiana / illumos */ || \
     defined(__hpux__)     /* Every HP-UX    */

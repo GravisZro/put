@@ -4,10 +4,10 @@
 
 #if defined(__linux__)
 
-#elif defined(__minix3__) // MINIX
+#elif defined(__minix__) // MINIX
 #error Detection of block partitions is not implemented in PUT for MINIX!  Please submit a patch!
 
-#elif defined(__qnx__) // QNX
+#elif defined(__QNX__) // QNX
 #error Detection of block partitions is not implemented in PUT for QNX!  Please submit a patch!
 
 #elif defined(__hpux__) // HP-UX

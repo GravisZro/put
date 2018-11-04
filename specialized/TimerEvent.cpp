@@ -123,10 +123,10 @@ bool TimerEvent::stop(void) noexcept
   return EventBackend::remove(m_fd, UINT64_MAX); // total removal
 }
 
-# elif defined(__minix3__) // MINIX
+# elif defined(__minix__) // MINIX
 # pragma message("No timer backend code exists in PUT for MINIX!  Please submit a patch!")
 
-# elif defined(__qnx__) // QNX
+# elif defined(__QNX__) // QNX
 # pragma message("No timer backend code exists in PUT for QNX!  Please submit a patch!")
 
 # elif defined(__hpux__) // HP-UX

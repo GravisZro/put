@@ -27,10 +27,10 @@ int load_module(const char* filename, const char* module_arguments)
   return rval;
 }
 
-#elif defined(__minix3__) // MINIX
+#elif defined(__minix__) // MINIX
 #error No kernel module operations code exists in PUT for MINIX!  Please submit a patch!
 
-#elif defined(__qnx__) // QNX
+#elif defined(__QNX__) // QNX
 #error No kernel module operations code exists in PUT for QNX!  Please submit a patch!
 
 #elif defined(__hpux__) // HP-UX

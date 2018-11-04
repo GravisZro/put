@@ -183,10 +183,10 @@ FileEvent::~FileEvent(void) noexcept
 #elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
 # error No file event backend code exists in PUT for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!
 
-#elif defined(__minix3__) // MINIX
+#elif defined(__minix__) // MINIX
 # error No file event backend code exists in PUT for MINIX!  Please submit a patch!
 
-#elif defined(__qnx__) // QNX
+#elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
 # error No file event backend code exists in PUT for QNX!  Please submit a patch!
 
