@@ -24,22 +24,25 @@
 
 // <=== OS IDENTIFIERS ===>
 
-#if  !defined(__unix__) && defined(__unix) // generic unix
+#if !defined(__unix__) && defined(__unix) // generic unix
 # define __unix__
 #endif
 
 // === Free open source ===
 #if !defined(__kfreebsd__) && defined(__FreeBSD_kernel__) && defined(__GLIBC__) // kFreeBSD
 # define __kfreebsd__
-#endif
 
-#if !defined(__minix__) && defined(__minix) // MINIX
+#elif !defined(__minix__) && defined(__minix) // MINIX
 # define __minix__
-#endif
 
-#if !defined(__plan9__) && defined(EPLAN9) // Plan 9
+#elif !defined(__plan9__) && defined(EPLAN9) // Plan 9
 # define __plan9__
-#endif
+
+#elif !defined(__ecos__) && defined(__ECOS) // eCos
+# define __ecos__
+
+#elif !defined(__syllable__) && defined(__SYLLABLE__) // Syllable
+# define __syllable__
 
 // #if defined(__FreeBSD__)   // FreeBSD
 // #if defined(__NetBSD__)    // NetBSD
@@ -47,77 +50,84 @@
 // #if defined(__DragonFly__) // DragonFly BSD
 
 // === Commercial open source ===
-#if !defined(__darwin__) && defined(__APPLE__) && defined(__MACH__) // Darwin
+#elif !defined(__darwin__) && defined(__APPLE__) && defined(__MACH__) // Darwin
 # define __darwin__
 # define __unix__
-#endif
 
-#if defined(__sun) || defined(sun)
-# if !defined(__solaris__) && defined(__SVR4) // solaris
+#elif defined(__sun) || defined(sun)
+# if !defined(__solaris__) && defined(__SVR4) // Solaris
 #  define __solaris__
-# elif !defined(__sunos__)
+# elif !defined(__sunos__) // SunOS
 #  define __sunos__
 # endif
-#endif
 
-#if !defined(__sco_openserver__) && defined(_SCO_DS) // SCO OpenServer
+#elif !defined(__sco_openserver__) && defined(_SCO_DS) // SCO OpenServer
 # define __sco_openserver__
-#endif
 
 // #if defined(__bsdi__) // BSD/OS
 
 // === Commercial closed source ===
-#if !defined(__tru64__) && defined(__osf__) || defined(__osf) // Tru64 (OSF/1)
+#elif !defined(__zos__) && (defined(__MVS__) || defined(__HOS_MVS__) || defined(__TOS_MVS__)) // z/OS
+# define __zos__
+
+#elif !defined(__tru64__) && defined(__osf__) || defined(__osf) // Tru64 (OSF/1)
 # define __tru64__
-#endif
 
-#if !defined(__aix__) && defined(_AIX) // IBM AIX
-# define __aix__
-#endif
-
-#if !defined(__hpux__) && (defined(__hpux) || defined(hpux)) // HP-UX
+#elif !defined(__hpux__) && (defined(__hpux) || defined(hpux)) // HP-UX
 # define __hpux__
-#endif
 
-#if !defined(__irix__) && (defined(__sgi) || defined(sgi)) // IRIX
+#elif !defined(__irix__) && (defined(__sgi) || defined(sgi)) // IRIX
 # define __irix__
-#endif
 
-#if !defined(__unixware__) && (defined(_UNIXWARE7) || defined(sco)) // UnixWare
+#elif !defined(__unixware__) && (defined(_UNIXWARE7) || defined(sco)) // UnixWare
 # define __unixware__
-#endif
 
-#if !defined(__dcosx__) && defined(pyr) // DC/OSx
+#elif !defined(__dynix__) && (defined(_SEQUENT_) || defined(sequent)) // DYNIX
+# define __dynix__
+
+#elif !defined(__mpeix__) && (defined(__mpexl) || defined(mpeix)) // MPE/iX
+# define __mpeix__
+
+#elif !defined(__vms__) && (defined(__VMS) || defined(VMS)) // VMS
+# define __vms__
+
+#elif !defined(__aix__) && defined(_AIX) // AIX
+# define __aix__
+
+#elif !defined(__dcosx__) && defined(pyr) // DC/OSx
 # define __dcosx__
-#endif
 
-#if !defined(__reliant_unix__) && defined(sinux) // Reliant UNIX
+#elif !defined(__reliant_unix__) && defined(sinux) // Reliant UNIX
 # define __reliant_unix__
-#endif
+
+#elif !defined(__interix__) && defined(__INTERIX) // Interix
+# define __interix__
+
+#elif !defined(__morphos__) && defined(__MORPHOS__) // MorphOS
+# define __morphos__
 
 // redundant
-#if !defined(__ultrix__) && (defined(__ultrix) || defined(ultrix)) // Ultrix
-# define __ultrix__
-#endif
-
-#if !defined(__dgux__) && (defined(__DGUX__) || defined(DGUX)) // DG/UX
-# define __dgux__
-#endif
-
-#if !defined(__amigaos__) && defined(AMIGA) // AmigaOS
-# define __amigaos__
-#endif
-
-#if !defined(__QNX__) && defined(__QNXNTO__) // QNX
-# define __QNX__
-#endif
-
-#if !defined(__OS2__) && (defined(__TOS_OS2__) || defined(_OS2) || defined(OS2)) // OS/2
+#elif !defined(__OS2__) && (defined(__TOS_OS2__) || defined(_OS2) || defined(OS2)) // OS/2
 # define __OS2__
+
+#elif !defined(__ultrix__) && (defined(__ultrix) || defined(ultrix)) // Ultrix
+# define __ultrix__
+
+#elif !defined(__dgux__) && (defined(__DGUX__) || defined(DGUX)) // DG/UX
+# define __dgux__
+
+#elif !defined(__amigaos__) && defined(AMIGA) // AmigaOS
+# define __amigaos__
+
+#elif !defined(__QNX__) && defined(__QNXNTO__) // QNX
+# define __QNX__
+
+// #if defined(__BEOS__)    // BeOS
+// #if defined(__Lynx__)    // LynxOS
+// #if defined(__nucleus__) // Nucleus RTOS
+// #if defined(__VOS__)     // Stratus VOS
+
 #endif
-
-// #if defined(__BEOS__) // BeOS
-
 // </=== OS IDENTIFIERS ===>
 
 static_assert(sizeof(::size_t) == sizeof(std::size_t), "STL's size_t doesn't match the C standard!");
