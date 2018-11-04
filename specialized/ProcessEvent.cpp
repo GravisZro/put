@@ -273,24 +273,12 @@ ProcessEvent::~ProcessEvent(void) noexcept
 #elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
 # error No process event backend code exists in PUT for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!
 
-#elif defined(__minix__) // MINIX
-# error No process event backend code exists in PUT for MINIX!  Please submit a patch!
-
 #elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
 # error No process event backend code exists in PUT for QNX!  Please submit a patch!
 
-#elif defined(__hpux__) // HP-UX
-# error No process event backend code exists in PUT for HP-UX!  Please submit a patch!
-
-#elif defined(__aix__) // IBM AIX
-# error No process event backend code exists in PUT for IBM AIX!  Please submit a patch!
-
-#elif defined(BSD)
-# error Unrecognized BSD derivative!
-
 #elif defined(__unix__)
-# error Unrecognized UNIX variant!
+# error No process event backend code exists in PUT for this UNIX!  Please submit a patch!
 
 #else
 # error This platform is not supported.

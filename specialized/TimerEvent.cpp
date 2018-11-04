@@ -123,32 +123,6 @@ bool TimerEvent::stop(void) noexcept
   return EventBackend::remove(m_fd, UINT64_MAX); // total removal
 }
 
-# elif defined(__minix__) // MINIX
-# pragma message("No timer backend code exists in PUT for MINIX!  Please submit a patch!")
-
-# elif defined(__QNX__) // QNX
-# pragma message("No timer backend code exists in PUT for QNX!  Please submit a patch!")
-
-# elif defined(__hpux__) // HP-UX
-# pragma message("No timer backend code exists in PUT for HP-UX!  Please submit a patch!")
-
-# elif defined(__aix__) // IBM AIX
-# pragma message("No timer backend code exists in PUT for IBM AIX!  Please submit a patch!")
-
-# elif defined(__tru64__) // Tru64 (OSF/1)
-# pragma message("No timer backend code exists in PUT for Tru64!  Please submit a patch!")
-
-# elif defined(__sco_openserver__) // SCO OpenServer
-# pragma message("No timer backend code exists in PUT for SCO OpenServer!  Please submit a patch!")
-
-# elif defined(__reliant_unix__) // Reliant UNIX
-# pragma message("No timer backend code exists in PUT for Reliant UNIX!  Please submit a patch!")
-
-# elif defined(BSD)
-# pragma message("Unrecognized BSD derivative!")
-
-# else
-# pragma Unrecognized UNIX variant!
 # endif
 
 
@@ -287,7 +261,7 @@ bool TimerEvent::stop(void) noexcept
 }
 
 # else
-#  error This platform is not supported.
+#  error No timer backend code exists in PUT for this UNIX!  Please submit a patch!
 # endif
 #else
 # error This platform is not supported.
