@@ -22,21 +22,65 @@
 #include "error_helpers.h"
 #include "signal_helpers.h"
 
-#if defined(__unix) && !defined(__unix__)
-#define __unix__
+#if  !defined(__unix__) && defined(__unix) // generic unix
+# define __unix__
 #endif
 
-#if !defined(__kFreeBSD__) && defined(__FreeBSD_kernel__) && defined(__GLIBC__)
-#define __kFreeBSD__
+#if !defined(__kfreebsd__) && defined(__FreeBSD_kernel__) && defined(__GLIBC__) // kFreeBSD
+# define __kfreebsd__
 #endif
 
-#if !defined(__solaris__) && defined(__sun) && defined(__SVR4)
-#define __solaris__
+#if defined(__sun) || defined(sun)
+# if !defined(__solaris__) && defined(__SVR4) // solaris
+#  define __solaris__
+# elif !defined(__sunos__)
+#  define __sunos__
+# endif
 #endif
 
-#if !defined(__darwin__) && defined(__APPLE__) && defined(__MACH__)
-#define __darwin__
-#define __unix__
+#if !defined(__darwin__) && defined(__APPLE__) && defined(__MACH__) // Darwin
+# define __darwin__
+# define __unix__
+#endif
+
+#if !defined(__minix3__) && defined(__minix) // MINIX 3
+# define __minix3__
+#endif
+
+#if !defined(__tru64__) && defined(__osf__) || defined(__osf) // Tru64 (OSF/1)
+# define __tru64__
+#endif
+
+#if !defined(__sco_openserver__) && defined(_SCO_DS) // SCO OpenServer
+# define __sco_openserver__
+#endif
+
+#if !defined(__reliant_unix__) && defined(sinux) // Reliant UNIX
+# define __reliant_unix__
+#endif
+
+#if !defined(__aix__) && defined(_AIX) // IBM AIX
+# define __aix__
+#endif
+
+#if !defined(__hpux__) && (defined(__hpux) || defined(hpux)) // HP-UX
+# define __hpux__
+#endif
+
+#if !defined(__irix__) && (defined(__sgi) || defined(sgi)) // IRIX
+# define __irix__
+#endif
+
+#if !defined(__qnx__) && (defined(__QNX__) || defined(__QNXNTO__)) // QNX
+# define __qnx__
+#endif
+
+#if !defined(__ultrix__) && (defined(__ultrix) || defined(ultrix)) // Ultrix
+# define __ultrix__
+#endif
+
+#if !defined(__unixware__) && (defined(_UNIXWARE7) || defined(sco)) // UnixWare
+# define __unixware__
 #endif
 
 static_assert(sizeof(::size_t) == sizeof(std::size_t), "STL's size_t doesn't match the C standard!");

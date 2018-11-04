@@ -268,11 +268,11 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 }
 #  endif
 
-# elif defined(__QNX__) // QNX
+# elif defined(__qnx__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
 # pragma message("No event backend code exists in PUT for QNX!  Please submit a patch!")
 
-# elif defined(__hpux) // HP-UX
+# elif defined(__hpux__) // HP-UX
 // see http://nixdoc.net/man-pages/HP-UX/man7/poll.7.html
 // and https://www.freebsd.org/cgi/man.cgi?query=poll&sektion=7&apropos=0&manpath=HP-UX+11.22
 // uses /dev/poll
@@ -280,7 +280,7 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 
 #include <sys/devpoll.h>
 
-# elif defined(_AIX) // IBM AIX
+# elif defined(__aix__) // IBM AIX
 // see https://www.ibm.com/support/knowledgecenter/ssw_aix_61/com.ibm.aix.basetrf1/pollset.htm
 // uses pollset_* functions
 
@@ -295,13 +295,13 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 # pragma message("No event backend code exists in PUT for IBM AIX!  Please submit a patch!")
 
 
-# elif defined(__osf__) || defined(__osf) // Tru64 (OSF/1)
+# elif defined(__tru64__) // Tru64 (OSF/1)
 # pragma message("No event backend code exists in PUT for Tru64!  Please submit a patch!")
 
-# elif defined(_SCO_DS) // SCO OpenServer
+# elif defined(__sco_openserver__) // SCO OpenServer
 # pragma message("No event backend code exists in PUT for SCO OpenServer!  Please submit a patch!")
 
-# elif defined(sinux) // Reliant UNIX
+# elif defined(__reliant_unix__) // Reliant UNIX
 # pragma message("No event backend code exists in PUT for Reliant UNIX!  Please submit a patch!")
 
 # elif defined(BSD)
@@ -309,7 +309,7 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 # endif
 
 # if !defined(__linux__) && /* Linux before epoll*/ \
-     !defined(__minix) /* MINIX 3 */
+     !defined(__minix3__) /* MINIX 3 */
 #pragma message("No platform specific event backend code! Using standard POSIX polling function.")
 #endif
 

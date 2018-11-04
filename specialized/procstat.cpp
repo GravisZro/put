@@ -352,7 +352,7 @@ posix::error_t proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
   }
 }
 
-# elif defined(_AIX) // IBM AIX
+# elif defined(__aix__) // IBM AIX
 
 #include <sys/procfs.h>
 
@@ -405,15 +405,15 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
      false) // imcomplete code
     return posix::error_response;
 
-# elif defined(_AIX) // IBM AIX
+# elif defined(__aix__) // IBM AIX
   if(proc_decode(pid, "psinfo", proc_psinfo_decoder, data) ||
      true) // imcomplete code
     return posix::error_response;
 
-# elif defined(__osf__) || defined(__osf) // Tru64 (OSF/1)
+# elif defined(__tru64__) // Tru64 (OSF/1)
 #  error No /proc decoding is implemented in PUT for Tru64!  Please submit a patch!
 
-# elif defined(__hpux) // HP-UX
+# elif defined(__hpux__) // HP-UX
 #  error No /proc decoding is implemented in PUT for HP-UX!  Please submit a patch!
 
 # else

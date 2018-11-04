@@ -4,16 +4,16 @@
 
 #if defined(__linux__)
 
-#elif defined(__minix) // MINIX
+#elif defined(__minix3__) // MINIX
 #error Detection of block partitions is not implemented in PUT for MINIX!  Please submit a patch!
 
-#elif defined(__QNX__) // QNX
+#elif defined(__qnx__) // QNX
 #error Detection of block partitions is not implemented in PUT for QNX!  Please submit a patch!
 
-#elif defined(__hpux) // HP-UX
+#elif defined(__hpux__) // HP-UX
 #error Detection of block partitions is not implemented in PUT for HP-UX!  Please submit a patch!
 
-#elif defined(_AIX) // IBM AIX
+#elif defined(__aix__) // IBM AIX
 #error Detection of block partitions is not implemented in PUT for IBM AIX!  Please submit a patch!
 
 #elif defined(__APPLE__) // Darwin

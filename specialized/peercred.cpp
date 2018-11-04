@@ -39,7 +39,7 @@ int send_cred(int) noexcept
 
 # if defined (SO_PEERCRED) && \
     (defined(__linux__)    /* Linux    */ || \
-     defined(__kFreeBSD__) /* kFreeBSD */ )
+     defined(__kfreebsd__) /* kFreeBSD */ )
 constexpr int socket_cred_option = SO_PEERCRED;
 typedef ucred cred_t;
 constexpr pid_t peer_pid(const cred_t& data) { return data.pid; }

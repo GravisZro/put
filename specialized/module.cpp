@@ -27,16 +27,16 @@ int load_module(const char* filename, const char* module_arguments)
   return rval;
 }
 
-#elif defined(__minix) // MINIX
+#elif defined(__minix3__) // MINIX
 #error No kernel module operations code exists in PUT for MINIX!  Please submit a patch!
 
-#elif defined(__QNX__) // QNX
+#elif defined(__qnx__) // QNX
 #error No kernel module operations code exists in PUT for QNX!  Please submit a patch!
 
-#elif defined(__hpux) // HP-UX
+#elif defined(__hpux__) // HP-UX
 #error No kernel module operations code exists in PUT for HP-UX!  Please submit a patch!
 
-#elif defined(_AIX) // IBM AIX
+#elif defined(__aix__) // IBM AIX
 // https://www.ibm.com/developerworks/aix/library/au-kernelext.html
 #error No kernel module operations code exists in PUT for IBM AIX!  Please submit a patch!
 
