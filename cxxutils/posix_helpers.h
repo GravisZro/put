@@ -29,7 +29,11 @@
 #endif
 
 // === Free open source ===
-#if !defined(__kfreebsd__) && defined(__FreeBSD_kernel__) && defined(__GLIBC__) // kFreeBSD
+
+#if !defined(__linux__) && (defined(__linux) || defined (linux)) // Linux
+#define __linux__
+
+#elif !defined(__kfreebsd__) && defined(__FreeBSD_kernel__) && defined(__GLIBC__) // kFreeBSD
 # define __kfreebsd__
 
 #elif !defined(__minix__) && defined(__minix) // MINIX
