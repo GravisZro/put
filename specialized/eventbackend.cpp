@@ -16,6 +16,9 @@ std::list<std::pair<posix::fd_t, native_flags_t>> EventBackend::results;
 // Linux
 #include <sys/epoll.h>
 
+// POSIX++
+#include <cstdlib>
+
 struct EventBackend::platform_dependant // poll notification (epoll)
 {
   posix::fd_t fd;
@@ -73,12 +76,15 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 #elif defined(__darwin__)     /* Darwin 7+     */ || \
       defined(__DragonFly__)  /* DragonFly BSD */ || \
       (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(4,1,0))  /* FreeBSD 4.1+  */ || \
-      (defined(__OpenBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,9))    /* OpenBSD 2.9+  */ || \
+      (defined(__OpenBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,9,0))  /* OpenBSD 2.9+  */ || \
       (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,0,0))  /* NetBSD 2+     */
 
 // BSD
 #include <sys/time.h>
 #include <sys/event.h>
+
+// POSIX++
+#include <cstdlib>
 
 // POSIX
 #include <sys/socket.h>
