@@ -71,10 +71,10 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 }
 
 #elif defined(__darwin__)     /* Darwin 7+     */ || \
-      defined(__FreeBSD__)    /* FreeBSD 4.1+  */ || \
       defined(__DragonFly__)  /* DragonFly BSD */ || \
-      defined(__OpenBSD__)    /* OpenBSD 2.9+  */ || \
-      defined(__NetBSD__)     /* NetBSD 2+     */
+      (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(4,1,0))  /* FreeBSD 4.1+  */ || \
+      (defined(__OpenBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,9))    /* OpenBSD 2.9+  */ || \
+      (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,0,0))  /* NetBSD 2+     */
 
 // BSD
 #include <sys/time.h>
@@ -82,22 +82,9 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 
 // POSIX
 #include <sys/socket.h>
-#include <unistd.h>
-
-// POSIX++
-#include <cstdlib>
-#include <cstdio>
-#include <climits>
-#include <cstring>
 
 // STL
 #include <vector>
-#include <algorithm>
-#include <iterator>
-
-// PUT
-#include <cxxutils/vterm.h>
-#include <cxxutils/error_helpers.h>
 
 struct EventBackend::platform_dependant // poll notification (kqueue)
 {
@@ -127,7 +114,7 @@ struct EventBackend::platform_dependant // poll notification (kqueue)
          std::exit(errno),,
          "Unable to create a new kqueue: %s", std::strerror(errno))
     posix::fcntl(kq, F_SETFD, FD_CLOEXEC); // close on exec*()
-    koutput.resize(1024);
+    koutput.resize(MAX_EVENTS);
   }
 
   ~platform_dependant(void)
@@ -181,21 +168,9 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 
 // POSIX
 #include <sys/socket.h>
-#include <unistd.h>
-
-// POSIX++
-#include <cstdlib>
-#include <cstdio>
-#include <climits>
-#include <cstring>
 
 // STL
 #include <vector>
-
-// PUT
-#include <cxxutils/vterm.h>
-#include <cxxutils/error_helpers.h>
-
 
 struct EventBackend::platform_dependant
 {

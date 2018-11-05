@@ -30,11 +30,11 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
       (flags & PollEvent::Writeable    ? native_flags_t(EPOLLOUT ) : 0);
 }
 
-#elif defined(__darwin__)    /* Darwin 7+     */ || \
-      defined(__FreeBSD__)   /* FreeBSD 4.1+  */ || \
-      defined(__DragonFly__) /* DragonFly BSD */ || \
-      defined(__OpenBSD__)   /* OpenBSD 2.9+  */ || \
-      defined(__NetBSD__)    /* NetBSD 2+     */
+#elif defined(__darwin__)     /* Darwin 7+     */ || \
+      defined(__DragonFly__)  /* DragonFly BSD */ || \
+      (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(4,1,0))  /* FreeBSD 4.1+  */ || \
+      (defined(__OpenBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,9))    /* OpenBSD 2.9+  */ || \
+      (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,0,0))  /* NetBSD 2+     */
 
 #include <sys/event.h> // kqueue
 

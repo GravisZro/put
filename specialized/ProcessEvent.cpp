@@ -210,11 +210,11 @@ ProcessEvent::~ProcessEvent(void) noexcept
 //&& KERNEL_VERSION_CODE >= KERNEL_VERSION(X,X,X) /* Linux X.X.X+ */
 # error No process event backend code exists in PUT for Linux before version 2.6.15!  Please submit a patch!
 
-#elif defined(__darwin__)    /* Darwin 7+     */ || \
-      defined(__FreeBSD__)   /* FreeBSD 4.1+  */ || \
-      defined(__DragonFly__) /* DragonFly BSD */ || \
-      defined(__OpenBSD__)   /* OpenBSD 2.9+  */ || \
-      defined(__NetBSD__)    /* NetBSD 2+     */
+#elif defined(__darwin__)     /* Darwin 7+     */ || \
+      defined(__DragonFly__)  /* DragonFly BSD */ || \
+      (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(4,1,0))  /* FreeBSD 4.1+  */ || \
+      (defined(__OpenBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,9))    /* OpenBSD 2.9+  */ || \
+      (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,0,0))  /* NetBSD 2+     */
 
 #include <sys/event.h> // kqueue
 
