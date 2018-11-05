@@ -1,5 +1,8 @@
 #include "proclist.h"
 
+// PUT
+#include <specialized/osdetect.h>
+
 #if defined(__linux__) // Linux
 
 // POSIX++

@@ -1,8 +1,8 @@
-#if defined(__linux__) && !defined(POSIX_DRAFT_1E)
-# include <linux/version.h>
-# if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,0)
-#  define POSIX_DRAFT_1E
-# endif
+// PUT
+#include <specialized/osdetect.h>
+
+#if defined(__linux__) && !defined(POSIX_DRAFT_1E) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,2,0)
+# define POSIX_DRAFT_1E
 #endif
 
 #if defined(POSIX_DRAFT_1E) && !defined(CAPABILITIES_H)
@@ -69,29 +69,29 @@ enum class capflag : uint32_t
   sys_time          = CAP_SYS_TIME,
   sys_tty_config    = CAP_SYS_TTY_CONFIG,
 
-#if defined(CAP_LEASE) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,0) /* Linux 2.4.0+ */
+#if defined(CAP_LEASE) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,4,0) /* Linux 2.4.0+ */
   mknod             = CAP_MKNOD,
   lease             = CAP_LEASE,
 #endif
-#if defined(CAP_AUDIT_READ) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,11) /* Linux 2.6.11+ */
+#if defined(CAP_AUDIT_READ) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,11) /* Linux 2.6.11+ */
   audit_read        = CAP_AUDIT_READ,
   audit_write       = CAP_AUDIT_WRITE,
   audit_control     = CAP_AUDIT_CONTROL,
 #endif
-#if defined(CAP_SETFCAP) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24) /* Linux 2.6.24+ */
+#if defined(CAP_SETFCAP) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,24) /* Linux 2.6.24+ */
   setfcap           = CAP_SETFCAP,
 #endif
-#if defined(CAP_MAC_ADMIN) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25) /* Linux 2.6.25+ */
+#if defined(CAP_MAC_ADMIN) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,25) /* Linux 2.6.25+ */
   mac_admin         = CAP_MAC_ADMIN,
   mac_override      = CAP_MAC_OVERRIDE,
 #endif
-#if defined(CAP_SYSLOG) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37) /* Linux 2.6.37+ */
+#if defined(CAP_SYSLOG) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,37) /* Linux 2.6.37+ */
   syslog            = CAP_SYSLOG,
 #endif
-#if defined(CAP_BLOCK_SUSPEND) && LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0) /* Linux 3.0.0+ */
+#if defined(CAP_BLOCK_SUSPEND) && KERNEL_VERSION_CODE >= KERNEL_VERSION(3,0,0) /* Linux 3.0.0+ */
   wake_alarm        = CAP_WAKE_ALARM,
 #endif
-#if defined(CAP_BLOCK_SUSPEND) && LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) /* Linux 3.5.0+ */
+#if defined(CAP_BLOCK_SUSPEND) && KERNEL_VERSION_CODE >= KERNEL_VERSION(3,5,0) /* Linux 3.5.0+ */
   block_suspend     = CAP_BLOCK_SUSPEND,
 #endif
 };

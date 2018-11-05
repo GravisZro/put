@@ -1,15 +1,10 @@
 #include "ProcessEvent.h"
 
+// PUT
+#include <specialized/osdetect.h>
 #include <specialized/eventbackend.h>
 
-#if defined(__linux__)
-#include <linux/version.h>
-#elif !defined(KERNEL_VERSION)
-#define LINUX_VERSION_CODE 0
-#define KERNEL_VERSION(a, b, c) 0
-#endif
-
-#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15) /* Linux 2.6.15+ */
+#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,15) /* Linux 2.6.15+ */
 
 // Linux
 #include <linux/netlink.h>
@@ -212,7 +207,7 @@ ProcessEvent::~ProcessEvent(void) noexcept
   s_platform.remove(m_pid);
 }
 #elif defined(__linux__)
-//&& LINUX_VERSION_CODE >= KERNEL_VERSION(X,X,X) /* Linux X.X.X+ */
+//&& KERNEL_VERSION_CODE >= KERNEL_VERSION(X,X,X) /* Linux X.X.X+ */
 # error No process event backend code exists in PUT for Linux before version 2.6.15!  Please submit a patch!
 
 #elif defined(__darwin__)    /* Darwin 7+     */ || \

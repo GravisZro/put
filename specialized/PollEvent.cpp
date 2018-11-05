@@ -1,15 +1,12 @@
 #include "PollEvent.h"
 
+// STL
 #include <functional>
 
-#if defined(__linux__)
-#include <linux/version.h>
-#elif !defined(KERNEL_VERSION)
-#define LINUX_VERSION_CODE 0
-#define KERNEL_VERSION(a, b, c) 0
-#endif
+// PUT
+#include <specialized/osdetect.h>
 
-#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,44) /* Linux 2.5.44+ */
+#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,5,44) /* Linux 2.5.44+ */
 
 // Linux
 #include <sys/epoll.h>
@@ -87,6 +84,8 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 # endif
 
 #pragma message("No platform specific poll event backend code! Using standard POSIX polling.")
+
+#include <poll.h>
 
 // FD flags
 static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept

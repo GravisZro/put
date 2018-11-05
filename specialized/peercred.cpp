@@ -5,6 +5,7 @@
 #include <sys/un.h>
 
 // PUT
+#include <specialized/osdetect.h>
 #include <cxxutils/posix_helpers.h>
 
 #if defined(__solaris__) // Solaris
@@ -60,8 +61,10 @@ constexpr pid_t peer_pid(const cred_t& data) { return data.unp_pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.unp_euid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.unp_egid; }
 
-# else
-#  error UNRECOGNIZED PLATFORM.  Please submit a patch!
+# elif defined(SO_PEERCRED)
+#  error SO_PEERCRED macro detected but platform is unrecognized.  Please submit a patch!
+# elif defined(LOCAL_PEEREID)
+#  error LOCAL_PEEREID macro detected but platform is unrecognized.  Please submit a patch!
 # endif
 
 int recv_cred(int socket, proccred_t& cred) noexcept
@@ -123,10 +126,9 @@ constexpr pid_t peer_pid(const cred_t& data) { return data.cmcred_pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.cmcred_euid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.cmcred_groups[0]; }
 
-# else
-#  error UNRECOGNIZED PLATFORM.  Please submit a patch!
+# elif defined(SCM_CREDS)
+#  error SCM_CREDS macro detected but platform is unrecognized.  Please submit a patch!
 # endif
-
 
 int recv_cred(int socket, proccred_t& cred) noexcept
 {
@@ -200,11 +202,19 @@ int send_cred(int socket) noexcept
   return ::sendmsg(socket, &message, 0);
 }
 
-
-#elif defined(__unix__)
-
-# error no code yet for your operating system. :(
-
 #else
-# error Unsupported platform! >:(
+
+#pragma message("Socket credentials are not supported on the platform.")
+
+int recv_cred(int socket, proccred_t& cred) noexcept
+{
+  cred.pid = -1;
+  cred.uid = -1;
+  cred.gid = -1;
+  return posix::error(ENOSYS);
+}
+
+int send_cred(int) noexcept
+{ return posix::error(ENOSYS); }
+
 #endif

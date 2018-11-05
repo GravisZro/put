@@ -6,6 +6,7 @@
 #include <climits>
 
 // PUT
+#include <specialized/osdetect.h>
 #include <cxxutils/posix_helpers.h>
 
 fsentry_t::fsentry_t(void) noexcept

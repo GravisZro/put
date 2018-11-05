@@ -1,5 +1,8 @@
 #include "procstat.h"
 
+// PUT
+#include <specialized/osdetect.h>
+
 #if defined(BSD) || defined(__darwin__) /* *BSD/Darwin */
 
 // *BSD/Darwin
@@ -108,7 +111,6 @@ posix::error_t proc_exe_symlink(pid_t pid, const char* subfile, process_state_t&
 }
 
 # if defined(__linux__) // Linux
-#include <linux/version.h> // for LINUX_VERSION_CODE and KERNEL_VERSION macros
 #include <linux/kdev_t.h> // for MAJOR and MINOR macros
 #include <inttypes.h> // for fscanf abstracted type macros
 
@@ -209,11 +211,11 @@ posix::error_t proc_stat_decoder(FILE* file, process_state_t& data) noexcept
               Su32 // wchan
               Su32 // nswap
               Su32 // cnswap
-            #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,1,22)
+            #if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,1,22)
               Sd32 // exit_signal
-            # if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,8)
+            # if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,2,8)
               Sd32 // processor
-            #  if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,19)
+            #  if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,5,19)
               Su32 // rt_priority
               Su32 // policy
             #  endif
@@ -256,11 +258,11 @@ posix::error_t proc_stat_decoder(FILE* file, process_state_t& data) noexcept
               , &process.wchan
               , &process.nswap
               , &process.cnswap
-            #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,1,22)
+            #if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,1,22)
               , &process.exit_signal
-            # if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,8)
+            # if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,2,8)
               , &process.processor
-            #  if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,19)
+            #  if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,5,19)
               , &process.rt_priority
               , &process.policy
             #  endif
@@ -270,7 +272,7 @@ posix::error_t proc_stat_decoder(FILE* file, process_state_t& data) noexcept
 
   data.tty_device = dev_t(process.tty);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+#if KERNEL_VERSION_CODE < KERNEL_VERSION(2,6,0)
 #else
 #endif
 
@@ -281,13 +283,13 @@ posix::error_t proc_stat_decoder(FILE* file, process_state_t& data) noexcept
     case 'D': data.state = WaitingUninterruptable; break; // Waiting in uninterruptible disk sleep
     case 'Z': data.state = Zombie; break; // Zombie
     case 'T': data.state = Stopped; break; // Stopped (on a signal) or (before Linux 2.6.33) trace stopped
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+#if KERNEL_VERSION_CODE < KERNEL_VERSION(2,6,0)
     case 'W': data.state = WaitingUninterruptable; break; // Paging (only before Linux 2.6.0)
 #else
     case 'X': data.state = Zombie; break; // Dead (from Linux 2.6.0 onward)
-# if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,33)
+# if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,33)
     case 't': data.state = Stopped; break; // Tracing stop (Linux 2.6.33 onward)
-#  if LINUX_VERSION_CODE <= KERNEL_VERSION(3,13,0)
+#  if KERNEL_VERSION_CODE <= KERNEL_VERSION(3,13,0)
     case 'x': data.state = Zombie; break; // Dead (Linux 2.6.33 to 3.13 only)
     case 'K': data.state = WaitingUninterruptable; break; // Wakekill (Linux 2.6.33 to 3.13 only)
     case 'W': data.state = WaitingInterruptable; break; // Waking (Linux 2.6.33 to 3.13 only)

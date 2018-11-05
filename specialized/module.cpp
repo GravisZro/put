@@ -1,5 +1,7 @@
 #include "module.h"
 
+// PUT
+#include <specialized/osdetect.h>
 #include <cxxutils/posix_helpers.h>
 
 #if defined(__linux__)

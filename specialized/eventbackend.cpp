@@ -1,24 +1,17 @@
 #include "eventbackend.h"
 
+// PUT
+#include <specialized/osdetect.h>
+#include <cxxutils/vterm.h>
+
 #if !defined(MAX_EVENTS)
 #define MAX_EVENTS 1024
 #endif
 
-// PUT
-#include <cxxutils/vterm.h>
-
 posix::lockable<std::unordered_multimap<posix::fd_t, EventBackend::callback_info_t>> EventBackend::queue;
 std::list<std::pair<posix::fd_t, native_flags_t>> EventBackend::results;
 
-
-#if defined(__linux__)
-#include <linux/version.h>
-#elif !defined(KERNEL_VERSION)
-#define LINUX_VERSION_CODE 0
-#define KERNEL_VERSION(a, b, c) 0
-#endif
-
-#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,44) /* Linux 2.5.44+ */
+#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,5,44) /* Linux 2.5.44+ */
 
 // Linux
 #include <sys/epoll.h>

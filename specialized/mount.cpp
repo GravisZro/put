@@ -1,6 +1,7 @@
 #include "mount.h"
 
 // PUT
+#include <specialized/osdetect.h>
 #include <cxxutils/posix_helpers.h>
 
 #if defined(__linux__)
@@ -80,7 +81,7 @@ int mount(const char* device,
 
 int unmount(const char* path) noexcept { return umount(path); }
 
-#elif defined(NETBSD)
+#elif defined(__NetBSD__)
 // NetBSD
 #include <sys/param.h>
 #include <sys/mount.h>
@@ -96,8 +97,7 @@ int mount(const char* device,
 
 int unmount(const char* path) noexcept { return unmount(path, 0); }
 
-#elif defined(BSD) || defined(__APPLE__)
-// *BSD or Darwin
+#elif defined(BSD) || defined(__darwin__) // *BSD or Darwin
 #include <sys/param.h>
 #include <sys/mount.h>
 

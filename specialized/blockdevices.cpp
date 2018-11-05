@@ -2,6 +2,8 @@
 
 #include <list>
 
+// PUT
+#include <specialized/osdetect.h>
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/mountpoint_helpers.h>
 

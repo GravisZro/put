@@ -1,19 +1,15 @@
 #include "MountEvent.h"
 
-#if defined(__linux__)
-#include <linux/version.h>
-#elif !defined(KERNEL_VERSION)
-#define LINUX_VERSION_CODE 0
-#define KERNEL_VERSION(a, b, c) 0
-#endif
+// PUT
+#include <specialized/osdetect.h>
 
-#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
+#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
 // Linux
 # include <sys/epoll.h>
 #elif defined(__unix__)   /* Generic UNIX */ || \
       defined(__darwin__) /* Darwin       */
 // PUT
-# include "TimerEvent.h"
+# include <specialized/TimerEvent.h>
 #else
 # error Unsupported platform! >:(
 #endif
@@ -46,7 +42,7 @@ MountEvent::MountEvent(void) noexcept
           m_table = new_table;
         };
 
-#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
+#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
     m_fd = posix::open(MOUNT_TABLE_FILE, O_RDONLY | O_NONBLOCK);
     EventBackend::add(m_fd, EPOLLERR | EPOLLPRI, comparison_func); // connect FD with flags to comparison_func
 #elif defined(__unix__)   /* Generic UNIX */ || \
@@ -59,7 +55,7 @@ MountEvent::MountEvent(void) noexcept
 
 MountEvent::~MountEvent(void) noexcept
 {
-#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
+#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
   EventBackend::remove(m_fd, EPOLLERR | EPOLLPRI); // disconnect FD with flags from signal
   posix::close(m_fd);
 #elif defined(__unix__)   /* Generic UNIX */ || \
