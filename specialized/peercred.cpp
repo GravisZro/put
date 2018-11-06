@@ -52,7 +52,7 @@ int recv_cred(int socket, proccred_t& cred) noexcept
     len = sizeof(cred.pid);
     rval = ::getsockopt(socket, SOL_LOCAL, LOCAL_PEERPID, &cred.pid, &len);
 
-    if(len != sizeof(pid))
+    if(len != sizeof(cred.pid))
       rval = posix::error(std::errc::invalid_argument);
   }
   return rval;
