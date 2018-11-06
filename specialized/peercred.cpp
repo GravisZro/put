@@ -89,18 +89,7 @@ int recv_cred(int socket, proccred_t& cred) noexcept
 int send_cred(int) noexcept
 { return posix::success_response; }
 
-
-#elif defined(SCM_CREDS) && defined(__darwin__) /* Darwin */
-
-#pragma message("Warning: recv_cred/send_cred for Darwin is broken!")
-
-int recv_cred(int, proccred_t&) noexcept
-{ return posix::error_response; }
-
-int send_cred(int) noexcept
-{ return posix::error_response; }
-
-#elif defined(SCM_CREDENTIALS) || defined(SCM_CREDS)
+#elif defined(SCM_CREDENTIALS) || defined(SCM_CREDS) || defined(LOCAL_PEERCRED)
 
 # if defined(SCM_CREDENTIALS) /* Linux / kFreeBSD */
 constexpr int credential_message = SCM_CREDENTIALS;
@@ -125,6 +114,14 @@ typedef cmsgcred cred_t;
 constexpr pid_t peer_pid(const cred_t& data) { return data.cmcred_pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.cmcred_euid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.cmcred_groups[0]; }
+
+# elif defined(LOCAL_PEERCRED)  /* Darwin / Old FreeBSD */
+#include <sys/ucred.h>
+constexpr int credential_message = LOCAL_PEERCRED;
+typedef xucred cred_t;
+constexpr pid_t peer_pid(const cred_t& data) { return -1; }
+constexpr uid_t peer_uid(const cred_t& data) { return data.cr_uid; }
+constexpr gid_t peer_gid(const cred_t& data) { return data.cr_groups[0]; }
 
 # elif defined(SCM_CREDS)
 #  error SCM_CREDS macro detected but platform is unrecognized.  Please submit a patch!
