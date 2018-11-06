@@ -1,6 +1,8 @@
 #ifndef OSDETECT_H
 #define OSDETECT_H
 
+# include <unistd.h> // for POSIX option detection
+
 // === Free open source ===
 
 #if !defined(__linux__) && (defined(__linux) || defined (linux)) // Linux

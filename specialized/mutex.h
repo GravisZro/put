@@ -1,8 +1,13 @@
 #ifndef MUTEX_H
 #define MUTEX_H
 
+#include <specialized/osdetect.h>
+
+#if defined(_POSIX_THREADS)
 // POSIX
 #include <pthread.h>
+typedef pthread_mutex_t mutex_type;
+#endif
 
 namespace posix
 {
@@ -13,7 +18,7 @@ namespace posix
     bool lock(void) noexcept;
     bool unlock(void) noexcept;
   private:
-    pthread_mutex_t m_mutex;
+    mutex_type m_mutex;
   };
 
   template<typename T>

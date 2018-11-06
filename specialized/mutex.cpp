@@ -1,8 +1,9 @@
 #include "mutex.h"
 
 // PUT
-#include "error_helpers.h"
+#include <cxxutils/error_helpers.h>
 
+#if defined(_POSIX_THREADS)
 posix::mutex::mutex(void) noexcept
  : m_mutex(PTHREAD_MUTEX_INITIALIZER)
 {
@@ -23,3 +24,4 @@ bool posix::mutex::unlock(void) noexcept
     errno = err;
   return err == posix::success_response;
 }
+#endif

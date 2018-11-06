@@ -7,7 +7,7 @@
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,25) /* Linux 2.6.25+ */
 
 // Linux
-#include <sys/timerfd.h>
+# include <sys/timerfd.h>
 
 // timer notification (Linux)
 TimerEvent::TimerEvent(void) noexcept
@@ -62,7 +62,7 @@ bool TimerEvent::stop(void) noexcept
      (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,0,0))  /* NetBSD 2+     */
 
 
-#include <sys/event.h> // kqueue
+#  include <sys/event.h> // kqueue
 
 static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, int32_t flags) noexcept
   { return native_flags_t(actions) | (native_flags_t(uint16_t(filters)) << 16) | (native_flags_t(flags) << 32); }
@@ -115,20 +115,18 @@ bool TimerEvent::stop(void) noexcept
 {
   return EventBackend::remove(m_fd, UINT64_MAX); // total removal
 }
-
 # endif
 
-
 # if defined(_POSIX_TIMERS)
-# pragma message("No platform specific event backend code! Using standard POSIX timer functions.")
+#  pragma message("No platform specific event backend code! Using standard POSIX timer functions.")
 
 // POSIX++
-#include <ctime>
-#include <climits>
-#include <cassert>
+#  include <ctime>
+#  include <climits>
+#  include <cassert>
 
 // PUT
-#include <cxxutils/vterm.h>
+#  include <cxxutils/vterm.h>
 
 enum {
   Read = 0,
