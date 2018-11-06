@@ -163,7 +163,6 @@ int recv_cred(int socket, proccred_t& cred) noexcept
   return posix::error_response;
 }
 
-
 int send_cred(int socket) noexcept
 {
   struct msghdr message;
@@ -191,12 +190,15 @@ int send_cred(int socket) noexcept
   message.msg_controllen = sizeof(cmsg_header.rawbuffer);
   message.msg_flags = 0;
 
-  return int(posix::sendmsg(socket, &message));
+  ssize_t nr = posix::sendmsg(socket, &message);
+  if(nr == -1)
+    return posix::error_response;
+  return int(nr);
 }
 
 #else
 
-#pragma message("Socket credentials are not supported on the platform.")
+#pragma message("Socket credentials are not supported on this platform.")
 
 int recv_cred(int socket, proccred_t& cred) noexcept
 {
