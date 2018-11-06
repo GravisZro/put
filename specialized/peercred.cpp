@@ -116,7 +116,7 @@ constexpr gid_t peer_gid(const cred_t& data) { return data.cmcred_groups[0]; }
 #include <sys/ucred.h>
 constexpr int credential_message = LOCAL_PEERCRED;
 typedef xucred cred_t;
-constexpr pid_t peer_pid(const cred_t& data) { return -1; }
+constexpr pid_t peer_pid(const cred_t&     ) { return -1; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.cr_uid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.cr_groups[0]; }
 
@@ -132,8 +132,6 @@ int recv_cred(int socket, proccred_t& cred) noexcept
     char    rawbuffer[CMSG_SPACE(sizeof(cred_t))];
     cmsghdr formatted;
   } cmsg_header;
-
-  static_assert(sizeof(cmsg_header.rawbuffer) == CMSG_SPACE(sizeof(cred_t)), "sizeof() is acting improperly");
   std::memset(cmsg_header.rawbuffer, 0, sizeof(cmsg_header.rawbuffer)); // initialize memory
 
   char data = 0; // dummy data
