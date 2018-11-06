@@ -33,7 +33,7 @@ int recv_cred(int socket, proccred_t& cred) noexcept
 int send_cred(int) noexcept
 { return posix::success_response; }
 
-#elif defined (SO_PEERCRED) || defined (LOCAL_PEEREID) /* Linux/OpenBSD/Old NetBSD */
+#elif defined (SO_PEERCRED) || defined (LOCAL_PEEREID) || defined(LOCAL_PEERCRED) /* Linux/OpenBSD/legacy NetBSD/Darwin/legacy FreeBSD */
 
 # if defined (SO_PEERCRED) && \
     (defined(__linux__)    /* Linux    */ || \
@@ -57,6 +57,14 @@ typedef unpcbid cred_t;
 constexpr pid_t peer_pid(const cred_t& data) { return data.unp_pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.unp_euid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.unp_egid; }
+
+# elif defined(LOCAL_PEERCRED)  /* Darwin / legacy FreeBSD */
+#include <sys/ucred.h>
+constexpr int credential_message = LOCAL_PEERCRED;
+typedef xucred cred_t;
+constexpr pid_t peer_pid(const cred_t&     ) { return -1; }
+constexpr uid_t peer_uid(const cred_t& data) { return data.cr_uid; }
+constexpr gid_t peer_gid(const cred_t& data) { return data.cr_groups[0]; }
 
 # elif defined(SO_PEERCRED)
 #  error SO_PEERCRED macro detected but platform is unrecognized.  Please submit a patch!
@@ -86,7 +94,7 @@ int recv_cred(int socket, proccred_t& cred) noexcept
 int send_cred(int) noexcept
 { return posix::success_response; }
 
-#elif defined(SCM_CREDENTIALS) || defined(SCM_CREDS) || defined(LOCAL_PEERCRED)
+#elif defined(SCM_CREDENTIALS) || defined(SCM_CREDS)
 
 # if defined(SCM_CREDENTIALS) /* Linux / kFreeBSD */
 constexpr int credential_message = SCM_CREDENTIALS;
@@ -111,14 +119,6 @@ typedef cmsgcred cred_t;
 constexpr pid_t peer_pid(const cred_t& data) { return data.cmcred_pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.cmcred_euid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.cmcred_groups[0]; }
-
-# elif defined(LOCAL_PEERCRED)  /* Darwin / Old FreeBSD */
-#include <sys/ucred.h>
-constexpr int credential_message = LOCAL_PEERCRED;
-typedef xucred cred_t;
-constexpr pid_t peer_pid(const cred_t&     ) { return -1; }
-constexpr uid_t peer_uid(const cred_t& data) { return data.cr_uid; }
-constexpr gid_t peer_gid(const cred_t& data) { return data.cr_groups[0]; }
 
 # elif defined(SCM_CREDS)
 #  error SCM_CREDS macro detected but platform is unrecognized.  Please submit a patch!
