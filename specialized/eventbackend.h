@@ -9,7 +9,7 @@
 
 // PUT
 #include <cxxutils/posix_helpers.h>
-#include <cxxutils/mutex.h>
+#include <specialized/mutex.h>
 
 typedef uint64_t native_flags_t;
 typedef int milliseconds_t;

@@ -7,7 +7,7 @@
 
 // PUT
 #include <cxxutils/posix_helpers.h>
-#include <cxxutils/mutex.h>
+#include <specialized/mutex.h>
 #include <specialized/eventbackend.h>
 
 

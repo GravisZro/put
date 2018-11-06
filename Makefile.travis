@@ -36,13 +36,13 @@ SOURCES       = tests/build.cpp \
 		application.cpp \
 		socket.cpp \
 		childprocess.cpp \
-		cxxutils/mutex.cpp \
 		cxxutils/vfifo.cpp \
 		cxxutils/configmanip.cpp \
 		cxxutils/mountpoint_helpers.cpp \
 		cxxutils/syslogstream.cpp \
 		cxxutils/translate.cpp \
 		specialized/eventbackend.cpp \
+		specialized/mutex.cpp \
 		specialized/peercred.cpp \
 		specialized/procstat.cpp \
 		specialized/proclist.cpp \
