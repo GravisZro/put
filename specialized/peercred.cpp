@@ -114,7 +114,7 @@ int recv_cred(int socket, proccred_t& cred) noexcept
 int send_cred(int) noexcept
 { return posix::success_response; }
 
-#elif defined(SCM_CREDENTIALS) || defined(SCM_CREDS)
+#elif defined(SCM_CREDENTIALS) || defined(SCM_CREDS) || defined(LOCAL_CREDS)
 
 # if defined(SCM_CREDENTIALS) /* Linux / kFreeBSD */
 constexpr int credential_message = SCM_CREDENTIALS;
@@ -126,6 +126,7 @@ constexpr gid_t peer_gid(const cred_t& data) { return data.gid; }
 # elif defined(SCM_CREDS) && defined(__NetBSD__) /* NetBSD */
 constexpr int credential_message = SCM_CREDS;
 typedef cred cred_t;
+constexpr size_t cred_size = sizeof(cred_t);
 constexpr pid_t peer_pid(const cred_t& data) { return data.sc_pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.sc_euid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.sc_egid; }
@@ -136,9 +137,18 @@ constexpr gid_t peer_gid(const cred_t& data) { return data.sc_egid; }
        defined(__gnu_hurd__)  /* GNU/HURD     */ )
 constexpr int credential_message = SCM_CREDS;
 typedef cmsgcred cred_t;
+constexpr size_t cred_size = sizeof(cred_t);
 constexpr pid_t peer_pid(const cred_t& data) { return data.cmcred_pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.cmcred_euid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.cmcred_groups[0]; }
+
+#elif defined(LOCAL_CRED) /* legacy FreeBSD / QNX */
+constexpr int credential_message = LOCAL_CRED;
+typedef sockcred cred_t;
+constexpr size_t cred_size = SOCKCREDSIZE(16);
+constexpr pid_t peer_pid(const cred_t&     ) { return -1; }
+constexpr uid_t peer_uid(const cred_t& data) { return data.sc_euid; }
+constexpr gid_t peer_gid(const cred_t& data) { return data.sc_egid; }
 
 # elif defined(SCM_CREDS)
 #  error SCM_CREDS macro detected but platform is unrecognized.  Please submit a patch!
@@ -149,7 +159,7 @@ int recv_cred(int socket, proccred_t& cred) noexcept
   struct msghdr message;
   union
   {
-    char    rawbuffer[CMSG_SPACE(sizeof(cred_t))];
+    char    rawbuffer[CMSG_SPACE(cred_size)];
     cmsghdr formatted;
   } cmsg_header;
   std::memset(cmsg_header.rawbuffer, 0, sizeof(cmsg_header.rawbuffer)); // initialize memory
@@ -188,12 +198,12 @@ int send_cred(int socket) noexcept
   struct msghdr message;
   union
   {
-    char    rawbuffer[CMSG_SPACE(sizeof(cred_t))];
+    char    rawbuffer[CMSG_SPACE(cred_size)];
     cmsghdr formatted;
   } cmsg_header;
   std::memset(cmsg_header.rawbuffer, 0, sizeof(cmsg_header.rawbuffer)); // initialize memory
 
-  cmsg_header.formatted.cmsg_len   = CMSG_LEN(sizeof(cred_t));
+  cmsg_header.formatted.cmsg_len   = CMSG_LEN(cred_size);
   cmsg_header.formatted.cmsg_level = SOL_SOCKET;
   cmsg_header.formatted.cmsg_type  = credential_message;
 
