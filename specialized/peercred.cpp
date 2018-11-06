@@ -55,7 +55,6 @@ int recv_cred(int socket, proccred_t& cred) noexcept
     if(len != sizeof(pid))
       rval = posix::error(std::errc::invalid_argument);
   }
-
   return rval;
 }
 
