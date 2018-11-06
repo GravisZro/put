@@ -52,8 +52,8 @@ namespace posix
   {
     template<typename... ArgTypes>
     lockable(ArgTypes... args) noexcept : T(args...) { }
-    constexpr bool lock(void) noexcept const { return true; }
-    constexpr bool unlock(void) noexcept const { return true; }
+    constexpr bool lock(void) const noexcept { return true; }
+    constexpr bool unlock(void) const noexcept { return true; }
   };
 }
 #endif
