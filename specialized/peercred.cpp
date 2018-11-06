@@ -1,12 +1,9 @@
 #include "peercred.h"
 
-// POSIX
-#include <sys/socket.h>
-#include <sys/un.h>
-
 // PUT
 #include <specialized/osdetect.h>
 #include <cxxutils/posix_helpers.h>
+#include <cxxutils/socket_helpers.h>
 
 #if defined(__solaris__) // Solaris
 #pragma message("Information: using Solaris code")
@@ -146,12 +143,12 @@ int recv_cred(int socket, proccred_t& cred) noexcept
   message.msg_iovlen = 1;
   message.msg_name = NULL;
   message.msg_namelen = 0;
-  message.msg_control = cmsg_header.formatted;
+  message.msg_control = &cmsg_header.formatted;
   message.msg_controllen = sizeof(cmsg_header.rawbuffer);
   message.msg_flags = 0;
 
-  int nr = ::recvmsg(socket, &message, 0);
-  if(nr == posix::error_response)
+  ssize_t nr = posix::recvmsg(socket, &message);
+  if(nr == -1)
     return posix::error_response;
 
   if(CMSG_FIRSTHDR(&message) == &cmsg_header.formatted &&
@@ -159,10 +156,10 @@ int recv_cred(int socket, proccred_t& cred) noexcept
      cmsg_header.formatted.cmsg_level == SOL_SOCKET &&
      cmsg_header.formatted.cmsg_type  == credential_message)
   {
-    const cred_t& data = *CMSG_DATA(&cmsg_header.formatted);
-    cred.pid = peer_pid(data);
-    cred.uid = peer_uid(data);
-    cred.gid = peer_gid(data);
+    cred_t* data = reinterpret_cast<cred_t*>(CMSG_DATA(&cmsg_header.formatted));
+    cred.pid = peer_pid(*data);
+    cred.uid = peer_uid(*data);
+    cred.gid = peer_gid(*data);
     return posix::success_response;
   }
   return posix::error_response;
@@ -192,11 +189,11 @@ int send_cred(int socket) noexcept
   message.msg_iovlen = 1;
   message.msg_name = NULL;
   message.msg_namelen = 0;
-  message.msg_control = cmsg_header.formatted;
+  message.msg_control = &cmsg_header.formatted;
   message.msg_controllen = sizeof(cmsg_header.rawbuffer);
   message.msg_flags = 0;
 
-  return ::sendmsg(socket, &message, 0);
+  return int(posix::sendmsg(socket, &message));
 }
 
 #else
