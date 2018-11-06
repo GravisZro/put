@@ -171,8 +171,6 @@ int send_cred(int socket) noexcept
     char    rawbuffer[CMSG_SPACE(sizeof(cred_t))];
     cmsghdr formatted;
   } cmsg_header;
-
-  static_assert(sizeof(cmsg_header.rawbuffer) == CMSG_SPACE(sizeof(cred_t)), "sizeof() is acting improperly");
   std::memset(cmsg_header.rawbuffer, 0, sizeof(cmsg_header.rawbuffer)); // initialize memory
 
   cmsg_header.formatted.cmsg_len   = CMSG_LEN(sizeof(cred_t));
