@@ -1,9 +1,10 @@
 #include "mutex.h"
 
+#if !defined(SINGLE_THREADED_APPLICATION)
 // PUT
-#include <cxxutils/error_helpers.h>
+# include <cxxutils/error_helpers.h>
 
-#if defined(_POSIX_THREADS)
+# if defined(_POSIX_THREADS)
 posix::mutex::mutex(void) noexcept
 {
   posix::error_t err = ::pthread_mutex_init(&m_mutex, NULL);
@@ -35,7 +36,7 @@ bool posix::mutex::unlock(void) noexcept
 }
 
 
-#elif defined(__tru64__)
+# elif defined(__tru64__)
 posix::mutex::mutex(void) noexcept
 {
   posix::error_t err = ::tis_mutex_init(&m_mutex);
@@ -67,7 +68,7 @@ bool posix::mutex::unlock(void) noexcept
 }
 
 
-#elif defined(__plan9__)
+# elif defined(__plan9__)
 static int lock_init = []() { lockinit(); return 0; }
 
 posix::mutex::mutex(void) noexcept { }
@@ -84,4 +85,5 @@ bool posix::mutex::unlock(void) noexcept
   ::unlock(&m_mutex);
   return true;
 }
+# endif
 #endif
