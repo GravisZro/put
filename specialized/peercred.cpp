@@ -6,9 +6,7 @@
 #include <cxxutils/socket_helpers.h>
 
 #if defined(__solaris__) // Solaris
-#pragma message("Information: using Solaris code")
-
-#include <ucred.h>
+# include <ucred.h>
 
 int recv_cred(int socket, proccred_t& cred) noexcept
 {
@@ -33,7 +31,38 @@ int recv_cred(int socket, proccred_t& cred) noexcept
 int send_cred(int) noexcept
 { return posix::success_response; }
 
-#elif defined (SO_PEERCRED) || defined (LOCAL_PEEREID) || defined(LOCAL_PEERCRED) /* Linux/OpenBSD/legacy NetBSD/Darwin/legacy FreeBSD */
+#elif defined(__darwin__)  /* Darwin */
+# include <sys/ucred.h>
+
+int recv_cred(int socket, proccred_t& cred) noexcept
+{
+  xucred data;
+  socklen_t len = sizeof(data);
+
+  int rval = ::getsockopt(socket, SOL_LOCAL, LOCAL_PEERCRED, &data, &len);
+
+  if(len != sizeof(data))
+    rval = posix::error(std::errc::invalid_argument);
+
+  if(rval == posix::success_response)
+  {
+    cred.uid = data.cr_uid;
+    cred.gid = data.cr_groups[0];
+
+    len = sizeof(cred.pid);
+    rval = ::getsockopt(socket, SOL_LOCAL, LOCAL_PEERPID, &cred.pid, &len);
+
+    if(len != sizeof(pid))
+      rval = posix::error(std::errc::invalid_argument);
+  }
+
+  return rval;
+}
+
+int send_cred(int) noexcept
+{ return posix::success_response; }
+
+#elif defined (SO_PEERCRED) || defined (LOCAL_PEEREID) /* Linux/OpenBSD/legacy NetBSD */
 
 # if defined (SO_PEERCRED) && \
     (defined(__linux__)    /* Linux    */ || \
@@ -57,14 +86,6 @@ typedef unpcbid cred_t;
 constexpr pid_t peer_pid(const cred_t& data) { return data.unp_pid; }
 constexpr uid_t peer_uid(const cred_t& data) { return data.unp_euid; }
 constexpr gid_t peer_gid(const cred_t& data) { return data.unp_egid; }
-
-# elif defined(LOCAL_PEERCRED)  /* Darwin / legacy FreeBSD */
-#include <sys/ucred.h>
-constexpr int credential_message = LOCAL_PEERCRED;
-typedef xucred cred_t;
-constexpr pid_t peer_pid(const cred_t&     ) { return -1; }
-constexpr uid_t peer_uid(const cred_t& data) { return data.cr_uid; }
-constexpr gid_t peer_gid(const cred_t& data) { return data.cr_groups[0]; }
 
 # elif defined(SO_PEERCRED)
 #  error SO_PEERCRED macro detected but platform is unrecognized.  Please submit a patch!
