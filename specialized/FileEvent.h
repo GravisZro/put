@@ -34,15 +34,15 @@ public:
     operator const uint8_t& (void) const noexcept { return *reinterpret_cast<const uint8_t*>(this); }
   };
 
-  FileEvent(const char* file, Flags_t flags) noexcept;
+  FileEvent(const std::string& _file, Flags_t _flags) noexcept;
   ~FileEvent(void) noexcept;
 
-  const char* file(void) const noexcept { return m_file; }
+  const std::string& file(void) const noexcept { return m_file; }
   Flags_t flags(void) const noexcept { return m_flags; }
 
-  signal<const char*, Flags_t> activated;
+  signal<std::string, Flags_t> activated;
 private:
-  char m_file[PATH_MAX];
+  std::string m_file;
   Flags_t m_flags;
   posix::fd_t m_fd;
 

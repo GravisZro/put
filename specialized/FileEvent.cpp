@@ -49,10 +49,11 @@ struct FileEvent::platform_dependant // file notification (inotify)
   platform_dependant(void) noexcept
     : fd(posix::invalid_descriptor)
   {
-    fd = ::inotify_init1(IN_CLOEXEC);
+    fd = ::inotify_init();
     flaw(fd == posix::invalid_descriptor,
          terminal::severe,,,
-         "Unable to create an instance of inotify!: %s", std::strerror(errno))    
+         "Unable to create an instance of inotify!: %s", std::strerror(errno));
+    posix::fcntl(fd, F_SETFD, FD_CLOEXEC); // close on exec*()
   }
 
   ~platform_dependant(void) noexcept
@@ -71,7 +72,6 @@ struct FileEvent::platform_dependant // file notification (inotify)
     return ::inotify_rm_watch(fd, wd) == posix::success_response;
   }
 
-
   struct return_data
   {
     const char* name;
@@ -79,37 +79,53 @@ struct FileEvent::platform_dependant // file notification (inotify)
   };
 
 #define INOTIFY_EVENT_SIZE   (sizeof(inotify_event) + NAME_MAX + 1)
-  return_data read(posix::fd_t wd) noexcept
+  return_data read(posix::fd_t wd) const noexcept
   {
-    static uint8_t inotifiy_buffer_data[INOTIFY_EVENT_SIZE * 16]; // queue has a minimum of size of 16 inotify events
+    static uint8_t buffer[INOTIFY_EVENT_SIZE * 16]; // buffer (holds a minimum of 16 inotify events)
     union {
-      uint8_t* inpos;
-      inotify_event* incur;
+      uint8_t* pos;
+      inotify_event* event;
     };
-    uint8_t* inend = inotifiy_buffer_data + posix::read(wd, inotifiy_buffer_data, sizeof(inotifiy_buffer_data)); // read data and locate it's end
-    for(inpos = inotifiy_buffer_data; inpos < inend; inpos += sizeof(inotify_event) + incur->len) // iterate through the inotify events
-      if(incur->wd == wd)
-        return { incur->name, from_native_flags(incur->mask) };
-    assert(false);
-    return { nullptr, 0 };
+    uint8_t* end;
+    pos = buffer;
+    do
+    {
+      end = pos + posix::read(wd, pos, sizeof(buffer) - (buffer - pos)); // read new chunk of inotify events
+      while(pos < end) // iterate through the inotify events
+      {
+        if(event->wd == wd)
+          return { event->name, from_native_flags(event->mask) };
+        if(pos + sizeof(inotify_event) + event->len >= end) // check if next entry exceeds buffer
+        {
+          std::memmove(buffer, pos, end - pos); // move partial entry
+          pos = buffer + (end - pos); // move to end of partial entry
+          end = pos; // ensure exit
+        }
+        else
+          pos += sizeof(inotify_event) + event->len; // move to next event
+      }
+    } while(end != buffer); // while there is still more to read
+    return { nullptr, 0 }; // read the entire buffer and the event was never found!
   }
 
 } FileEvent::s_platform;
 
 
-FileEvent::FileEvent(const char* file, Flags_t flags) noexcept
-  : m_flags(flags), m_fd(posix::invalid_descriptor)
+FileEvent::FileEvent(const std::string& _file, Flags_t _flags) noexcept
+  : m_file(_file),
+    m_flags(_flags),
+    m_fd(posix::invalid_descriptor)
 {
-  std::memset(m_file, 0, sizeof(m_file));
-  std::strncpy(m_file, file, sizeof(m_file));
-  m_fd = s_platform.add(m_file, m_flags);
+  m_fd = s_platform.add(m_file.c_str(), m_flags);
   EventBackend::add(m_fd, EventBackend::SimplePollReadFlags,
                     [this](posix::fd_t lambda_fd, native_flags_t) noexcept
                     {
                       platform_dependant::return_data data = s_platform.read(lambda_fd);
-                      assert(m_flags & data.flags);
-                      assert(!std::strcmp(m_file, data.name));
-                      Object::enqueue(activated, data.name, data.flags);
+                      assert(data.name != nullptr); // entry was found
+                      assert(m_flags & data.flags); // flags match
+                      assert(m_file == data.name); // name matches
+                      if(data.name != nullptr) // just in case (should never be false)
+                        Object::enqueue_copy<std::string, Flags_t>(activated, data.name, data.flags);
                     });
 }
 
@@ -158,15 +174,15 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
       (flags & FileEvent::Deleted       ? composite_flag(0, EVFILT_VNODE, NOTE_DELETE) : 0) ;
 }
 
-FileEvent::FileEvent(const char* _file, Flags_t _flags) noexcept
-  : m_flags(_flags), m_fd(posix::invalid_descriptor)
+FileEvent::FileEvent(const std::string& _file, Flags_t _flags) noexcept
+  : m_file(_file),
+    m_flags(_flags),
+    m_fd(posix::invalid_descriptor)
 {
-  std::memset(m_file, 0, sizeof(m_file));
-  std::strncpy(m_file, _file, sizeof(m_file));
-  m_fd = posix::open(m_file, O_EVTONLY);
+  m_fd = posix::open(m_file.c_str(), O_EVTONLY);
   EventBackend::add(m_fd, to_native_flags(m_flags), // connect FD with flags to signal
                     [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
-                    { Object::enqueue_copy<const char*, Flags_t>(activated, m_file, from_native_flags(lambda_flags)); });
+                    { Object::enqueue_copy<std::string, Flags_t>(activated, m_file, from_native_flags(lambda_flags)); });
 }
 
 FileEvent::~FileEvent(void) noexcept
