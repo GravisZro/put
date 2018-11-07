@@ -75,10 +75,10 @@ bool fsentry_t::operator == (const fsentry_t& other) const
 
 #include <mntent.h>
 
-int parse_table(std::list<struct fsentry_t>& table, const char* filename) noexcept
+int parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
 {
   table.clear();
-  FILE* file = ::setmntent(filename, "r");
+  FILE* file = ::setmntent(filename.c_str(), "r");
   if(file == nullptr)
     return posix::error_response;
 
@@ -101,9 +101,9 @@ int parse_table(std::list<struct fsentry_t>& table, const char* filename) noexce
 
 #include <fstab.h>
 
-int parse_table(std::list<struct fsentry_t>& table, const char* filename) noexcept
+int parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
 {
-  ::setfstab(filename);
+  ::setfstab(filename.c_str());
 
   struct fstab* entry = NULL;
   while((entry = ::getfsent()) != NULL)
@@ -131,12 +131,12 @@ static char* skip_spaces(char* data) noexcept
 }
 
 
-int parse_table(std::list<struct fsentry_t>& table, const char* filename) noexcept
+int parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
 {
   struct fsentry_t entry;
   table.clear();
 
-  std::FILE* file = posix::fopen(filename, "r");
+  std::FILE* file = posix::fopen(filename.c_str(), "r");
 
   if(file == NULL)
     return posix::error_response;
