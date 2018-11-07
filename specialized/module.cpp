@@ -9,9 +9,10 @@
 // See also: https://www.systutorials.com/docs/linux/man/2-create_module/
 // See also: https://www.systutorials.com/docs/linux/man/2-query_module/
 
-#include <linux/module.h>
-#include <sys/mman.h>
-#include <sys/syscall.h>
+// Linux
+# include <linux/module.h>
+# include <sys/mman.h>
+# include <sys/syscall.h>
 
 inline int init_module26(void* module_image, unsigned long len, const char* param_values) noexcept
   { return int(::syscall(SYS_init_module, module_image, len, param_values)); }
@@ -80,29 +81,76 @@ int unload_module(const std::string& name) noexcept
 
 #elif defined(__aix__) // IBM AIX
 // https://www.ibm.com/developerworks/aix/library/au-kernelext.html
-#error No kernel module operations code exists in PUT for IBM AIX!  Please submit a patch!
+# error No kernel module operations code exists in PUT for IBM AIX!  Please submit a patch!
 
 #elif defined(__darwin__) // Darwin
 // kextload and kextunload
-#error No kernel module operations code exists in PUT for Darwin!  Please submit a patch!
+# error No kernel module operations code exists in PUT for Darwin!  Please submit a patch!
 
 #elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
-#error No kernel module operations code exists in PUT for Solaris!  Please submit a patch!
+# error No kernel module operations code exists in PUT for Solaris!  Please submit a patch!
 
-#elif defined(__FreeBSD__) || defined(__DragonFly__) // FreeBSD and DragonFly BSD
-// https://man.openbsd.org/FreeBSD-11.0/kldload.2
-// https://man.openbsd.org/FreeBSD-11.0/kldunload.2
-// kldload and kldunload
-#error No kernel module operations code exists in PUT for FreeBSD/DragonFly BSD!  Please submit a patch!
+#elif defined(__DragonFly__) /* DragonFly BSD */ || \
+     (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(3,0,0)) /* FreeBSD 3+ */
+// POSIX++
+# include <cstring>
+
+// FreeBSD / DragonFly BSD
+# include <sys/linker.h>
+# include <kenv.h>
+
+template<class T> constexpr const T& max(const T& a, const T& b) { return (a < b) ? b : a; }
+
+int load_module(const std::string& filename, const std::string& module_arguments) noexcept
+{
+  int fileid = kldload(filename.c_str());
+
+  if(fileid == posix::error_response &&
+     !module_arguments.empty())
+  {
+    char key[KENV_MNAMELEN], value[KENV_MVALLEN];
+    const char* prev = module_arguments.c_str();
+    const char* pos = std::strtok(prev, "= ");
+    while(pos != NULL && *pos == '=') // if NOT at end AND found '=' instead of ' '
+    {
+      std::memset(key  , 0, sizeof(key  )); // clear key
+      std::memset(value, 0, sizeof(value)); // clear value
+      std::memcpy(key, pos, min(posix::size_t(pos - prev), KENV_MNAMELEN)); // copy key
+      prev = pos;
+      pos = std::strtok(NULL, " "); // find next ' '
+      if(pos == NULL) // found end of string instead
+        std::memcpy(value, prev, min(std::strlen(prev), KENV_MVALLEN)); // copy value
+      else if(*pos == ' ') // found ' '
+        std::memcpy(value, prev, min(posix::size_t(pos - prev), KENV_MVALLEN)); // copy value
+      kenv(KENV_SET, key, value, std::strlen(value) + 1); // set key/value pair
+    }
+    if(pos != NULL && *pos == ' ')
+      return posix::error(std::errc::invalid_argument);
+    return posix::success_response;
+  }
+
+  return posix::error_response;
+}
+
+int unload_module(const std::string& name) noexcept
+{
+  int fileid = kldfind(name.c_str());
+  if(fileid == posix::error_response)
+    return posix::error_response;
+  return kldunload(fileid);
+}
 
 #elif defined(__OpenBSD__)
 // https://man.openbsd.org/OpenBSD-5.4/lkm.4
+// https://github.com/ekouekam/openbsd-src/tree/master/sbin/modload
 // ioctl on /dev/lkm
-#error No kernel module operations code exists in PUT for OpenBSD!  Please submit a patch!
+# error No kernel module operations code exists in PUT for OpenBSD!  Please submit a patch!
 
 #elif defined(__NetBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(5,0,0) // NetBSD 5+
 
 // See also: http://netbsd.gw.com/cgi-bin/man-cgi?modctl++NetBSD-6.0
+
+// NetBSD
 # include <sys/module.h>
 
 int load_module(const std::string& filename, const std::string& module_arguments) noexcept
@@ -113,7 +161,7 @@ int load_module(const std::string& filename, const std::string& module_arguments
   if(module_arguments.empty())
   {
     mod.ml_flags = MODCTL_NO_PROP;
-    mod.ml_props = nullptr;
+    mod.ml_props = NULL;
     mod.ml_propslen = 0;
   }
   else
@@ -132,11 +180,11 @@ int unload_module(const std::string& name) noexcept
 }
 
 #else
-#pragma message("Loadable Kernel Modules are not supported on this platform.")
+# pragma message("Loadable Kernel Modules are not supported on this platform.")
 
 int load_module(const std::string&, const std::string&) noexcept
 { return posix::error(ENOSYS); }
 
-int unload_module(const std::string&) noexcept;
+int unload_module(const std::string&) noexcept
 { return posix::error(ENOSYS); }
 #endif
