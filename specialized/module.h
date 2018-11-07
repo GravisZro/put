@@ -1,6 +1,9 @@
 #ifndef MODULE_H
 #define MODULE_H
 
-int load_module(const char* filename, const char* module_arguments);
+#include <string>
+
+int load_module(const std::string& filename, const std::string& module_arguments) noexcept;
+int unload_module(const std::string& name) noexcept;
 
 #endif // MODULE_H
