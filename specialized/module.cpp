@@ -14,13 +14,53 @@
 # include <sys/mman.h>
 # include <sys/syscall.h>
 
+# if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+struct module;
+struct exception_table_entry;
+
+struct module_ref
+{
+  module* dep;     /* "parent" pointer */
+  module* ref;     /* "child" pointer */
+  module_ref* next_ref;
+};
+
+struct module_symbol
+{
+  unsigned long value;
+  const char *name;
+};
+
+struct module
+{
+    unsigned long  size_of_struct;
+    module*        next;
+    const char*    name;
+    unsigned long  size;
+    long           usecount;
+    unsigned long  flags;
+    unsigned int   nsyms;
+    unsigned int   ndeps;
+    module_symbol* syms;
+    module_ref*    deps;
+    module_ref*    refs;
+    int          (*init)(void);
+    void         (*cleanup)(void);
+    const exception_table_entry* ex_table_start;
+    const exception_table_entry* ex_table_end;
+#  ifdef __alpha__
+    unsigned long gp;
+#  endif
+};
+# endif
+
 inline int init_module26(void* module_image, unsigned long len, const char* param_values) noexcept
   { return int(::syscall(SYS_init_module, module_image, len, param_values)); }
 
 inline int delete_module26(const char* name, int flags) noexcept
   { return int(::syscall(SYS_delete_module, name, flags)); }
 
-inline int init_module22(const char* name, struct module *image) noexcept
+inline int init_module22(const char* name, module *image) noexcept
   { return int(::syscall(SYS_init_module, name, image)); }
 
 inline int delete_module22(const char* name) noexcept
@@ -47,7 +87,7 @@ int load_module(const std::string& filename, const std::string& module_arguments
   posix::fd_t fd = posix::open(filename.c_str(), O_RDONLY | O_CLOEXEC);
   if(fd != posix::error_response)
   {
-    struct stat state;
+    stat state;
     rval = ::fstat(fd, &state);
     if(rval == posix::success_response)
     {
