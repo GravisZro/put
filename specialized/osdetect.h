@@ -24,7 +24,7 @@
  * __sunos__          // SunOS
  * __solaris__        // Solaris
  * __sco_openserver__ // SCO OpenServer
- * __bsdi__           // BSD/OS
+ * __bsdi__           // BSD/OS         (version support)
  *
  *
  * Commercial closed source OS detection macros
