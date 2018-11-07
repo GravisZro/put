@@ -98,7 +98,6 @@ int mount(const char* device,
 int unmount(const char* path) noexcept { return unmount(path, 0); }
 
 #elif defined(BSD) || defined(__darwin__) // *BSD or Darwin
-#include <sys/param.h>
 #include <sys/mount.h>
 
 int mount(const char* device,
