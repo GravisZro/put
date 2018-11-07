@@ -3,6 +3,63 @@
 
 # include <unistd.h> // for POSIX option detection
 
+/*
+ * Free open source OS detection macros
+ *--------------------------------------------------------
+ * __linux__          // Linux          (version support)
+ * __kfreebsd__       // kFreeBSD       (version support)
+ * __FreeBSD__        // FreeBSD        (version support)
+ * __NetBSD__         // NetBSD         (version support)
+ * __OpenBSD__        // OpenBSD        (version support)
+ * __DragonFly__      // DragonFly BSD
+ * __minix__          // MINIX
+ * __plan9__          // Plan 9
+ * __ecos__           // eCos
+ * __SYLLABLE__       // Syllable
+ *
+ *
+ * Commercial open source OS detection macros
+ *--------------------------------------------------------
+ * __darwin__         // Darwin
+ * __sunos__          // SunOS
+ * __solaris__        // Solaris
+ * __sco_openserver__ // SCO OpenServer
+ * __bsdi__           // BSD/OS
+ *
+ *
+ * Commercial closed source OS detection macros
+ *--------------------------------------------------------
+ * __zos__            // z/OS
+ * __tru64__          // Tru64 (OSF/1)
+ * __hpux__           // HP-UX
+ * __irix__           // IRIX
+ * __unixware__       // UnixWare
+ * __dynix__          // DYNIX
+ * __mpeix__          // MPE/iX
+ * __vms__            // VMS
+ * __aix__            // AIX            (version support)
+ * __dcosx__          // DC/OSx
+ * __reliant_unix__   // Reliant UNIX
+ * __interix__        // Interix
+ * __OS2__            // OS/2
+ * __ultrix__         // Ultrix
+ * __dgux__           // DG/UX
+ * __amigaos__        // AmigaOS
+ * __QNX__            // QNX
+ * __BEOS__           // BeOS
+ * __MORPHOS__        // MorphOS
+ * __Lynx__           // LynxOS
+ * __nucleus__        // Nucleus RTOS
+ * __VOS__            // Stratus VOS
+ *
+ *
+ * OS version support macros
+ *-------------------------------
+ * KERNEL_VERSION_CODE      // value of the current kernel version
+ * KERNEL_VERSION(x, y, z)  // generate value of a specific kernel version
+ *
+ */
+
 // === Free open source ===
 
 #if !defined(__linux__) && (defined(__linux) || defined (linux)) // Linux
@@ -20,14 +77,6 @@
 #elif !defined(__ecos__) && defined(__ECOS) // eCos
 # define __ecos__
 
-#elif !defined(__syllable__) && defined(__SYLLABLE__) // Syllable
-# define __syllable__
-
-// #if defined(__FreeBSD__)   // FreeBSD
-// #if defined(__NetBSD__)    // NetBSD
-// #if defined(__OpenBSD__)   // OpenBSD
-// #if defined(__DragonFly__) // DragonFly BSD
-
 // === Commercial open source ===
 #elif !defined(__darwin__) && defined(__APPLE__) && defined(__MACH__) // Darwin
 # define __darwin__
@@ -42,8 +91,6 @@
 
 #elif !defined(__sco_openserver__) && defined(_SCO_DS) // SCO OpenServer
 # define __sco_openserver__
-
-// #if defined(__bsdi__) // BSD/OS
 
 // === Commercial closed source ===
 #elif !defined(__zos__) && (defined(__MVS__) || defined(__HOS_MVS__) || defined(__TOS_MVS__)) // z/OS
@@ -82,9 +129,6 @@
 #elif !defined(__interix__) && defined(__INTERIX) // Interix
 # define __interix__
 
-#elif !defined(__morphos__) && defined(__MORPHOS__) // MorphOS
-# define __morphos__
-
 // redundant
 #elif !defined(__OS2__) && (defined(__TOS_OS2__) || defined(_OS2) || defined(OS2)) // OS/2
 # define __OS2__
@@ -101,18 +145,13 @@
 #elif !defined(__QNX__) && defined(__QNXNTO__) // QNX
 # define __QNX__
 
-// #if defined(__BEOS__)    // BeOS
-// #if defined(__Lynx__)    // LynxOS
-// #if defined(__nucleus__) // Nucleus RTOS
-// #if defined(__VOS__)     // Stratus VOS
-
 #endif
 
 #if !defined(__unix__) && defined(__unix) // generic unix
 # define __unix__
 #endif
 
-// versioning
+// version support
 
 #if defined(__linux__) // Linux
 # include <linux/version.h>
