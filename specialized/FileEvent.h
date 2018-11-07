@@ -1,5 +1,8 @@
-#ifndef EVENTS_FILE_H
-#define EVENTS_FILE_H
+#ifndef FILEEVENT_H
+#define FILEEVENT_H
+
+// STL
+#include <string>
 
 // POSIX
 #include <limits.h>
