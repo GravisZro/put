@@ -6,9 +6,12 @@
 
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,2,0) // Linux 2.2+
 
+// See also: https://www.systutorials.com/docs/linux/man/2-create_module/
+// See also: https://www.systutorials.com/docs/linux/man/2-query_module/
+
+#include <linux/module.h>
 #include <sys/mman.h>
 #include <sys/syscall.h>
-#include <linux/module.h>
 
 inline int init_module26(void* module_image, unsigned long len, const char* param_values) noexcept
   { return int(::syscall(SYS_init_module, module_image, len, param_values)); }
