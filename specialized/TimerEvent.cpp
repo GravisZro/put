@@ -77,7 +77,7 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
   {
     posix::fd_t fd = posix::dup(STDERR_FILENO);
     if(fd == posix::invalid_descriptor ||
-       !timer.emplace(ptr, fd).second)
+       !timers.emplace(ptr, fd).second)
       return posix::invalid_descriptor;
     return fd;
   }
