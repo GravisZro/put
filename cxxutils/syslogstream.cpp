@@ -55,7 +55,7 @@ ErrorMessageStream& ErrorMessageStream::operator << (posix::control cntl) noexce
   return *this;
 }
 
-ErrorLogStream::ErrorLogStream(void) noexcept = default;
+ErrorLogStream::ErrorLogStream(void) noexcept { }
 
 inline void ErrorMessageStream::purge_buffer(void) noexcept
 {
@@ -68,7 +68,7 @@ inline void ErrorLogStream::publish_buffer(void) noexcept
   m_destination.emplace_back(m_buffer);
 }
 
-posix::SyslogStream::SyslogStream(void) noexcept = default;
+posix::SyslogStream::SyslogStream(void) noexcept { }
 
 inline void posix::SyslogStream::purge_buffer(void) noexcept
 {
