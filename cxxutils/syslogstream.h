@@ -50,6 +50,8 @@ protected:
 class ErrorLogStream : public ErrorMessageStream
 {
 public:
+  ErrorLogStream(void) noexcept { }
+
   bool empty(void) const noexcept { return m_destination.empty(); }
   void clear(void) noexcept { m_destination.clear(); }
   std::list<std::string>& messages(void) noexcept { return m_destination; }
