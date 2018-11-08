@@ -70,9 +70,15 @@ static constexpr uint32_t crc_table[256] = {
   0x2d02ef8d,
 };
 
+#if defined(__CONTINUOUS_INTEGRATION__) && defined(__clang__)
+// Only makes compiler run faster
+constexpr uint32_t crc32_compiletime(const char* str, posix::size_t idx) noexcept
+{ return idx == SIZE_MAX ? UINT32_MAX : ((crc32_compiletime(str, idx - 1) >> 8) ^ crc_table[idx + str[idx]]); }
+#else
 // compiletime hashing
 constexpr uint32_t crc32_compiletime(const char* str, posix::size_t idx) noexcept
   { return idx == SIZE_MAX ? UINT32_MAX : ((crc32_compiletime(str, idx - 1) >> 8) ^ crc_table[(crc32_compiletime(str, idx - 1) ^ str[idx]) & UINT8_MAX]); }
+#endif
 
 constexpr uint32_t compiletime_hash(const char* str, const posix::size_t sz) noexcept { return crc32_compiletime(str, sz) ^ UINT32_MAX; }
 constexpr uint32_t operator "" _hash(const char* str, const posix::size_t sz) noexcept { return compiletime_hash(str, sz); }
