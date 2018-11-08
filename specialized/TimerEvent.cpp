@@ -91,7 +91,8 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
       timers.erase(iter);
     }
   }
-};
+} TimerEvent::s_platform;
+
 
 TimerEvent::TimerEvent(void) noexcept
   : m_fd(posix::invalid_descriptor)
@@ -223,7 +224,7 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
     }
     return false;
   }
-};
+} TimerEvent::s_platform;
 
 
 TimerEvent::TimerEvent(void) noexcept
