@@ -55,6 +55,8 @@ ErrorMessageStream& ErrorMessageStream::operator << (posix::control cntl) noexce
   return *this;
 }
 
+posix::ErrorLogStream::ErrorLogStream(void) noexcept = default;
+
 inline void ErrorMessageStream::purge_buffer(void) noexcept
 {
   std::memset(m_buffer, 0, sizeof(m_buffer));
