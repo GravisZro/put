@@ -6,10 +6,13 @@
 // PUT
 #include <specialized/osdetect.h>
 
-#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,5,44) /* Linux 2.5.44+ */
+#if defined(FORCE_POSIX_POLL)
+# pragma message("Forcing use of POSIX polling.")
+# define FALLBACK_ON_POSIX_POLL
 
+#elif defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,5,44) /* Linux 2.5.44+ */
 // Linux
-#include <sys/epoll.h>
+# include <sys/epoll.h>
 
 // FD flags
 static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
@@ -35,8 +38,8 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
       (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(4,1,0))  /* FreeBSD 4.1+  */ || \
       (defined(__OpenBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,9,0))  /* OpenBSD 2.9+  */ || \
       (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,0,0))  /* NetBSD 2+     */
-
-#include <sys/event.h> // kqueue
+// *BSD
+# include <sys/event.h> // kqueue
 
 static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, uint32_t flags) noexcept
   { return native_flags_t(actions) | (native_flags_t(uint16_t(filters)) << 16) | (native_flags_t(flags) << 32); }
@@ -63,29 +66,34 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
       (flags & PollEvent::Writeable     ? composite_flag(0       , EVFILT_WRITE, 0) : 0) ;
 }
 
-#elif defined(__unix__)
+#elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
+# pragma message("No poll event backend code exists in SXinit for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!")
+# define FALLBACK_ON_POSIX_POLL
 
-# if defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
-#  pragma message("No poll event backend code exists in SXinit for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!")
-
-# elif defined(__QNX__) // QNX
+#elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
-#  pragma message("No poll event backend code exists in PUT for QNX!  Please submit a patch!")
+# pragma message("No poll event backend code exists in PUT for QNX!  Please submit a patch!")
+# define FALLBACK_ON_POSIX_POLL
 
-# elif defined(__hpux__) // HP-UX
+#elif defined(__hpux__) // HP-UX
 // see http://nixdoc.net/man-pages/HP-UX/man7/poll.7.html
 // and https://www.freebsd.org/cgi/man.cgi?query=poll&sektion=7&apropos=0&manpath=HP-UX+11.22
 // uses /dev/poll
-#  pragma message("No poll event backend code exists in PUT for HP-UX!  Please submit a patch!")
+# pragma message("No poll event backend code exists in PUT for HP-UX!  Please submit a patch!")
+# define FALLBACK_ON_POSIX_POLL
 
-# elif defined(__aix__) // AIX
+#elif defined(__aix__) // AIX
 // see https://www.ibm.com/support/knowledgecenter/ssw_aix_61/com.ibm.aix.basetrf1/pollset.htm
-#  pragma message("No poll event backend code exists in PUT for IBM AIX!  Please submit a patch!")
-# endif
-
+# pragma message("No poll event backend code exists in PUT for IBM AIX!  Please submit a patch!")
+# define FALLBACK_ON_POSIX_POLL
+#else
 #pragma message("No platform specific poll event backend code! Using standard POSIX polling.")
+#define FALLBACK_ON_POSIX_POLL
+#endif
 
-#include <poll.h>
+
+#if defined(FALLBACK_ON_POSIX_POLL)
+# include <poll.h>
 
 // FD flags
 static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
@@ -105,9 +113,6 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
       (flags & PollEvent::Readable     ? native_flags_t(POLLIN  ) : 0) |
       (flags & PollEvent::Writeable    ? native_flags_t(POLLOUT ) : 0);
 }
-
-#else
-# error This platform is not supported.
 #endif
 
 

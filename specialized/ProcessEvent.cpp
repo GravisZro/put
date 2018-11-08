@@ -4,7 +4,11 @@
 #include <specialized/osdetect.h>
 #include <specialized/eventbackend.h>
 
-#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,15) /* Linux 2.6.15+ */
+#if defined(FORCE_PROC_POLLING)
+# pragma message("Forcing use of polling /proc to detect process events.")
+# define FALLBACK_ON_PROC_POLLING
+
+#elif defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,15) /* Linux 2.6.15+ */
 
 // Linux
 #include <linux/netlink.h>
@@ -206,9 +210,6 @@ ProcessEvent::~ProcessEvent(void) noexcept
   EventBackend::remove(m_fd, EventBackend::SimplePollReadFlags);
   s_platform.remove(m_pid);
 }
-#elif defined(__linux__)
-//&& KERNEL_VERSION_CODE >= KERNEL_VERSION(X,X,X) /* Linux X.X.X+ */
-# error No process event backend code exists in PUT for Linux before version 2.6.15!  Please submit a patch!
 
 #elif defined(__darwin__)     /* Darwin 7+     */ || \
       defined(__DragonFly__)  /* DragonFly BSD */ || \
@@ -266,15 +267,19 @@ ProcessEvent::~ProcessEvent(void) noexcept
 }
 
 #elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
-# error No process event backend code exists in PUT for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!
+# pragma message("No process event backend code exists in PUT for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!")
+# define FALLBACK_ON_PROC_POLLING
 
 #elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
-# error No process event backend code exists in PUT for QNX!  Please submit a patch!
-
-#elif defined(__unix__)
-# error No process event backend code exists in PUT for this UNIX!  Please submit a patch!
+# pragma message("No process event backend code exists in PUT for QNX!  Please submit a patch!")
+# define FALLBACK_ON_PROC_POLLING
 
 #else
-# error This platform is not supported.
+# pragma message("No platform specific process event detection code! Falling back on polling /proc.")
+# define FALLBACK_ON_PROC_POLLING
+#endif
+
+#if defined(FALLBACK_ON_PROC_POLLING)
+#error TODO: implement process event detection code by polling /proc.
 #endif

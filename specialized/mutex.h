@@ -3,20 +3,19 @@
 
 #include <specialized/osdetect.h>
 
-#if defined(_POSIX_THREADS)
-// POSIX
-# include <pthread.h>
+#if defined(__tru64__) && !defined(FORCE_POSIX_MUTEXES)
+# include <tis.h> // Tru64
 typedef pthread_mutex_t mutex_type;
 
-#elif defined(__tru64__)
-# include	<tis.h>
-typedef pthread_mutex_t mutex_type;
-
-#elif defined(__plan9__)
-# include	<lock.h>
+#elif defined(__plan9__) && !defined(FORCE_POSIX_MUTEXES)
+# include <lock.h> // Plan 9
 typedef Lock mutex_type;
 
-#else
+#elif defined(_POSIX_THREADS)
+# include <pthread.h> // POSIX
+typedef pthread_mutex_t mutex_type;
+
+#elif !defined(SINGLE_THREADED_APPLICATION)
 # pragma message("DANGER! No mutex facility detected. Multithreaded applications may crash!")
 # define SINGLE_THREADED_APPLICATION
 #endif

@@ -4,7 +4,11 @@
 #include <specialized/osdetect.h>
 #include <specialized/eventbackend.h>
 
-#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,25) /* Linux 2.6.25+ */
+#if defined(FORCE_POSIX_TIMERS)
+# pragma message("Forcing use of POSIX timers.")
+# define FALLBACK_ON_POSIX_TIMERS
+
+#elif defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,25) /* Linux 2.6.25+ */
 
 // Linux
 # include <sys/timerfd.h>
@@ -53,16 +57,13 @@ bool TimerEvent::stop(void) noexcept
   return start(0, true);
 }
 
-#elif defined(__unix__)
+#elif defined(__darwin__)     /* Darwin 7+     */ || \
+      defined(__DragonFly__)  /* DragonFly BSD */ || \
+      (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(4,1,0))  /* FreeBSD 4.1+  */ || \
+      (defined(__OpenBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,9,0))  /* OpenBSD 2.9+  */ || \
+      (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,0,0))  /* NetBSD 2+     */
 
-# if defined(__darwin__)     /* Darwin 7+     */ || \
-     defined(__DragonFly__)  /* DragonFly BSD */ || \
-     (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(4,1,0))  /* FreeBSD 4.1+  */ || \
-     (defined(__OpenBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,9,0))  /* OpenBSD 2.9+  */ || \
-     (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,0,0))  /* NetBSD 2+     */
-
-
-#  include <sys/event.h> // kqueue
+# include <sys/event.h> // kqueue
 
 static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, int32_t flags) noexcept
   { return native_flags_t(actions) | (native_flags_t(uint16_t(filters)) << 16) | (native_flags_t(flags) << 32); }
@@ -115,18 +116,19 @@ bool TimerEvent::stop(void) noexcept
 {
   return EventBackend::remove(m_fd, UINT64_MAX); // total removal
 }
-# endif
+#else
+# pragma message("No platform specific event backend code! Falling back on POSIX timers.")
+# define FALLBACK_ON_POSIX_TIMERS
+#endif
 
-# if defined(_POSIX_TIMERS)
-#  pragma message("No platform specific event backend code! Using standard POSIX timer functions.")
-
+#if defined(_POSIX_TIMERS) && defined(FALLBACK_ON_POSIX_TIMERS)
 // POSIX++
-#  include <ctime>
-#  include <climits>
-#  include <cassert>
+# include <ctime>
+# include <climits>
+# include <cassert>
 
 // PUT
-#  include <cxxutils/vterm.h>
+# include <cxxutils/vterm.h>
 
 enum {
   Read = 0,
@@ -251,9 +253,6 @@ bool TimerEvent::stop(void) noexcept
   return start(0, true);
 }
 
-# else
-#  error No timer backend code exists in PUT for this UNIX!  Please submit a patch!
-# endif
-#else
-# error This platform is not supported.
+#elif !defined(_POSIX_TIMERS) && defined(FALLBACK_ON_POSIX_TIMERS)
+# error POSIX timers are not not supported on this platform!
 #endif

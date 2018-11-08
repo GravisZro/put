@@ -88,7 +88,7 @@ int load_module(const std::string& filename, const std::string& module_arguments
   posix::fd_t fd = posix::open(filename.c_str(), O_RDONLY | O_CLOEXEC);
   if(fd != posix::error_response)
   {
-    stat state;
+    struct stat state;
     rval = ::fstat(fd, &state);
     if(rval == posix::success_response)
     {

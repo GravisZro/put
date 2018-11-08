@@ -11,13 +11,17 @@
 posix::lockable<std::unordered_multimap<posix::fd_t, EventBackend::callback_info_t>> EventBackend::queue;
 std::list<std::pair<posix::fd_t, native_flags_t>> EventBackend::results;
 
-#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,5,44) /* Linux 2.5.44+ */
+#if defined(FORCE_POSIX_POLL)
+# pragma message("Forcing use of POSIX polling.")
+# define FALLBACK_ON_POSIX_POLL
+
+#elif defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,5,44) /* Linux 2.5.44+ */
 
 // Linux
-#include <sys/epoll.h>
+# include <sys/epoll.h>
 
 // POSIX++
-#include <cstdlib>
+# include <cstdlib>
 
 struct EventBackend::platform_dependant // poll notification (epoll)
 {
@@ -80,17 +84,17 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
       (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,0,0))  /* NetBSD 2+     */
 
 // BSD
-#include <sys/time.h>
-#include <sys/event.h>
+# include <sys/time.h>
+# include <sys/event.h>
 
 // POSIX++
-#include <cstdlib>
+# include <cstdlib>
 
 // POSIX
-#include <sys/socket.h>
+# include <sys/socket.h>
 
 // STL
-#include <vector>
+# include <vector>
 
 struct EventBackend::platform_dependant // poll notification (kqueue)
 {
@@ -162,21 +166,20 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
   return true;
 }
 
-#elif defined(__unix__)
+#elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
 
-# if defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
-
-#pragma message("The backend code in PUT for Solaris / OpenSolaris / OpenIndiana / illumos is non-functional!  Please submit a patch!")
-#pragma message("See: http://docs.oracle.com/cd/E19253-01/816-5168/port-get-3c/index.html")
-#  if 0
+# pragma message("The backend code in PUT for Solaris / OpenSolaris / OpenIndiana / illumos is non-functional!  Please submit a patch!")
+# pragma message("See: http://docs.oracle.com/cd/E19253-01/816-5168/port-get-3c/index.html")
+# define FALLBACK_ON_POSIX_POLL
+# if 0
 // Solaris
-#include <port.h>
+#  include <port.h>
 
 // POSIX
-#include <sys/socket.h>
+#  include <sys/socket.h>
 
 // STL
-#include <vector>
+#  include <vector>
 
 struct EventBackend::platform_dependant
 {
@@ -240,26 +243,28 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
   }
   return true;
 }
-#  endif
+# endif // if 0
 
-# elif defined(__QNX__) // QNX
+#elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
 # pragma message("No event backend code exists in PUT for QNX!  Please submit a patch!")
+# define FALLBACK_ON_POSIX_POLL
 
-# elif defined(__hpux__) // HP-UX
+#elif defined(__hpux__) // HP-UX
 // see http://nixdoc.net/man-pages/HP-UX/man7/poll.7.html
 // and https://www.freebsd.org/cgi/man.cgi?query=poll&sektion=7&apropos=0&manpath=HP-UX+11.22
 // uses /dev/poll
+# include <sys/devpoll.h>
+
 # pragma message("No event backend code exists in PUT for HP-UX!  Please submit a patch!")
+# define FALLBACK_ON_POSIX_POLL
 
-#include <sys/devpoll.h>
-
-# elif defined(__aix__) // IBM AIX
+#elif defined(__aix__) // IBM AIX
 // see https://www.ibm.com/support/knowledgecenter/ssw_aix_61/com.ibm.aix.basetrf1/pollset.htm
 // uses pollset_* functions
 
-//#include <sys/poll.h>
-//#include <sys/pollset.h>
+# include <sys/poll.h>
+# include <sys/pollset.h>
 /*
   pollset_t n;
   n = pollset_create(-1);
@@ -267,31 +272,36 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 */
 
 # pragma message("No event backend code exists in PUT for IBM AIX!  Please submit a patch!")
+# define FALLBACK_ON_POSIX_POLL
 
-
-# elif defined(__tru64__) // Tru64 (OSF/1)
+#elif defined(__tru64__) // Tru64 (OSF/1)
 # pragma message("No event backend code exists in PUT for Tru64!  Please submit a patch!")
+# define FALLBACK_ON_POSIX_POLL
 
-# elif defined(__sco_openserver__) // SCO OpenServer
+#elif defined(__sco_openserver__) // SCO OpenServer
 # pragma message("No event backend code exists in PUT for SCO OpenServer!  Please submit a patch!")
+# define FALLBACK_ON_POSIX_POLL
 
-# elif defined(__reliant_unix__) // Reliant UNIX
+#elif defined(__reliant_unix__) // Reliant UNIX
 # pragma message("No event backend code exists in PUT for Reliant UNIX!  Please submit a patch!")
+# define FALLBACK_ON_POSIX_POLL
 
-# elif defined(BSD)
-# pragma message("Unrecognized BSD derivative!")
-# endif
-
+#else
 # if !defined(__linux__) && /* Linux before epoll*/ \
      !defined(__minix__) /* MINIX */
-#pragma message("No platform specific event backend code! Using standard POSIX polling function.")
+#  pragma message("No platform specific event backend code! Using standard POSIX polling function.")
+# endif
+# define FALLBACK_ON_POSIX_POLL
 #endif
 
-#include <poll.h>
+
+#if defined(FALLBACK_ON_POSIX_POLL)
+
+# include <poll.h>
 
 // force maximum event count to 1024 per POSIX
-#undef MAX_EVENTS
-#define MAX_EVENTS 1024
+# undef MAX_EVENTS
+# define MAX_EVENTS 1024
 
 struct EventBackend::platform_dependant // poll notification (epoll)
 {
@@ -360,9 +370,6 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
     results.emplace_back(std::make_pair(pos->fd, native_flags_t(pos->revents))); // save result (in native format)
   return true;
 }
-
-#else
-# error This platform is not supported.
 #endif
 
 bool EventBackend::add(posix::fd_t fd, native_flags_t flags, callback_t function) noexcept
