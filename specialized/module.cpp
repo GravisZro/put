@@ -13,6 +13,7 @@
 # include <linux/module.h>
 # include <sys/mman.h>
 # include <sys/syscall.h>
+# include <sys/stat.h>
 
 # if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,0)
 struct module;
@@ -96,13 +97,15 @@ int load_module(const std::string& filename, const std::string& module_arguments
       {
         if(is_kernel26())
           rval = init_module26(mem, state.st_size, module_arguments.c_str());
-        else
+        else if (false) // 2.2+ loader code is far from complete
         {
           const char* name;
           module* image;
 
           rval = init_module22(name, image);
         }
+        else
+          rval = posix::error(EOPNOTSUPP); // not implemented!
         ::munmap(mem, state.st_size);
       }
     }
@@ -122,10 +125,6 @@ int unload_module(const std::string& name) noexcept
 #elif defined(__aix__) // IBM AIX
 // https://www.ibm.com/developerworks/aix/library/au-kernelext.html
 # error No kernel module operations code exists in PUT for IBM AIX!  Please submit a patch!
-
-#elif defined(__darwin__) // Darwin
-// kextload and kextunload
-# error No kernel module operations code exists in PUT for Darwin!  Please submit a patch!
 
 #elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
 # error No kernel module operations code exists in PUT for Solaris!  Please submit a patch!
@@ -180,12 +179,6 @@ int unload_module(const std::string& name) noexcept
   return kldunload(fileid);
 }
 
-#elif defined(__OpenBSD__)
-// https://man.openbsd.org/OpenBSD-5.4/lkm.4
-// https://github.com/ekouekam/openbsd-src/tree/master/sbin/modload
-// ioctl on /dev/lkm
-# error No kernel module operations code exists in PUT for OpenBSD!  Please submit a patch!
-
 #elif defined(__NetBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(5,0,0) // NetBSD 5+
 
 // See also: http://netbsd.gw.com/cgi-bin/man-cgi?modctl++NetBSD-6.0
@@ -218,13 +211,28 @@ int unload_module(const std::string& name) noexcept
 {
   return ::modctl(MODCTL_UNLOAD, name.c_str());
 }
-
 #else
-# pragma message("Loadable Kernel Modules are not supported on this platform.")
+
+# if defined(__darwin__)   /* Darwin         */ || \
+     defined(__OpenBSD__)  /* OpenBSD        */ || \
+     defined(__FreeBSD__)  /* legacy FreeBSD */ || \
+     defined(__NetBSD__)   /* legacy NetBSD  */
+// Darwin: kmodload and kmodunload (AKA kextload and kextunload)
+// OpenBSD: modload and modunload
+
+// https://man.openbsd.org/OpenBSD-5.4/lkm.4
+// https://github.com/ekouekam/openbsd-src/tree/master/sbin/modload
+// OpenBSD ioctl on /dev/lkm
+
+#  pragma message("No kernel module ELF loader implemented!  Please submit a patch!")
+#  pragma message("Loadable Kernel Module support is not implemented on this platform.")
+# else
+#  pragma message("Loadable Kernel Modules are not supported on this platform.")
+# endif
 
 int load_module(const std::string&, const std::string&) noexcept
-{ return posix::error(ENOSYS); }
+{ return posix::error(EOPNOTSUPP); }
 
 int unload_module(const std::string&) noexcept
-{ return posix::error(ENOSYS); }
+{ return posix::error(EOPNOTSUPP); }
 #endif
