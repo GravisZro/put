@@ -69,7 +69,7 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
 #include <climits>
 
 // PUT
-#include <cxxutils/mountpoint_helpers.h>
+#include <specialized/mountpoints.h>
 
 static posix::size_t arg_max = posix::size_t(sysconf(_SC_ARG_MAX));
 

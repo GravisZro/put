@@ -82,7 +82,7 @@ bool proclist(std::vector<pid_t>& list) noexcept
 #include <dirent.h>
 
 // PUT
-#include <cxxutils/mountpoint_helpers.h>
+#include <specialized/mountpoints.h>
 
 static_assert(sizeof(pid_t) <= sizeof(int), "insufficient storage type for maximum number of pids");
 
