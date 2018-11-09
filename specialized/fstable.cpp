@@ -130,7 +130,7 @@ static char* skip_spaces(char* data) noexcept
 }
 
 
-int parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
+bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
 {
   struct fsentry_t entry;
   table.clear();
