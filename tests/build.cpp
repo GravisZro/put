@@ -8,7 +8,8 @@
 #include <specialized/mutex.h>
 #include <specialized/proclist.h>
 #include <specialized/peercred.h>
-#include <specialized/procstat.h>
+#include <specialized/fstable.h>
+#include <specialized/module.h>
 #include <specialized/capabilities.h>
 #include <specialized/FileEvent.h>
 #include <specialized/PollEvent.h>
