@@ -3,7 +3,10 @@
 // PUT
 #include <specialized/osdetect.h>
 
-#if defined(BSD) || defined(__darwin__) /* *BSD/Darwin */
+#if defined(__FreeBSD__)  /* FreeBSD  */ || \
+    defined(__OpenBSD__)  /* OpenBSD  */ || \
+    defined(__NetBSD__)   /* NetBSD   */ || \
+    defined(__darwin__)   /* Darwin   */
 
 // *BSD/Darwin
 #include <sys/sysctl.h>
@@ -11,19 +14,25 @@
 // PUT
 #include <cxxutils/misc_helpers.h>
 
-posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
+#if (defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(8,0,0)) ||
+    (defined(__NetBSD__)  && KERNEL_VERSION_CODE < KERNEL_VERSION(1,5,0)) ||
+    (defined(__OpenBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,7,0))
+typedef struct proc kinfo_proc;
+#endif
+
+bool procstat(pid_t pid, process_state_t& data) noexcept
 {
   struct kinfo_proc info;
   posix::size_t length;
   int request[6] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid, sizeof(struct kinfo_proc), 0 };
 
   if(sysctl(request, arraylength(request), NULL, &length, NULL, 0) != posix::success_response)
-    return posix::error_response;
+    return false;
 
   request[5] = (length / sizeof(struct kinfo_proc));
 
   if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response)
-    return posix::error_response;
+    return false;
 
 #if defined(__darwin__)
   // Darwin structure documentation
@@ -55,7 +64,7 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
 //  data.arguments
 #endif
 
-  return posix::success_response;
+  return true;
 }
 
 #elif defined(__unix__) /* Generic UNIX */
