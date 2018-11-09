@@ -8,7 +8,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-4.9', 'libcap-dev']
+          packages: ['g++-4.9', 'libcap-dev', 'linux-headers-`uname -r`']
       env:
         - COMPILER=g++-4.9
 
@@ -18,7 +18,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-5', 'libcap-dev']
+          packages: ['g++-5', 'libcap-dev', 'linux-headers-`uname -r`']
       env:
         - COMPILER=g++-5
 
@@ -28,7 +28,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-6', 'libcap-dev']
+          packages: ['g++-6', 'libcap-dev', 'linux-headers-`uname -r`']
       env:
         - COMPILER=g++-6
 
@@ -38,7 +38,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libcap-dev']
+          packages: ['g++-7', 'libcap-dev', 'linux-headers-`uname -r`']
       env:
         - COMPILER=g++-7
 
@@ -48,7 +48,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-3.9']
-          packages: ['clang-3.9', 'libstdc++-4.9-dev', 'libcap-dev']
+          packages: ['clang-3.9', 'libstdc++-4.9-dev', 'libcap-dev', 'linux-headers-`uname -r`']
       env:
         - COMPILER=clang++-3.9
 
@@ -58,7 +58,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-4.0']
-          packages: ['clang-4.0', 'libstdc++-4.9-dev', 'libcap-dev']
+          packages: ['clang-4.0', 'libstdc++-4.9-dev', 'libcap-dev', 'linux-headers-`uname -r`']
       env:
         - COMPILER=clang++-4.0
 
