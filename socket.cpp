@@ -298,12 +298,12 @@ bool ServerSocket::read(posix::fd_t socket, Flags_t flags) noexcept
        false,
        "accept() implementation bug: %s", "address length does not match string length");
 
-  flaw(::recv_cred(m_socket, cred) == posix::error_response,
+  flaw(::recv_cred(m_socket, cred),
        terminal::warning,,
        false,
        "recv_cred() failure: %s", std::strerror(errno)); // get creditials of connected peer process
 
-  flaw(::send_cred(m_socket) == posix::error_response,
+  flaw(::send_cred(m_socket),
        terminal::warning,,
        false,
        "send_cred() failure: %s", std::strerror(errno)); // get creditials of connected peer process
