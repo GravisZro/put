@@ -61,15 +61,15 @@ bool initialize_paths(void) noexcept
   }
   return true;
 }
-#elif defined(BSD4_2)       /* *BSD     */ || \
+#elif defined(BSD4_4)       /* *BSD     */ || \
       defined(__darwin__)   /* Darwin   */ || \
       defined(__tru64__)    /* Tru64    */
 
 #include <sys/types.h>
 
-#if defined(__NetBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,0,0))
+#if defined(__NetBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,0,0)
 #include <sys/statvfs.h>
-typedef statvfs statfs;
+#define statfs statvfs;
 #define getfsstat(a,b,c) getvfsstat(a,b,c)
 #else
 #include <sys/mount.h>
@@ -80,7 +80,7 @@ bool initialize_paths(void) noexcept
   int count = getfsstat(NULL, 0, 0);
   if(count < 0)
     return posix::error_response;
-  statfs* buffer = static_cast<statfs*>(::malloc(sizeof(statfs) * count));
+  struct statfs* buffer = static_cast<struct statfs*>(::malloc(sizeof(struct statfs) * count));
   if(buffer == nullptr)
     return false;
 
