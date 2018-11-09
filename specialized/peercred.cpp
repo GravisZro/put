@@ -8,7 +8,7 @@
 #if defined(__solaris__) /* Solaris */
 # include <ucred.h>
 
-int recv_cred(int socket, proccred_t& cred) noexcept
+bool recv_cred(int socket, proccred_t& cred) noexcept
 {
   uproccred_t* data = nullptr;
 
@@ -25,16 +25,16 @@ int recv_cred(int socket, proccred_t& cred) noexcept
         cred.gid == gid_t(-1))
       rval = posix::error_response;
   }
-  return rval;
+  return rval == posix::success_response;
 }
 
-int send_cred(int) noexcept
-{ return posix::success_response; }
+bool send_cred(int) noexcept
+{ return true; }
 
 #elif defined(__darwin__)  /* Darwin */
 # include <sys/ucred.h>
 
-int recv_cred(int socket, proccred_t& cred) noexcept
+bool recv_cred(int socket, proccred_t& cred) noexcept
 {
   xucred data;
   socklen_t len = sizeof(data);
@@ -55,11 +55,11 @@ int recv_cred(int socket, proccred_t& cred) noexcept
     if(len != sizeof(cred.pid))
       rval = posix::error(std::errc::invalid_argument);
   }
-  return rval;
+  return rval == posix::success_response;
 }
 
-int send_cred(int) noexcept
-{ return posix::success_response; }
+bool send_cred(int) noexcept
+{ return true; }
 
 #elif defined (SO_PEERCRED) || defined (LOCAL_PEEREID) /* Linux/OpenBSD/legacy NetBSD */
 
@@ -92,7 +92,7 @@ constexpr gid_t peer_gid(const cred_t& data) { return data.unp_egid; }
 #  error LOCAL_PEEREID macro detected but platform is unrecognized.  Please submit a patch!
 # endif
 
-int recv_cred(int socket, proccred_t& cred) noexcept
+bool recv_cred(int socket, proccred_t& cred) noexcept
 {
   cred_t data;
   socklen_t len = sizeof(data);
@@ -108,11 +108,11 @@ int recv_cred(int socket, proccred_t& cred) noexcept
     cred.uid = peer_uid(data);
     cred.gid = peer_gid(data);
   }
-  return rval;
+  return rval == posix::success_response;
 }
 
-int send_cred(int) noexcept
-{ return posix::success_response; }
+bool send_cred(int) noexcept
+{ return true; }
 
 #elif defined(SCM_CREDENTIALS) || defined(SCM_CREDS) || defined(LOCAL_CREDS)
 
@@ -154,7 +154,7 @@ constexpr gid_t peer_gid(const cred_t& data) { return data.sc_egid; }
 #  error SCM_CREDS macro detected but platform is unrecognized.  Please submit a patch!
 # endif
 
-int recv_cred(int socket, proccred_t& cred) noexcept
+bool recv_cred(int socket, proccred_t& cred) noexcept
 {
   struct msghdr message;
   union
@@ -177,7 +177,7 @@ int recv_cred(int socket, proccred_t& cred) noexcept
 
   ssize_t nr = posix::recvmsg(socket, &message);
   if(nr == -1)
-    return posix::error_response;
+    return false;
 
   if(CMSG_FIRSTHDR(&message) == &cmsg_header.formatted &&
      cmsg_header.formatted.cmsg_len   <= sizeof(cmsg_header.rawbuffer) &&
@@ -188,12 +188,12 @@ int recv_cred(int socket, proccred_t& cred) noexcept
     cred.pid = peer_pid(*data);
     cred.uid = peer_uid(*data);
     cred.gid = peer_gid(*data);
-    return posix::success_response;
+    return true;
   }
-  return posix::error_response;
+  return false;
 }
 
-int send_cred(int socket) noexcept
+bool send_cred(int socket) noexcept
 {
   struct msghdr message;
   union
@@ -218,25 +218,26 @@ int send_cred(int socket) noexcept
   message.msg_controllen = sizeof(cmsg_header.rawbuffer);
   message.msg_flags = 0;
 
-  ssize_t nr = posix::sendmsg(socket, &message);
-  if(nr == -1)
-    return posix::error_response;
-  return int(nr);
+  return posix::sendmsg(socket, &message) != -1;
 }
 
 #else
 
 #pragma message("Socket credentials are not supported on this platform.")
 
-int recv_cred(int socket, proccred_t& cred) noexcept
+bool recv_cred(int socket, proccred_t& cred) noexcept
 {
   cred.pid = -1;
   cred.uid = -1;
   cred.gid = -1;
-  return posix::error(ENOSYS);
+  errno = EOPNOTSUPP;
+  return false;
 }
 
 int send_cred(int) noexcept
-{ return posix::error(ENOSYS); }
+{
+  errno = EOPNOTSUPP;
+  return false;
+}
 
 #endif

@@ -82,7 +82,7 @@ inline bool is_kernel26(void) noexcept
   return rval;
 }
 
-int load_module(const std::string& filename, const std::string& module_arguments) noexcept
+bool load_module(const std::string& filename, const std::string& module_arguments) noexcept
 {
   int rval = posix::error_response;
   posix::fd_t fd = posix::open(filename.c_str(), O_RDONLY | O_CLOEXEC);
@@ -111,15 +111,15 @@ int load_module(const std::string& filename, const std::string& module_arguments
     }
     posix::close(fd);
   }
-  return rval;
+  return rval == posix::success_response;
 }
 
-int unload_module(const std::string& name) noexcept
+bool unload_module(const std::string& name) noexcept
 {
   if(is_kernel26())
-    return delete_module26(name.c_str(), O_NONBLOCK);
+    return delete_module26(name.c_str(), O_NONBLOCK) == posix::success_response;
   else
-    return delete_module22(name.c_str());
+    return delete_module22(name.c_str()) == posix::success_response;
 }
 
 #elif defined(__aix__) /* AIX */
@@ -140,7 +140,7 @@ int unload_module(const std::string& name) noexcept
 
 template<class T> constexpr const T& max(const T& a, const T& b) { return (a < b) ? b : a; }
 
-int load_module(const std::string& filename, const std::string& module_arguments) noexcept
+bool load_module(const std::string& filename, const std::string& module_arguments) noexcept
 {
   int fileid = kldload(filename.c_str());
 
@@ -163,20 +163,21 @@ int load_module(const std::string& filename, const std::string& module_arguments
         std::memcpy(value, prev, min(posix::size_t(pos - prev), KENV_MVALLEN)); // copy value
       kenv(KENV_SET, key, value, std::strlen(value) + 1); // set key/value pair
     }
-    if(pos != NULL && *pos == ' ')
-      return posix::error(std::errc::invalid_argument);
-    return posix::success_response;
+    if(pos == NULL || *pos != ' ')
+      return true;
+    else
+      errno = int(std::errc::invalid_argument);
   }
 
-  return posix::error_response;
+  return false;
 }
 
-int unload_module(const std::string& name) noexcept
+bool unload_module(const std::string& name) noexcept
 {
   int fileid = kldfind(name.c_str());
   if(fileid == posix::error_response)
-    return posix::error_response;
-  return kldunload(fileid);
+    return false;
+  return kldunload(fileid) == posix::success_response;
 }
 
 #elif defined(__NetBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(5,0,0) // NetBSD 5+
@@ -186,7 +187,7 @@ int unload_module(const std::string& name) noexcept
 // NetBSD
 # include <sys/module.h>
 
-int load_module(const std::string& filename, const std::string& module_arguments) noexcept
+bool load_module(const std::string& filename, const std::string& module_arguments) noexcept
 {
   modctl_load_t mod;
   mod.ml_filename = filename.c_str();
@@ -204,12 +205,12 @@ int load_module(const std::string& filename, const std::string& module_arguments
     mod.ml_propslen = module_arguments.size();
   }
 
-  return ::modctl(MODCTL_LOAD, &mod);
+  return ::modctl(MODCTL_LOAD, &mod) == posix::success_response;
 }
 
-int unload_module(const std::string& name) noexcept
+bool unload_module(const std::string& name) noexcept
 {
-  return ::modctl(MODCTL_UNLOAD, name.c_str());
+  return ::modctl(MODCTL_UNLOAD, name.c_str()) == posix::success_response;
 }
 #else
 
@@ -230,9 +231,15 @@ int unload_module(const std::string& name) noexcept
 #  pragma message("Loadable Kernel Modules are not supported on this platform.")
 # endif
 
-int load_module(const std::string&, const std::string&) noexcept
-{ return posix::error(EOPNOTSUPP); }
+bool load_module(const std::string&, const std::string&) noexcept
+{
+  errno = EOPNOTSUPP;
+  return false;
+}
 
-int unload_module(const std::string&) noexcept
-{ return posix::error(EOPNOTSUPP); }
+bool unload_module(const std::string&) noexcept
+{
+  errno = EOPNOTSUPP;
+  return false;
+}
 #endif

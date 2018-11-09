@@ -11,8 +11,8 @@ struct proccred_t
   gid_t gid;
 };
 
-int recv_cred(int socket, proccred_t& cred) noexcept;
-int send_cred(int socket) noexcept;
+bool recv_cred(int socket, proccred_t& cred) noexcept;
+bool send_cred(int socket) noexcept;
 
 #endif // GETPEERID_H
 

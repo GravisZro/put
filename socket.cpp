@@ -80,12 +80,12 @@ bool ClientSocket::connect(const char *socket_path) noexcept
        "connect() to socket file \"%s\" failure: %s", socket_path, std::strerror(errno)) // connect to peer process
   m_connected = true;
 
-  flaw(::send_cred(m_socket) == posix::error_response,
+  flaw(!::send_cred(m_socket),
        terminal::warning,,
        false,
        "send_cred() failure: %s", std::strerror(errno)); // get creditials of connected peer process
 
-  flaw(::recv_cred(m_socket, cred) == posix::error_response,
+  flaw(!::recv_cred(m_socket, cred),
        terminal::warning,,
        false,
        "recv_cred() failure: %s", std::strerror(errno)); // get creditials of connected peer process
