@@ -38,7 +38,6 @@ SOURCES       = tests/build.cpp \
 		childprocess.cpp \
 		cxxutils/vfifo.cpp \
 		cxxutils/configmanip.cpp \
-		cxxutils/mountpoint_helpers.cpp \
 		cxxutils/syslogstream.cpp \
 		cxxutils/translate.cpp \
 		specialized/eventbackend.cpp \
@@ -47,6 +46,7 @@ SOURCES       = tests/build.cpp \
 		specialized/procstat.cpp \
 		specialized/proclist.cpp \
 		specialized/fstable.cpp \
+		specialized/mountpoints.cpp \
 		specialized/MountEvent.cpp \
 		specialized/FileEvent.cpp \
 		specialized/PollEvent.cpp \
