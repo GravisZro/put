@@ -27,24 +27,20 @@ fsentry_t::fsentry_t(const char* _device,
                      const int _pass) noexcept
   : fsentry_t()
 {
-  std::strncpy(device     , _device     , PATH_MAX);
-  std::strncpy(path       , _path       , PATH_MAX);
-  std::strncpy(filesystems, _filesystems, PATH_MAX);
-  std::strncpy(options    , _options    , PATH_MAX);
+  if(device      != NULL) { std::strncpy(device     , _device     , PATH_MAX); }
+  if(path        != NULL) { std::strncpy(path       , _path       , PATH_MAX); }
+  if(filesystems != NULL) { std::strncpy(filesystems, _filesystems, PATH_MAX); }
+  if(options     != NULL) { std::strncpy(options    , _options    , PATH_MAX); }
   dump_frequency = _dump_frequency;
   pass = _pass;
 }
 
 fsentry_t::~fsentry_t(void) noexcept
 {
-  if(device != NULL)
-    ::free(device);
-  if(path != NULL)
-    ::free(path);
-  if(filesystems != NULL)
-    ::free(filesystems);
-  if(options != NULL)
-    ::free(options);
+  if(device      != NULL) { ::free(device     ); }
+  if(path        != NULL) { ::free(path       ); }
+  if(filesystems != NULL) { ::free(filesystems); }
+  if(options     != NULL) { ::free(options    ); }
   device      = nullptr;
   path        = nullptr;
   filesystems = nullptr;
@@ -55,27 +51,25 @@ fsentry_t::~fsentry_t(void) noexcept
 
 bool fsentry_t::operator == (const fsentry_t& other) const
 {
-  return std::strncmp(device, other.device, PATH_MAX) == 0 &&
-      std::strncmp(path, other.path, PATH_MAX) == 0 &&
-      std::strncmp(filesystems, other.filesystems, PATH_MAX) == 0 &&
-      std::strncmp(options, other.options, PATH_MAX) == 0 &&
+  return
+      std::strncmp(device     , other.device      , PATH_MAX) == 0 &&
+      std::strncmp(path       , other.path        , PATH_MAX) == 0 &&
+      std::strncmp(filesystems, other.filesystems , PATH_MAX) == 0 &&
+      std::strncmp(options    , other.options     , PATH_MAX) == 0 &&
       dump_frequency == other.dump_frequency &&
       pass == other.pass;
 }
 
 
-#if defined(__linux__)    /* Every Linux    */ || \
-    defined(__OpenBSD__)  /* Every OpenBSD  */ || \
-    defined(__NetBSD__)   /* Every NetBSD   */ || \
-    defined(__aix__)      /* Every AIX      */ || \
-    defined(__QNX__)      /* Every QNX      */ || \
-    defined(__sunos__)    /* Every SunOS    */ || \
-    defined(__solaris__)  /* Every Solaris / OpenSolaris / OpenIndiana / illumos */ || \
-    defined(__hpux__)     /* Every HP-UX    */
+#if defined(__linux__)    /* Linux    */ || \
+    defined(__solaris__)  /* Solaris  */ || \
+    defined(__hpux__)     /* HP-UX    */ || \
+    defined(__irix__)     /* IRIX     */ || \
+    defined(__zos__)      /* z/OS     */
 
 #include <mntent.h>
 
-int parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
+bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
 {
   table.clear();
   FILE* file = ::setmntent(filename.c_str(), "r");
@@ -83,7 +77,8 @@ int parse_table(std::list<struct fsentry_t>& table, const std::string& filename)
     return posix::error_response;
 
   struct mntent* entry = NULL;
-  while((entry = ::getmntent(file)) != NULL)
+  while((entry = ::getmntent(file)) != NULL &&
+        errno == posix::success_response)
   {
     table.emplace_back(entry->mnt_fsname,
                        entry->mnt_dir,
@@ -93,31 +88,35 @@ int parse_table(std::list<struct fsentry_t>& table, const std::string& filename)
                        entry->mnt_passno);
   }
   ::endmntent(file);
-  return posix::success_response;
+  return errno == posix::success_response;
 }
 
-#elif defined(__FreeBSD__)    /* Every FreeBSD  */ || \
-      defined(__DragonFly__)  /* DragonFly BSD  */
+#elif defined(BSD4_4)       /* *BSD     */ || \
+      defined(__hpux__)     /* HP-UX    */ || \
+      defined(__sunos__)    /* SunOS    */ || \
+      defined(__aix__)      /* AIX      */ || \
+      defined(__tru64__)    /* Tru64    */ || \
+      defined(__ultrix__)   /* Ultrix   */
 
 #include <fstab.h>
 
-int parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
+bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
 {
   ::setfstab(filename.c_str());
 
   struct fstab* entry = NULL;
-  while((entry = ::getfsent()) != NULL)
+  while((entry = ::getfsent()) != NULL &&
+        errno == posix::success_response)
     table.emplace_back(entry->fs_spec,
                        entry->fs_file,
                        entry->fs_vfstype,
                        entry->fs_mntops,
                        entry->fs_freq,
                        entry->fs_passno);
-  return posix::success_response;
+  return errno == posix::success_response;
 }
 
-#elif defined(__unix__)   /* Generic UNIX */ || \
-      defined(__darwin__) /* Darwin       */
+#elif defined(__unix__)   /* Generic UNIX */
 
 # if !defined(__darwin__)
 #  pragma message("Unrecognized UNIX variant. Using low-level parser.")
@@ -139,7 +138,7 @@ int parse_table(std::list<struct fsentry_t>& table, const std::string& filename)
   std::FILE* file = posix::fopen(filename.c_str(), "r");
 
   if(file == NULL)
-    return posix::error_response;
+    return false;
 /*
   char* field = static_cast<char*>(::malloc(PATH_MAX));
   if(field == NULL)
@@ -196,7 +195,7 @@ int parse_table(std::list<struct fsentry_t>& table, const std::string& filename)
   ::free(field);
   field = nullptr;
 */
-  return posix::success();
+  return errno == posix::success_response;
 }
 
 #else

@@ -25,7 +25,7 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
   if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response)
     return posix::error_response;
 
-#if defined(__APPLE__)
+#if defined(__darwin__)
   // Darwin structure documentation
   // kinfo_proc   : https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/sysctl.h.auto.html
   // extern_proc  : https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/proc.h.auto.html
@@ -73,9 +73,9 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
 
 static posix::size_t arg_max = posix::size_t(sysconf(_SC_ARG_MAX));
 
-typedef posix::error_t (*decode_func)(FILE*, process_state_t&);
+typedef bool (*decode_func)(FILE*, process_state_t&);
 
-posix::error_t proc_decode(pid_t pid, const char* subfile, decode_func func, process_state_t& data)
+bool proc_decode(pid_t pid, const char* subfile, decode_func func, process_state_t& data)
 {
   char filename[PATH_MAX] = { 0 };
   std::snprintf(filename, PATH_MAX, "%s/%d/%s", procfs_path, pid, subfile);
@@ -84,37 +84,37 @@ posix::error_t proc_decode(pid_t pid, const char* subfile, decode_func func, pro
   if(file == NULL)
     return posix::error_response;
 
-  if(func(file, data) == posix::error_response)
-    return posix::error_response;
+  if(!func(file, data))
+    return false;
 
-  return std::fclose(file);
+  return std::fclose(file) == posix::error_response;
 }
 
-posix::error_t proc_exe_symlink(pid_t pid, const char* subfile, process_state_t& data) noexcept
+bool proc_exe_symlink(pid_t pid, const char* subfile, process_state_t& data) noexcept
 {
   char linkname[PATH_MAX] = { 0 };
   char filename[PATH_MAX] = { 0 };
   std::snprintf(linkname, PATH_MAX, "%s/%d/%s", procfs_path, pid, subfile); // fill buffer
 
   posix::ssize_t length = ::readlink(linkname, filename, arg_max); // result may contain " (deleted)" (which we don't want)
-  if(length != posix::error_response)
-  {
-    filename[length] = 0; // add string terminator
-    char* pos = std::strrchr(filename, ' '); // find last space
-    if(pos != NULL && // contains a space (may be part of " (deleted)")
-       pos[sizeof(" (deleted)") - 1] == '\0' && // might end with " (deleted)"
-       pos == std::strstr(filename, " (deleted)")) // definately ends with " (deleted)"
-      *pos = 0; // add string terminator to truncate at " (deleted)"
-    data.executable = filename; // copy corrected string
-  }
-  return posix::success_response;
+  if(length == posix::error_response)
+    return false;
+
+  filename[length] = 0; // add string terminator
+  char* pos = std::strrchr(filename, ' '); // find last space
+  if(pos != NULL && // contains a space (may be part of " (deleted)")
+     pos[sizeof(" (deleted)") - 1] == '\0' && // might end with " (deleted)"
+     pos == std::strstr(filename, " (deleted)")) // definately ends with " (deleted)"
+    *pos = 0; // add string terminator to truncate at " (deleted)"
+  data.executable = filename; // copy corrected string
+  return true;
 }
 
 # if defined(__linux__) // Linux
 #include <linux/kdev_t.h> // for MAJOR and MINOR macros
 #include <inttypes.h> // for fscanf abstracted type macros
 
-posix::error_t proc_stat_decoder(FILE* file, process_state_t& data) noexcept
+bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
 {
   struct //procinfo_t
   {
@@ -301,10 +301,10 @@ posix::error_t proc_stat_decoder(FILE* file, process_state_t& data) noexcept
 
   data.name.assign(process.name + 1);
   data.name.pop_back();
-  return posix::success_response;
+  return true;
 }
 
-posix::error_t proc_status_decoder(FILE* file, process_state_t& data) noexcept
+bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
 {
   uint64_t sigpnd, shdpnd;
   std::fscanf(file,
@@ -320,32 +320,29 @@ posix::error_t proc_status_decoder(FILE* file, process_state_t& data) noexcept
               reinterpret_cast<uint64_t*>(&data.signals_caught));
   data.signals_pending = uint32_t(sigpnd);
 
-  return posix::success_response;
+  return true;
 }
 
-posix::error_t proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
+bool proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
 {
   char* cmdbuffer = static_cast<char*>(::malloc(arg_max));
-  if(cmdbuffer != NULL)
+  if(cmdbuffer == NULL)
+    return false;
+  while(!std::feof(file))
   {
-    while(!std::feof(file))
-    {
-      std::fscanf(file, "%s ", cmdbuffer);
-      if(std::strlen(cmdbuffer))
-        data.arguments.push_back(cmdbuffer);
-    }
-
-    ::free(cmdbuffer);
-    return posix::success_response;
+    if(std::fscanf(file, "%s ", cmdbuffer) == 1)
+      data.arguments.push_back(cmdbuffer);
   }
-  return posix::error_response;
+
+  ::free(cmdbuffer);
+  return true;
 }
 
-# elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
+# elif defined(__solaris__) /* Solaris */
 
 #include <procfs.h>
 
-posix::error_t proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
+bool proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
 {
   psinfo_t info;
   if (fread(&info, sizeof(info), 1, f) > 0)
@@ -354,11 +351,11 @@ posix::error_t proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
   }
 }
 
-# elif defined(__aix__) // IBM AIX
+# elif defined(__aix__) /* AIX */
 
 #include <sys/procfs.h>
 
-posix::error_t proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
+bool proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
 {
   psinfo info;
   if (fread(&info, sizeof(info), 1, f) > 0)
@@ -387,35 +384,35 @@ inline void clear_state(process_state_t& data) noexcept
   data.priority_value  = 0;
 }
 
-posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
+bool procstat(pid_t pid, process_state_t& data) noexcept
 {
   clear_state(data);
   if(procfs_path == nullptr &&
-    initialize_paths() == posix::error_response)
+    initialize_paths())
     return posix::error_response;
 
 # if defined(__linux__) // Linux
-  if(proc_decode(pid, "stat"    , proc_stat_decoder, data) == posix::error_response ||
-     proc_decode(pid, "status"  , proc_status_decoder, data) == posix::error_response ||
-     proc_decode(pid, "cmdline" , proc_cmdline_decoder, data) == posix::error_response ||
-     proc_exe_symlink(pid, "exe", data) == posix::error_response)
-    return posix::error_response;
+  if(!proc_decode(pid, "stat"    , proc_stat_decoder   , data) ||
+     !proc_decode(pid, "status"  , proc_status_decoder , data) ||
+     !proc_decode(pid, "cmdline" , proc_cmdline_decoder, data) ||
+     !proc_exe_symlink(pid, "exe", data))
+    return false;
 
-# elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
-  if(proc_decode(pid, "psinfo", proc_psinfo_decoder, data) == posix::error_response ||
-     proc_exe_symlink(pid, "path/a.out", data) == posix::error_response ||
+# elif defined(__solaris__) /* Solaris */
+  if(!proc_decode(pid, "psinfo", proc_psinfo_decoder, data) ||
+     !proc_exe_symlink(pid, "path/a.out", data) ||
      false) // imcomplete code
-    return posix::error_response;
+    return false;
 
-# elif defined(__aix__) // IBM AIX
-  if(proc_decode(pid, "psinfo", proc_psinfo_decoder, data) ||
+# elif defined(__aix__) /* AIX */
+  if(!proc_decode(pid, "psinfo", proc_psinfo_decoder, data) ||
      true) // imcomplete code
-    return posix::error_response;
+    return false;
 
-# elif defined(__tru64__) // Tru64 (OSF/1)
+# elif defined(__tru64__) /* Tru64 */
 #  error No /proc decoding is implemented in PUT for Tru64!  Please submit a patch!
 
-# elif defined(__hpux__) // HP-UX
+# elif defined(__hpux__) /* HP-UX */
 #  error No /proc decoding is implemented in PUT for HP-UX!  Please submit a patch!
 
 # else
@@ -429,7 +426,7 @@ posix::error_t procstat(pid_t pid, process_state_t& data) noexcept
       data.name = farg.substr(farg.rfind(data.name));
   }
 
-  return posix::success_response;
+  return true;
 }
 
 #else

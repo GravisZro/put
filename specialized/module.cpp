@@ -122,11 +122,11 @@ int unload_module(const std::string& name) noexcept
     return delete_module22(name.c_str());
 }
 
-#elif defined(__aix__) // IBM AIX
+#elif defined(__aix__) /* AIX */
 // https://www.ibm.com/developerworks/aix/library/au-kernelext.html
-# error No kernel module operations code exists in PUT for IBM AIX!  Please submit a patch!
+# error No kernel module operations code exists in PUT for AIX!  Please submit a patch!
 
-#elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
+#elif defined(__solaris__) /* Solaris */
 # error No kernel module operations code exists in PUT for Solaris!  Please submit a patch!
 
 #elif defined(__DragonFly__) /* DragonFly BSD */ || \

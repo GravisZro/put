@@ -166,9 +166,9 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
   return true;
 }
 
-#elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
+#elif defined(__solaris__) /* Solaris */
 
-# pragma message("The backend code in PUT for Solaris / OpenSolaris / OpenIndiana / illumos is non-functional!  Please submit a patch!")
+# pragma message("The backend code in PUT for Solaris is non-functional!  Please submit a patch!")
 # pragma message("See: http://docs.oracle.com/cd/E19253-01/816-5168/port-get-3c/index.html")
 # define FALLBACK_ON_POSIX_POLL
 # if 0
@@ -245,12 +245,12 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 }
 # endif // if 0
 
-#elif defined(__QNX__) // QNX
+#elif defined(__QNX__) /* QNX */
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
 # pragma message("No event backend code exists in PUT for QNX!  Please submit a patch!")
 # define FALLBACK_ON_POSIX_POLL
 
-#elif defined(__hpux__) // HP-UX
+#elif defined(__hpux__) /* HP-UX */
 // see http://nixdoc.net/man-pages/HP-UX/man7/poll.7.html
 // and https://www.freebsd.org/cgi/man.cgi?query=poll&sektion=7&apropos=0&manpath=HP-UX+11.22
 // uses /dev/poll
@@ -259,7 +259,7 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 # pragma message("No event backend code exists in PUT for HP-UX!  Please submit a patch!")
 # define FALLBACK_ON_POSIX_POLL
 
-#elif defined(__aix__) // IBM AIX
+#elif defined(__aix__) /* AIX */
 // see https://www.ibm.com/support/knowledgecenter/ssw_aix_61/com.ibm.aix.basetrf1/pollset.htm
 // uses pollset_* functions
 
@@ -271,7 +271,7 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
   pollset_destroy(n);
 */
 
-# pragma message("No event backend code exists in PUT for IBM AIX!  Please submit a patch!")
+# pragma message("No event backend code exists in PUT for AIX!  Please submit a patch!")
 # define FALLBACK_ON_POSIX_POLL
 
 #elif defined(__tru64__) // Tru64 (OSF/1)

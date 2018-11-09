@@ -26,6 +26,6 @@ struct fsentry_t
   bool operator == (const fsentry_t& other) const;
 };
 
-int parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept;
+bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept;
 
 #endif // FSTABLE_H

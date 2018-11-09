@@ -5,7 +5,7 @@
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/socket_helpers.h>
 
-#if defined(__solaris__) // Solaris
+#if defined(__solaris__) /* Solaris */
 # include <ucred.h>
 
 int recv_cred(int socket, proccred_t& cred) noexcept

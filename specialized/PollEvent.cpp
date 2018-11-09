@@ -66,8 +66,8 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
       (flags & PollEvent::Writeable     ? composite_flag(0       , EVFILT_WRITE, 0) : 0) ;
 }
 
-#elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
-# pragma message("No poll event backend code exists in SXinit for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!")
+#elif defined(__solaris__) /* Solaris */
+# pragma message("No poll event backend code exists in Solaris!  Please submit a patch!")
 # define FALLBACK_ON_POSIX_POLL
 
 #elif defined(__QNX__) // QNX
@@ -84,7 +84,7 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 
 #elif defined(__aix__) // AIX
 // see https://www.ibm.com/support/knowledgecenter/ssw_aix_61/com.ibm.aix.basetrf1/pollset.htm
-# pragma message("No poll event backend code exists in PUT for IBM AIX!  Please submit a patch!")
+# pragma message("No poll event backend code exists in PUT for AIX!  Please submit a patch!")
 # define FALLBACK_ON_POSIX_POLL
 #else
 #pragma message("No platform specific poll event backend code! Using standard POSIX polling.")

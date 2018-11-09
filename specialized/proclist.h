@@ -4,9 +4,9 @@
 // STL
 #include <vector>
 
-// PUT
-#include <cxxutils/posix_helpers.h>
+// POSIX
+#include <sys/types.h>
 
-posix::error_t proclist(std::vector<pid_t>& list) noexcept;
+bool proclist(std::vector<pid_t>& list) noexcept;
 
 #endif // PROCLIST_H

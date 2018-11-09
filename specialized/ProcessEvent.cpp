@@ -266,8 +266,8 @@ ProcessEvent::~ProcessEvent(void) noexcept
   EventBackend::remove(m_pid, to_native_flags(m_flags)); // disconnect PID with flags
 }
 
-#elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
-# pragma message("No process event backend code exists in PUT for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!")
+#elif defined(__solaris__) /* Solaris */
+# pragma message("No process event backend code exists in PUT for Solaris!  Please submit a patch!")
 # define FALLBACK_ON_PROC_POLLING
 
 #elif defined(__QNX__) // QNX

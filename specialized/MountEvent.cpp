@@ -28,17 +28,18 @@ MountEvent::MountEvent(void) noexcept
         [this](posix::fd_t, native_flags_t) noexcept
         {
           std::list<struct fsentry_t> new_table;
-          parse_table(new_table, MOUNT_TABLE_FILE);
+          if(parse_table(new_table, MOUNT_TABLE_FILE))
+          {
+            for(auto& entry : new_table)
+              if(std::find(m_table.begin(), m_table.end(), entry) == m_table.end())
+                Object::enqueue_copy<std::string, std::string>(mounted, entry.device, entry.path);
 
-          for(auto& entry : new_table)
-            if(std::find(m_table.begin(), m_table.end(), entry) == m_table.end())
-              Object::enqueue_copy<std::string, std::string>(mounted, entry.device, entry.path);
+            for(auto& entry : m_table)
+              if(std::find(new_table.begin(), new_table.end(), entry) == new_table.end())
+                Object::enqueue_copy<std::string, std::string>(unmounted, entry.device, entry.path);
 
-          for(auto& entry : m_table)
-            if(std::find(new_table.begin(), new_table.end(), entry) == new_table.end())
-              Object::enqueue_copy<std::string, std::string>(unmounted, entry.device, entry.path);
-
-          m_table = new_table;
+            m_table = new_table;
+          }
         };
 
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */

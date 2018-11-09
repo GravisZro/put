@@ -192,8 +192,8 @@ FileEvent::~FileEvent(void) noexcept
   m_fd = posix::invalid_descriptor;
 }
 
-#elif defined(__solaris__) // Solaris / OpenSolaris / OpenIndiana / illumos
-# error No file event backend code exists in PUT for Solaris / OpenSolaris / OpenIndiana / illumos!  Please submit a patch!
+#elif defined(__solaris__) /* Solaris */
+# error No file event backend code exists in PUT for Solaris!  Please submit a patch!
 
 #elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
