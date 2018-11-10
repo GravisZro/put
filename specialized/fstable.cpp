@@ -9,6 +9,17 @@
 #include <specialized/osdetect.h>
 #include <cxxutils/posix_helpers.h>
 
+#if defined(__solaris__)  /* Solaris  */
+const char* fstab_path  = "/etc/vfstab";
+#else
+//#if defined(__linux__)      /* Linux    */ || \
+//    defined(BSD4_2)         /* *BSD     */ || \
+//    defined(__minix__)      /* MINIX    */ || \
+//    defined(__hpux__)       /* HP-UX    */ || \
+//    defined(__irix__)       /* IRIX     */
+const char* fstab_path  = "/etc/fstab";
+#endif
+
 fsentry_t::fsentry_t(void) noexcept
   : dump_frequency(0),
     pass(0)
@@ -62,12 +73,10 @@ bool fsentry_t::operator == (const fsentry_t& other) const
 
 
 #if defined(__linux__)    /* Linux    */ || \
-    defined(__solaris__)  /* Solaris  */ || \
     defined(__hpux__)     /* HP-UX    */ || \
     defined(__irix__)     /* IRIX     */ || \
     defined(__zos__)      /* z/OS     */
-
-#include <mntent.h>
+# include <mntent.h>
 
 bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
 {
@@ -91,13 +100,45 @@ bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename
   return errno == posix::success_response;
 }
 
+#elif defined(__solaris__)  /* Solaris  */
+# include <sys/vfstab.h>
+# include <cctype>
+
+int decode_pass(const char* pass)
+{
+  if(pass[1] != '\0' || // too long OR
+     std::isdigit(pass[0]) == 0) // not a digit
+    return 0;
+  return pass[0] - '0'; // get value
+}
+
+bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
+{
+  table.clear();
+  FILE* file = ::open(filename.c_str(), "r");
+  if(file == nullptr)
+    return posix::error_response;
+
+  vfstab entry;
+  while(::getvfsent(file, &entry) != posix::success_response)
+  {
+    table.emplace_back(entry.vfs_special,
+                       entry.vfs_mountp,
+                       entry.vfs_fstype,
+                       entry.vfs_mntopts,
+                       0,
+                       decode_pass(entry.vfs_fsckpass));
+  }
+  ::close(file);
+  return errno == posix::success_response;
+}
+
 #elif defined(BSD4_4)       /* *BSD     */ || \
       defined(__hpux__)     /* HP-UX    */ || \
       defined(__sunos__)    /* SunOS    */ || \
       defined(__aix__)      /* AIX      */ || \
       defined(__tru64__)    /* Tru64    */ || \
       defined(__ultrix__)   /* Ultrix   */
-
 #include <fstab.h>
 
 bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
@@ -128,7 +169,6 @@ static char* skip_spaces(char* data) noexcept
     ++data;
   return data;
 }
-
 
 bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
 {

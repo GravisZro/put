@@ -4,6 +4,8 @@
 #include <list>
 #include <string>
 
+extern const char* fstab_path;
+
 struct fsentry_t
 {
   char* device;

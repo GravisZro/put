@@ -24,13 +24,17 @@ inline void assign_data(char*& target, const char* str) noexcept
 }
 
 #if defined(__linux__)    /* Linux    */ || \
+    defined(__minix__)    /* MINIX    */ || \
     defined(__solaris__)  /* Solaris  */ || \
     defined(__hpux__)     /* HP-UX    */ || \
-    defined(__irix__)     /* IRIX     */ || \
-    defined(__zos__)      /* z/OS     */
+    defined(__irix__)     /* IRIX     */
 
 #ifndef MOUNT_TABLE_FILE
-# define MOUNT_TABLE_FILE  "/etc/mtab"
+# if defined(__solaris__) /* Solaris  */ || \
+     defined(__hpux__)    /* HP-UX    */
+# define MOUNT_TABLE_FILE   "/etc/mnttab"
+#else
+# define MOUNT_TABLE_FILE   "/etc/mtab"
 #endif
 
 bool initialize_paths(void) noexcept
@@ -108,7 +112,6 @@ bool initialize_paths(void) noexcept
 }
 
 #else
-
 
 #endif
 
