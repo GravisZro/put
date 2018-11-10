@@ -9,17 +9,6 @@
 #include <specialized/osdetect.h>
 #include <cxxutils/posix_helpers.h>
 
-#if defined(__solaris__)  /* Solaris  */
-const char* fstab_path  = "/etc/vfstab";
-#else
-//#if defined(__linux__)      /* Linux    */ || \
-//    defined(BSD4_2)         /* *BSD     */ || \
-//    defined(__minix__)      /* MINIX    */ || \
-//    defined(__hpux__)       /* HP-UX    */ || \
-//    defined(__irix__)       /* IRIX     */
-const char* fstab_path  = "/etc/fstab";
-#endif
-
 fsentry_t::fsentry_t(void) noexcept
   : dump_frequency(0),
     pass(0)
@@ -72,37 +61,11 @@ bool fsentry_t::operator == (const fsentry_t& other) const
 }
 
 
-#if defined(__linux__)    /* Linux    */ || \
-    defined(__hpux__)     /* HP-UX    */ || \
-    defined(__irix__)     /* IRIX     */ || \
-    defined(__zos__)      /* z/OS     */
-# include <mntent.h>
-
-bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
-{
-  table.clear();
-  FILE* file = ::setmntent(filename.c_str(), "r");
-  if(file == nullptr)
-    return posix::error_response;
-
-  struct mntent* entry = NULL;
-  while((entry = ::getmntent(file)) != NULL &&
-        errno == posix::success_response)
-  {
-    table.emplace_back(entry->mnt_fsname,
-                       entry->mnt_dir,
-                       entry->mnt_type,
-                       entry->mnt_opts,
-                       entry->mnt_freq,
-                       entry->mnt_passno);
-  }
-  ::endmntent(file);
-  return errno == posix::success_response;
-}
-
-#elif defined(__solaris__)  /* Solaris  */
+#if defined(__solaris__)  /* Solaris  */
 # include <sys/vfstab.h>
 # include <cctype>
+
+const char* fstab_path  = "/etc/vfstab";
 
 int decode_pass(const char* pass)
 {
@@ -133,6 +96,36 @@ bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename
   return errno == posix::success_response;
 }
 
+#elif defined(__linux__)    /* Linux    */ || \
+      defined(__hpux__)     /* HP-UX    */ || \
+      defined(__irix__)     /* IRIX     */ || \
+      defined(__zos__)      /* z/OS     */
+# include <mntent.h>
+
+const char* fstab_path  = "/etc/fstab";
+
+bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
+{
+  table.clear();
+  FILE* file = ::setmntent(filename.c_str(), "r");
+  if(file == nullptr)
+    return posix::error_response;
+
+  struct mntent* entry = NULL;
+  while((entry = ::getmntent(file)) != NULL &&
+        errno == posix::success_response)
+  {
+    table.emplace_back(entry->mnt_fsname,
+                       entry->mnt_dir,
+                       entry->mnt_type,
+                       entry->mnt_opts,
+                       entry->mnt_freq,
+                       entry->mnt_passno);
+  }
+  ::endmntent(file);
+  return errno == posix::success_response;
+}
+
 #elif defined(BSD4_4)       /* *BSD     */ || \
       defined(__hpux__)     /* HP-UX    */ || \
       defined(__sunos__)    /* SunOS    */ || \
@@ -140,6 +133,8 @@ bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename
       defined(__tru64__)    /* Tru64    */ || \
       defined(__ultrix__)   /* Ultrix   */
 #include <fstab.h>
+
+const char* fstab_path  = "/etc/fstab";
 
 bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
 {
@@ -162,6 +157,8 @@ bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename
 # if !defined(__darwin__)
 #  pragma message("Unrecognized UNIX variant. Using low-level parser.")
 # endif
+
+const char* fstab_path  = "/etc/fstab";
 
 static char* skip_spaces(char* data) noexcept
 {

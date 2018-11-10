@@ -29,13 +29,14 @@ inline void assign_data(char*& target, const char* str) noexcept
     defined(__hpux__)     /* HP-UX    */ || \
     defined(__irix__)     /* IRIX     */
 
-#ifndef MOUNT_TABLE_FILE
-# if defined(__solaris__) /* Solaris  */ || \
-     defined(__hpux__)    /* HP-UX    */
-# define MOUNT_TABLE_FILE   "/etc/mnttab"
-#else
-# define MOUNT_TABLE_FILE   "/etc/mtab"
-#endif
+# ifndef MOUNT_TABLE_FILE
+#  if defined(__solaris__) /* Solaris  */ || \
+      defined(__hpux__)    /* HP-UX    */
+#   define MOUNT_TABLE_FILE   "/etc/mnttab"
+#  else
+#   define MOUNT_TABLE_FILE   "/etc/mtab"
+#  endif
+# endif
 
 bool initialize_paths(void) noexcept
 {
@@ -69,15 +70,15 @@ bool initialize_paths(void) noexcept
       defined(__darwin__)   /* Darwin   */ || \
       defined(__tru64__)    /* Tru64    */
 
-#include <sys/types.h>
+# include <sys/types.h>
 
-#if defined(__NetBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,0,0)
-#include <sys/statvfs.h>
-#define statfs statvfs;
-#define getfsstat(a,b,c) getvfsstat(a,b,c)
-#else
-#include <sys/mount.h>
-#endif
+# if defined(__NetBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,0,0)
+#  include <sys/statvfs.h>
+#  define statfs statvfs;
+#  define getfsstat(a,b,c) getvfsstat(a,b,c)
+# else
+#  include <sys/mount.h>
+# endif
 
 bool initialize_paths(void) noexcept
 {
@@ -112,7 +113,7 @@ bool initialize_paths(void) noexcept
 }
 
 #else
-
+# error This platform is not supported.
 #endif
 
 static bool onstart = initialize_paths();
