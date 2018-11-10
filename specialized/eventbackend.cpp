@@ -171,6 +171,7 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 # pragma message("The backend code in PUT for Solaris is non-functional!  Please submit a patch!")
 # pragma message("See: http://docs.oracle.com/cd/E19253-01/816-5168/port-get-3c/index.html")
 # define FALLBACK_ON_POSIX_POLL
+// has /dev/poll
 # if 0
 // Solaris
 #  include <port.h>
@@ -253,7 +254,7 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 #elif defined(__hpux__) /* HP-UX */
 // see http://nixdoc.net/man-pages/HP-UX/man7/poll.7.html
 // and https://www.freebsd.org/cgi/man.cgi?query=poll&sektion=7&apropos=0&manpath=HP-UX+11.22
-// uses /dev/poll
+// has /dev/poll
 # include <sys/devpoll.h>
 
 # pragma message("No event backend code exists in PUT for HP-UX!  Please submit a patch!")
@@ -276,6 +277,7 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 
 #elif defined(__tru64__) // Tru64 (OSF/1)
 # pragma message("No event backend code exists in PUT for Tru64!  Please submit a patch!")
+// has /dev/poll
 # define FALLBACK_ON_POSIX_POLL
 
 #elif defined(__sco_openserver__) // SCO OpenServer
@@ -296,7 +298,6 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 
 
 #if defined(FALLBACK_ON_POSIX_POLL)
-
 # include <poll.h>
 
 // force maximum event count to 1024 per POSIX
