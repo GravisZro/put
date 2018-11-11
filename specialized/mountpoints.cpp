@@ -113,7 +113,7 @@ bool initialize_paths(void) noexcept
 }
 
 #else
-# error This platform is not supported.
+# pragma message("No mountpoint interrogation code for this platform! Please submit a patch.")
 #endif
 
 static bool onstart = initialize_paths();

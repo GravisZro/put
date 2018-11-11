@@ -67,6 +67,13 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   return true;
 }
 
+#elif defined(__QNX__)
+// https://users.pja.edu.pl/~jms/qnx/help/watcom/clibref/qnx/qnx_psinfo.html
+
+#include <sys/psinfo.h>
+# error No Process state code exists in PUT for QNX!  Please submit a patch!
+
+
 #elif defined(__unix__) /* Generic UNIX */
 
 // POSIX
@@ -87,7 +94,9 @@ typedef bool (*decode_func)(FILE*, process_state_t&);
 bool proc_decode(pid_t pid, const char* subfile, decode_func func, process_state_t& data)
 {
   char filename[PATH_MAX] = { 0 };
-  std::snprintf(filename, PATH_MAX, "%s/%d/%s", procfs_path, pid, subfile);
+  std::snprintf(filename, PATH_MAX, "%s/%d%c%s", procfs_path, pid,
+                subfile == nullptr ? '\0' : '/',
+                subfile == nullptr ? "" : subfile);
 
   FILE* file = std::fopen(filename, "r");
   if(file == NULL)
@@ -116,6 +125,53 @@ bool proc_exe_symlink(pid_t pid, const char* subfile, process_state_t& data) noe
      pos == std::strstr(filename, " (deleted)")) // definately ends with " (deleted)"
     *pos = 0; // add string terminator to truncate at " (deleted)"
   data.executable = filename; // copy corrected string
+  return true;
+}
+
+bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
+{
+  std::string str;
+  bool in_quote = false;
+  str.reserve(NAME_MAX);
+  for(const char* pos = argstr; *pos; ++pos)
+  {
+    if(*pos == '"')
+      in_quote ^= true;
+    else if(in_quote)
+    {
+      if(*pos == '\\')
+      {
+        switch(*(++pos))
+        {
+          case 'a' : str.push_back('\a'); break;
+          case 'b' : str.push_back('\b'); break;
+          case 'f' : str.push_back('\f'); break;
+          case 'n' : str.push_back('\n'); break;
+          case 'r' : str.push_back('\r'); break;
+          case 't' : str.push_back('\t'); break;
+          case 'v' : str.push_back('\v'); break;
+          case '"' : str.push_back('"' ); break;
+          case '\\': str.push_back('\\'); break;
+          case '\0': --pos; break;
+          default: break;
+        }
+      }
+      else
+        str.push_back(*pos);
+    }
+    else if(std::isspace(*pos))
+    {
+      if(!str.empty())
+      {
+        argvector.emplace_back(str);
+        str.clear();
+      }
+    }
+    else if(std::isgraph(*pos))
+      str.push_back(*pos);
+  }
+  if(!str.empty())
+    argvector.emplace_back(str);
   return true;
 }
 
@@ -174,59 +230,51 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
     unsigned int  policy;                   // Scheduling policy (see sched_setscheduler(2)). Decode using the SCHED_* constants in linux/sched.h.
   } process;
 
-#define Sd16 "%" SCNd16 " "
-#define Sd32 "%" SCNd32 " "
-#define Sd64 "%" SCNd64 " "
-
-#define Su16 "%" SCNu16 " "
-#define Su32 "%" SCNu32 " "
-#define Su64 "%" SCNu64 " "
-
   std::fscanf(file,
-              Sd32 // pid
+              "%" SCNd32 " " // pid
               "%s " // comm
               "%c " // state
-              Sd32 // ppid
-              Sd32 // pgrp
-              Sd32 // session
-              Sd32 // tty_nr
-              Sd32 // tpgid
-              Su32 // flags
-              Sd32 // minflt
-              Su32 // cminflt
-              Su32 // majflt
-              Su32 // cmajflt
-              Su32 // utime
-              Su32 // stime
-              Sd32 // cutime
-              Sd32 // cstime
-              Sd32 // priority
-              Sd32 // nice
-              Su32 // num_threads
-              Su32 // itrealvalue
-              Su32 // starttime
-              Su32 // vsize
-              Sd32 // rss
-              Su32 // rsslim
-              Su32 // startcode
-              Su32 // endcode
-              Su32 // startstack
-              Su32 // kstkesp
-              Su32 // kstkeip
-              Su32 // signal
-              Su32 // blocked
-              Su32 // sigignore
-              Su32 // sigcatch
-              Su32 // wchan
-              Su32 // nswap
-              Su32 // cnswap
+              "%" SCNd32 " " // ppid
+              "%" SCNd32 " " // pgrp
+              "%" SCNd32 " " // session
+              "%" SCNd32 " " // tty_nr
+              "%" SCNd32 " " // tpgid
+              "%" SCNu32 " " // flags
+              "%" SCNd32 " " // minflt
+              "%" SCNu32 " " // cminflt
+              "%" SCNu32 " " // majflt
+              "%" SCNu32 " " // cmajflt
+              "%" SCNu32 " " // utime
+              "%" SCNu32 " " // stime
+              "%" SCNd32 " " // cutime
+              "%" SCNd32 " " // cstime
+              "%" SCNd32 " " // priority
+              "%" SCNd32 " " // nice
+              "%" SCNu32 " " // num_threads
+              "%" SCNu32 " " // itrealvalue
+              "%" SCNu32 " " // starttime
+              "%" SCNu32 " " // vsize
+              "%" SCNd32 " " // rss
+              "%" SCNu32 " " // rsslim
+              "%" SCNu32 " " // startcode
+              "%" SCNu32 " " // endcode
+              "%" SCNu32 " " // startstack
+              "%" SCNu32 " " // kstkesp
+              "%" SCNu32 " " // kstkeip
+              "%" SCNu32 " " // signal
+              "%" SCNu32 " " // blocked
+              "%" SCNu32 " " // sigignore
+              "%" SCNu32 " " // sigcatch
+              "%" SCNu32 " " // wchan
+              "%" SCNu32 " " // nswap
+              "%" SCNu32 " " // cnswap
             #if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,1,22)
-              Sd32 // exit_signal
+              "%" SCNd32 " " // exit_signal
             # if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,2,8)
-              Sd32 // processor
+              "%" SCNd32 " " // processor
             #  if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,5,19)
-              Su32 // rt_priority
-              Su32 // policy
+              "%" SCNu32 " " // rt_priority
+              "%" SCNu32 " " // policy
             #  endif
             # endif
             #endif
@@ -322,13 +370,11 @@ bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
               "\nSigBlk: %" SCNx64
               "\nSigIgn: %" SCNx64
               "\nSigCgt: %" SCNx64,
-              &sigpnd,
+              reinterpret_cast<uint64_t*>(&data.signals_pending),
               &shdpnd,
               reinterpret_cast<uint64_t*>(&data.signals_blocked),
               reinterpret_cast<uint64_t*>(&data.signals_ignored),
               reinterpret_cast<uint64_t*>(&data.signals_caught));
-  data.signals_pending = uint32_t(sigpnd);
-
   return true;
 }
 
@@ -347,46 +393,109 @@ bool proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
   return true;
 }
 
-# elif defined(__solaris__) /* Solaris */
+# elif defined(__solaris__) /* Solaris  */ || \
+       defined(__aix__)     /* AIX      */
 
-#include <procfs.h>
+// POSIX++
+#  include <cctype>
+#  include <cassert>
+
+#  if defined(__solaris__)
+// Solaris
+#   include <procfs.h>
+#  else
+// AIX
+#   include <sys/procfs.h>
+typdef struct psinfo psinfo_t;
+#  endif
 
 bool proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
 {
   psinfo_t info;
-  if (fread(&info, sizeof(info), 1, f) > 0)
-  {
+  if(fread(&info, sizeof(info), 1, f) <= 0)
+    return false;
 
-  }
+  data.process_id         = info.pr_pid;
+  data.parent_process_id  = info.pr_ppid;
+  data.process_group_id   = info.pr_pgid;
+  data.session_id         = info.pr_sid;
+  data.tty_device         = info.pr_ttydev;
+  data.name               = info.pr_fname;
+  return split_arguments(data.arguments, info.pr_psargs));
 }
 
-# elif defined(__aix__) /* AIX */
-
-#include <sys/procfs.h>
-
-bool proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
+bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
 {
-  psinfo info;
-  if (fread(&info, sizeof(info), 1, f) > 0)
-  {
+  return true; // TODO!
+}
 
+bool proc_sigact_decoder(FILE* file, process_state_t& data) noexcept
+{
+  return true; // TODO!
+}
+
+# elif defined(__tru64__) /* Tru64      */ ||
+       defined(__irix__)  /* IRIX       */
+
+#  include <sys/procfs.h>
+
+bool proc_pid_decoder(FILE* file, process_state_t& data) noexcept
+{
+  prpsinfo_t info;
+  prstatus_t status;
+  posix::fd_t fd = ::fileno(file);
+
+  if(fd == posix::error_response ||
+     posix::ioctl(fd, PIOCPSINFO, &info  ) == posix::error_response ||
+     posix::ioctl(fd, PIOCSTATUS, &status) == posix::error_response ||
+     !split_arguments(data.arguments, info.pr_psargs))
+    return false;
+
+  data.user_id            = info.pr_uid;
+  data.group_id           = info.pr_gid;
+  data.process_id         = info.pr_pid;
+  data.parent_process_id  = info.pr_ppid;
+  data.process_group_id   = info.pr_pgid;
+  data.session_id         = info.pr_sid;
+  data.tty_device         = info.pr_ttydev;
+  data.priority_value     = int(info.pr_nice);
+  data.tty_device         = info.pr_ttydev;
+  data.name               = info.pr_fname;
+  data.name               = info.pr_fname;
+  data.signals_pending    = status.pr_sigpend;
+  data.signals_caught     = status.pr_sighold;
+
+  switch(info.pr_sname) // TODO: lookup values
+  {
+    case 'R': data.state = Running; break; // Running
+    case 'S': data.state = WaitingInterruptable; break; // Sleeping in an interruptible wait
+    case 'D': data.state = WaitingUninterruptable; break; // Waiting in uninterruptible disk sleep
+    case 'Z': data.state = Zombie; break; // Zombie
+    case 'T': data.state = Stopped; break; // Stopped (on a signal) or (before Linux 2.6.33) trace stopped
   }
+
+  if(info.pr_zomb)
+    data.state = Zombie;
+
+  return true;
 }
 
 # endif
 
 inline void clear_state(process_state_t& data) noexcept
 {
-  data.process_id = 0;
   data.name.clear();
   data.executable.clear();
   data.arguments.clear();
   data.state = Invalid;
+  data.user_id    = uid_t(-1);
+  data.group_id   = gid_t(-1);
+  data.process_id = 0;
   data.parent_process_id = 0;
   data.process_group_id = 0;
   data.session_id = 0;
   data.tty_device = 0;
-  data.signals_pending = 0;
+  data.signals_pending = sigset_t();
   data.signals_blocked = sigset_t();
   data.signals_ignored = sigset_t();
   data.signals_caught  = sigset_t();
@@ -407,19 +516,18 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
      !proc_exe_symlink(pid, "exe", data))
     return false;
 
-# elif defined(__solaris__) /* Solaris */
+# elif defined(__solaris__) /* Solaris  */ || \
+       defined(__aix__)     /* AIX      */
   if(!proc_decode(pid, "psinfo", proc_psinfo_decoder, data) ||
-     !proc_exe_symlink(pid, "path/a.out", data) ||
-     false) // imcomplete code
+     !proc_decode(pid, "status", proc_status_decoder, data) ||
+     !proc_decode(pid, "sigact", proc_sigact_decoder, data) ||
+     !proc_exe_symlink(pid, "path/a.out", data))
     return false;
 
-# elif defined(__aix__) /* AIX */
-  if(!proc_decode(pid, "psinfo", proc_psinfo_decoder, data) ||
-     true) // imcomplete code
+# elif defined(__tru64__) /* Tru64      */ ||
+       defined(__irix__)  /* IRIX       */
+  if(!proc_decode(pid, nullptr, proc_pid_decoder, data))
     return false;
-
-# elif defined(__tru64__) /* Tru64 */
-#  error No /proc decoding is implemented in PUT for Tru64!  Please submit a patch!
 
 # elif defined(__hpux__) /* HP-UX */
 #  error No /proc decoding is implemented in PUT for HP-UX!  Please submit a patch!
@@ -439,6 +547,6 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 }
 
 #else
-#error Unsupported platform! >:(
+# error Unsupported platform! >:(
 #endif
 

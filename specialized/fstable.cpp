@@ -65,7 +65,7 @@ bool fsentry_t::operator == (const fsentry_t& other) const
 # include <sys/vfstab.h>
 # include <cctype>
 
-const char* fstab_path  = "/etc/vfstab";
+const char* fs_table_path  = "/etc/vfstab";
 
 int decode_pass(const char* pass)
 {
@@ -96,13 +96,15 @@ bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename
   return errno == posix::success_response;
 }
 
+
+const char* fs_table_path  = "/etc/filesystems";
 #elif defined(__linux__)    /* Linux    */ || \
       defined(__hpux__)     /* HP-UX    */ || \
       defined(__irix__)     /* IRIX     */ || \
       defined(__zos__)      /* z/OS     */
 # include <mntent.h>
 
-const char* fstab_path  = "/etc/fstab";
+const char* fs_table_path  = "/etc/fstab";
 
 bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
 {
@@ -132,9 +134,13 @@ bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename
       defined(__aix__)      /* AIX      */ || \
       defined(__tru64__)    /* Tru64    */ || \
       defined(__ultrix__)   /* Ultrix   */
-#include <fstab.h>
+# include <fstab.h>
 
-const char* fstab_path  = "/etc/fstab";
+# if defined(__aix__)      /* AIX      */
+const char* fs_table_path  = "/etc/filesystems";
+# else
+const char* fs_table_path  = "/etc/fstab";
+# endif
 
 bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
 {
@@ -158,7 +164,7 @@ bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename
 #  pragma message("Unrecognized UNIX variant. Using low-level parser.")
 # endif
 
-const char* fstab_path  = "/etc/fstab";
+const char* fs_table_path  = "/etc/fstab";
 
 static char* skip_spaces(char* data) noexcept
 {

@@ -4,7 +4,7 @@
 #include <list>
 #include <string>
 
-extern const char* fstab_path;
+extern const char* fs_table_path;
 
 struct fsentry_t
 {
