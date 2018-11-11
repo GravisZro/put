@@ -434,7 +434,7 @@ bool proc_sigact_decoder(FILE* file, process_state_t& data) noexcept
   return true; // TODO!
 }
 
-# elif defined(__tru64__) /* Tru64      */ ||
+# elif defined(__tru64__) /* Tru64      */ || \
        defined(__irix__)  /* IRIX       */
 
 #  include <sys/procfs.h>
@@ -524,7 +524,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
      !proc_exe_symlink(pid, "path/a.out", data))
     return false;
 
-# elif defined(__tru64__) /* Tru64      */ ||
+# elif defined(__tru64__) /* Tru64      */ || \
        defined(__irix__)  /* IRIX       */
   if(!proc_decode(pid, nullptr, proc_pid_decoder, data))
     return false;
