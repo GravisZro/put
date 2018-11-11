@@ -3,8 +3,8 @@ Public Unix Toolkit is a ultra-lightweight event-driven toolkit using POSIX, C++
 
 ## Features
 * Signals and slots like Qt using only C++14 code.
-* Full event loop with less than 10KB of additional object code.
-* OS specific backends for every free UNIX and UNIX-like system.
+* Full event loop with only 10KiB of object code.
+* Backends for [every UNIX and UNIX-like system released in the last 30 years.](https://www.levenez.com/unix/)
 * No license restrictions; completely public domain code.
 * Multithread safe.
 
