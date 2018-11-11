@@ -9,16 +9,16 @@
     defined(__darwin__)   /* Darwin   */
 
 // *BSD/Darwin
-#include <sys/sysctl.h>
+# include <sys/sysctl.h>
 
 // PUT
-#include <cxxutils/misc_helpers.h>
+# include <cxxutils/misc_helpers.h>
 
-#if (defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(8,0,0)) || \
-    (defined(__NetBSD__)  && KERNEL_VERSION_CODE < KERNEL_VERSION(1,5,0)) || \
-    (defined(__OpenBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,7,0))
+# if (defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(8,0,0)) || \
+     (defined(__NetBSD__)  && KERNEL_VERSION_CODE < KERNEL_VERSION(1,5,0)) || \
+     (defined(__OpenBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,7,0))
 typedef struct proc kinfo_proc;
-#endif
+# endif
 
 bool procstat(pid_t pid, process_state_t& data) noexcept
 {
@@ -34,7 +34,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response)
     return false;
 
-#if defined(__darwin__)
+# if defined(__darwin__)
   // Darwin structure documentation
   // kinfo_proc   : https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/sysctl.h.auto.html
   // extern_proc  : https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/proc.h.auto.html
@@ -47,7 +47,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 //  data.state =
 //  data.name =
 
-#else
+# else
   // BSD structure documentation
   // kinfo_proc : http://fxr.watson.org/fxr/source/sys/user.h#L119
   // proc       : http://fxr.watson.org/fxr/source/sys/proc.h#L522
@@ -62,7 +62,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 //  data.state             = ;
 //  data.name              = ;
 //  data.arguments
-#endif
+# endif
 
   return true;
 }
@@ -70,22 +70,22 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 #elif defined(__QNX__)
 // https://users.pja.edu.pl/~jms/qnx/help/watcom/clibref/qnx/qnx_psinfo.html
 
-#include <sys/psinfo.h>
+# include <sys/psinfo.h>
 # error No Process state code exists in PUT for QNX!  Please submit a patch!
 
 
 #elif defined(__unix__) /* Generic UNIX */
 
 // POSIX
-#include <unistd.h>
+# include <unistd.h>
 
 // POSIX++
-#include <cstdio>
-#include <cstring>
-#include <climits>
+# include <cstdio>
+# include <cstring>
+# include <climits>
 
 // PUT
-#include <specialized/mountpoints.h>
+# include <specialized/mountpoints.h>
 
 static posix::size_t arg_max = posix::size_t(sysconf(_SC_ARG_MAX));
 
@@ -176,8 +176,8 @@ bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
 }
 
 # if defined(__linux__) // Linux
-#include <linux/kdev_t.h> // for MAJOR and MINOR macros
-#include <inttypes.h> // for fscanf abstracted type macros
+#  include <linux/kdev_t.h> // for MAJOR and MINOR macros
+#  include <inttypes.h> // for fscanf abstracted type macros
 
 bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
 {
@@ -191,7 +191,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
 //    pid_t         ppid;                     // The pid of the parent.
 //    pid_t         pgrp;                     // The pgrp of the process.
 //    pid_t         session;                  // The session id of the process.
-    int           tty;                      // The tty the process uses
+//    int           tty;                      // The tty the process uses
     int           tpgid;                    // (too long)
     unsigned int  flags;                    // The flags of the process.
     unsigned int  minflt;                   // The number of minor faults
@@ -237,7 +237,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
               "%" SCNd32 " " // ppid
               "%" SCNd32 " " // pgrp
               "%" SCNd32 " " // session
-              "%" SCNd32 " " // tty_nr
+              "%" SCNd64 " " // tty_nr
               "%" SCNd32 " " // tpgid
               "%" SCNu32 " " // flags
               "%" SCNd32 " " // minflt
@@ -284,7 +284,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
               , &data.parent_process_id
               , &data.process_group_id
               , &data.session_id
-              , &process.tty
+              , &data.tty_device
               , &process.tpgid
               , &process.flags
               , &process.minflt
@@ -327,11 +327,9 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
             #endif
               );
 
-  data.tty_device = dev_t(process.tty);
-
-#if KERNEL_VERSION_CODE < KERNEL_VERSION(2,6,0)
-#else
-#endif
+#  if KERNEL_VERSION_CODE < KERNEL_VERSION(2,6,0)
+#  else
+#  endif
 
   switch(process.state)
   {
@@ -340,20 +338,20 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
     case 'D': data.state = WaitingUninterruptable; break; // Waiting in uninterruptible disk sleep
     case 'Z': data.state = Zombie; break; // Zombie
     case 'T': data.state = Stopped; break; // Stopped (on a signal) or (before Linux 2.6.33) trace stopped
-#if KERNEL_VERSION_CODE < KERNEL_VERSION(2,6,0)
+#  if KERNEL_VERSION_CODE < KERNEL_VERSION(2,6,0)
     case 'W': data.state = WaitingUninterruptable; break; // Paging (only before Linux 2.6.0)
-#else
+#  else
     case 'X': data.state = Zombie; break; // Dead (from Linux 2.6.0 onward)
-# if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,33)
+#   if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,33)
     case 't': data.state = Stopped; break; // Tracing stop (Linux 2.6.33 onward)
-#  if KERNEL_VERSION_CODE <= KERNEL_VERSION(3,13,0)
+#    if KERNEL_VERSION_CODE <= KERNEL_VERSION(3,13,0)
     case 'x': data.state = Zombie; break; // Dead (Linux 2.6.33 to 3.13 only)
     case 'K': data.state = WaitingUninterruptable; break; // Wakekill (Linux 2.6.33 to 3.13 only)
     case 'W': data.state = WaitingInterruptable; break; // Waking (Linux 2.6.33 to 3.13 only)
     case 'P': data.state = WaitingInterruptable; break; // Parked (Linux 3.9 to 3.13 only)
+#    endif
+#   endif
 #  endif
-# endif
-#endif
   }
 
   data.name.assign(process.name + 1);
@@ -363,7 +361,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
 
 bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
 {
-  uint64_t sigpnd, shdpnd;
+  uint64_t shdpnd;
   std::fscanf(file,
               "\nSigPnd: %" SCNx64
               "\nShdPnd: %" SCNx64
@@ -381,21 +379,19 @@ bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
 bool proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
 {
   char* cmdbuffer = static_cast<char*>(::malloc(arg_max));
-  if(cmdbuffer == NULL)
-    return false;
-  while(!std::feof(file))
-  {
-    if(std::fscanf(file, "%s ", cmdbuffer) == 1)
-      data.arguments.push_back(cmdbuffer);
-  }
-
-  ::free(cmdbuffer);
-  return true;
+  bool rval = true;
+  if(cmdbuffer == NULL ||
+     fread(cmdbuffer, arg_max, 1, file) <= 0 ||
+     !split_arguments(data.arguments, cmdbuffer))
+    rval = false;
+  if(cmdbuffer)
+    ::free(cmdbuffer);
+  cmdbuffer = nullptr;
+  return rval;
 }
 
 # elif defined(__solaris__) /* Solaris  */ || \
        defined(__aix__)     /* AIX      */
-
 // POSIX++
 #  include <cctype>
 #  include <cassert>
@@ -406,27 +402,40 @@ bool proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
 #  else
 // AIX
 #   include <sys/procfs.h>
-typdef struct psinfo psinfo_t;
+typdef struct psinfo  psinfo_t;
+typdef struct pstatus pstatus_t;
 #  endif
 
 bool proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
 {
   psinfo_t info;
-  if(fread(&info, sizeof(info), 1, f) <= 0)
+  if(fread(&info, sizeof(info), 1, file) <= 0 ||
+     !split_arguments(data.arguments, info.pr_psargs))
     return false;
 
+  data.user_id            = info.pr_uid;
+  data.group_id           = info.pr_gid;
   data.process_id         = info.pr_pid;
   data.parent_process_id  = info.pr_ppid;
   data.process_group_id   = info.pr_pgid;
   data.session_id         = info.pr_sid;
   data.tty_device         = info.pr_ttydev;
   data.name               = info.pr_fname;
-  return split_arguments(data.arguments, info.pr_psargs));
+  return true;
 }
 
 bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
 {
-  return true; // TODO!
+  pstatus_t status;
+  if(fread(&status, sizeof(status), 1, file) <= 0)
+    return false;
+
+  data.signals_pending = status.pr_lwp.pr_lwppend;
+  data.signals_blocked = status.pr_lwp.pr_lwphold;
+  data.user_time       = status.pr_utime;
+  data.system_time     = status.pr_stime;
+
+  return true;
 }
 
 bool proc_sigact_decoder(FILE* file, process_state_t& data) noexcept
@@ -436,7 +445,6 @@ bool proc_sigact_decoder(FILE* file, process_state_t& data) noexcept
 
 # elif defined(__tru64__) /* Tru64      */ || \
        defined(__irix__)  /* IRIX       */
-
 #  include <sys/procfs.h>
 
 bool proc_pid_decoder(FILE* file, process_state_t& data) noexcept
@@ -461,9 +469,8 @@ bool proc_pid_decoder(FILE* file, process_state_t& data) noexcept
   data.priority_value     = int(info.pr_nice);
   data.tty_device         = info.pr_ttydev;
   data.name               = info.pr_fname;
-  data.name               = info.pr_fname;
   data.signals_pending    = status.pr_sigpend;
-  data.signals_caught     = status.pr_sighold;
+  data.signals_blocked    = status.pr_sighold;
 
   switch(info.pr_sname) // TODO: lookup values
   {

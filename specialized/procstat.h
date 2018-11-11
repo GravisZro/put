@@ -8,6 +8,9 @@
 // POSIX++
 #include <cstdint>
 
+// POSIX
+#include <time.h>
+
 // PUT
 #include <cxxutils/posix_helpers.h>
 
@@ -42,6 +45,9 @@ struct process_state_t
   sigset_t signals_caught;  // bitmask of signals caught
 
   int priority_value;       // nice value
+
+  timespec user_time;
+  timespec system_time;
 };
 
 bool procstat(pid_t pid, process_state_t& data) noexcept;
