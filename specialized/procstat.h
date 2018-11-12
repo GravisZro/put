@@ -24,6 +24,8 @@ enum ExecutionState : char
   Stopped = 'T',                // stopped/tracing execution
 };
 
+typedef int32_t segsz_t; // memory segment size
+
 struct process_state_t
 {
   std::string name;         // process name
@@ -39,20 +41,27 @@ struct process_state_t
 
   dev_t tty_device;         // device id of the tty device the process is running on
 
-  sigset_t signals_pending; // bitmask of signals pending
-  sigset_t signals_blocked; // bitmask of signals blocked
-  sigset_t signals_ignored; // bitmask of signals ignored
-  sigset_t signals_caught;  // bitmask of signals caught
+  sigset_t signals_pending; // signals pending
+  sigset_t signals_blocked; // signals blocked
+  sigset_t signals_ignored; // signals ignored
+  sigset_t signals_caught;  // signals caught
 
   int priority_value;
   int8_t nice_value;        // nice value
 
-  timeval start_time;
-  timeval user_time;
-  timeval system_time;
+  timeval start_time;       // process start time
+  timeval user_time;        // process user time spent
+  timeval system_time;      // process system time spent
 
-  //segsz_t s;
-  // TODO: add memory
+  struct memory_sizes_t
+  {
+    segsz_t rss;    // resident set size (pages)
+    segsz_t image;  // process image size (pages)
+    segsz_t text;   // text size (pages)
+    segsz_t data;   // data size (pages)
+    segsz_t stack;  // stack size (pages)
+    ssize_t page;   // page size (bytes)
+  } memory_size;
 };
 
 bool procstat(pid_t pid, process_state_t& data) noexcept;
