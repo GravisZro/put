@@ -63,27 +63,6 @@ bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
     defined(__NetBSD__)   /* NetBSD   */ || \
     defined(__darwin__)   /* Darwin   */
 
-#if defined(__darwin__) /* Darwin XNU 792+ */
-#define BSD_KERNEL_PRIVATE
-struct	session {
-   int	s_count;		/* Ref cnt; pgrps in session. */
-   struct	proc *s_leader;		/* Session leader. */
-   struct	vnode *s_ttyvp;		/* Vnode of controlling terminal. */
-   struct	tty *s_ttyp;		/* Controlling terminal. */
-   pid_t	s_sid;		/* Session ID */
-   char	s_login[MAXLOGNAME];	/* Setlogin() name. */
-};
-
-struct	pgrp {
-   LIST_ENTRY(pgrp) pg_hash;	/* Hash chain. */
-   LIST_HEAD(, proc) pg_members;	/* Pointer to pgrp members. */
-   struct	session *pg_session;	/* Pointer to session. */
-   pid_t	pg_id;			/* Pgrp id. */
-   int	pg_jobc;	/* # procs qualifying pgrp for job control */
-};
-#endif
-
-
 // *BSD/Darwin
 # include <sys/sysctl.h>
 # include <sys/user.h>
@@ -95,36 +74,73 @@ struct	pgrp {
 // PUT
 # include <cxxutils/misc_helpers.h>
 
-# if (defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(8,0,0)) || \
+#if defined(__darwin__) /* Darwin XNU 792+ */
+struct session {
+   int s_count;  /* Ref cnt; pgrps in session. */
+   struct proc *s_leader;  /* Session leader. */
+   struct vnode *s_ttyvp;  /* Vnode of controlling terminal. */
+   struct tty *s_ttyp;  /* Controlling terminal. */
+   pid_t s_sid;  /* Session ID */
+   char s_login[MAXLOGNAME]; /* Setlogin() name. */
+};
+
+struct pgrp {
+   LIST_ENTRY(pgrp) pg_hash; /* Hash chain. */
+   LIST_HEAD(, proc) pg_members; /* Pointer to pgrp members. */
+   struct session *pg_session; /* Pointer to session. */
+   pid_t pg_id;   /* Pgrp id. */
+   int pg_jobc; /* # procs qualifying pgrp for job control */
+};
+
+struct sigacts {
+   user_addr_t ps_sigact[NSIG]; /* disposition of signals */
+   user_addr_t  ps_trampact[NSIG]; /* disposition of signals */
+   sigset_t ps_catchmask[NSIG]; /* signals to be blocked */
+   sigset_t ps_sigonstack;  /* signals to take on sigstack */
+   sigset_t ps_sigintr;  /* signals that interrupt syscalls */
+   sigset_t ps_sigreset;  /* signals that reset when caught */
+   sigset_t ps_signodefer;  /* signals not masked while handled */
+   sigset_t ps_siginfo;  /* signals that want SA_SIGINFO args */
+   sigset_t ps_oldmask;  /* saved mask from before sigpause */
+   int ps_flags;  /* signal flags, below */
+   struct user_sigaltstack ps_sigstk; /* sp, length & flags */
+   int ps_sig;   /* for core dump/debugger XXX */
+   int ps_code;  /* for core dump/debugger XXX */
+   int ps_addr;  /* for core dump/debugger XXX */
+   sigset_t ps_usertramp;  /* SunOS compat; libc sigtramp XXX */
+   sigset_t ps_64regset;  /* signals that want SA_EXSIGINFO args */
+};
+
+#elif (defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(8,0,0)) || \
      (defined(__NetBSD__)  && KERNEL_VERSION_CODE < KERNEL_VERSION(1,5,0)) || \
      (defined(__OpenBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,7,0))
 #  define OLD_BSD
 
 struct kinfo_proc {
-   struct proc kp_proc;			/* proc structure */
+   struct proc kp_proc;   /* proc structure */
    struct eproc {
-      struct	proc *e_paddr;		/* address of proc */
-      struct	session *e_sess;	/* session pointer */
-      struct	pcred e_pcred;		/* process credentials */
-      struct	ucred e_ucred;		/* current credentials */
-      struct	vmspace e_vm;		/* address space */
-      pid_t	e_ppid;			/* parent process id */
-      pid_t	e_pgid;			/* process group id */
-      short	e_jobc;			/* job control counter */
-      dev_t	e_tdev;			/* controlling tty dev */
-      pid_t	e_tpgid;		/* tty process group id */
-      struct	session *e_tsess;	/* tty session pointer */
-#define	WMESGLEN	7
-      char	e_wmesg[WMESGLEN+1];	/* wchan message */
-      segsz_t e_xsize;		/* text size */
-      short	e_xrssize;		/* text rss */
-      short	e_xccount;		/* text references */
-      short	e_xswrss;
-      long	e_flag;
-#define	EPROC_CTTY	0x01	/* controlling tty vnode active */
-#define	EPROC_SLEADER	0x02	/* session leader */
-      char	e_login[MAXLOGNAME];	/* setlogin() name */
-      long	e_spare[4];
+      struct proc *e_paddr;  /* address of proc */
+      struct session *e_sess; /* session pointer */
+      struct pcred e_pcred;  /* process credentials */
+      struct ucred e_ucred;  /* current credentials */
+      struct vmspace e_vm;  /* address space */
+      pid_t e_ppid;   /* parent process id */
+      pid_t e_pgid;   /* process group id */
+      short e_jobc;   /* job control counter */
+      dev_t e_tdev;   /* controlling tty dev */
+      pid_t e_tpgid;  /* tty process group id */
+      struct session *e_tsess; /* tty session pointer */
+#define WMESGLEN 7
+      char e_wmesg[WMESGLEN+1]; /* wchan message */
+      segsz_t e_xsize;  /* text size */
+      short e_xrssize;  /* text rss */
+      short e_xccount;  /* text references */
+      short e_xswrss;
+      long e_flag;
+#define EPROC_CTTY 0x01 /* controlling tty vnode active */
+#define EPROC_SLEADER 0x02 /* session leader */
+      char e_login[MAXLOGNAME]; /* setlogin() name */
+      long e_spare[4];
    } kp_eproc;
 };
 # endif
