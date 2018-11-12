@@ -1,132 +1,15 @@
 #include "procstat.h"
 
-// PUT
-#include <specialized/osdetect.h>
-
-#if defined(__FreeBSD__)  /* FreeBSD  */ || \
-    defined(__OpenBSD__)  /* OpenBSD  */ || \
-    defined(__NetBSD__)   /* NetBSD   */ || \
-    defined(__darwin__)   /* Darwin   */
-
-// *BSD/Darwin
-# include <sys/sysctl.h>
-
-// PUT
-# include <cxxutils/misc_helpers.h>
-
-# if (defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(8,0,0)) || \
-     (defined(__NetBSD__)  && KERNEL_VERSION_CODE < KERNEL_VERSION(1,5,0)) || \
-     (defined(__OpenBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,7,0))
-typedef struct proc kinfo_proc;
-# endif
-
-bool procstat(pid_t pid, process_state_t& data) noexcept
-{
-  struct kinfo_proc info;
-  posix::size_t length;
-  int request[6] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid, sizeof(struct kinfo_proc), 0 };
-
-  if(sysctl(request, arraylength(request), NULL, &length, NULL, 0) != posix::success_response)
-    return false;
-
-  request[5] = (length / sizeof(struct kinfo_proc));
-
-  if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response)
-    return false;
-
-# if defined(__darwin__)
-  // Darwin structure documentation
-  // kinfo_proc   : https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/sysctl.h.auto.html
-  // extern_proc  : https://opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/proc.h.auto.html
-
-  data.process_id        = info.kp_proc.p_pid;
-  data.parent_process_id = info.kp_eproc.e_ppid;
-  data.process_group_id  = info.kp_eproc.e_pgid;
-//  data.session_id        = info.kp_eproc.e_sess->;
-//  data.priority_value    = info.kp_eproc
-//  data.state =
-//  data.name =
-
-# else
-  // BSD structure documentation
-  // kinfo_proc : http://fxr.watson.org/fxr/source/sys/user.h#L119
-  // proc       : http://fxr.watson.org/fxr/source/sys/proc.h#L522
-  // priority   : http://fxr.watson.org/fxr/source/sys/priority.h#L126
-  // pargs      : http://fxr.watson.org/fxr/source/sys/proc.h#L110
-
-  data.process_id        = info.ki_pid;
-  data.parent_process_id = info.ki_ppid;
-  data.process_group_id  = info.ki_pgid;
-  data.session_id        = info.ki_sid;
-  data.priority_value    = info.ki_pri.pri_user;
-//  data.state             = ;
-//  data.name              = ;
-//  data.arguments
-# endif
-
-  return true;
-}
-
-#elif defined(__QNX__)
-// https://users.pja.edu.pl/~jms/qnx/help/watcom/clibref/qnx/qnx_psinfo.html
-
-# include <sys/psinfo.h>
-# error No Process state code exists in PUT for QNX!  Please submit a patch!
-
-
-#elif defined(__unix__) /* Generic UNIX */
-
-// POSIX
-# include <unistd.h>
-
 // POSIX++
-# include <cstdio>
 # include <cstring>
 # include <climits>
 
 // PUT
-# include <specialized/mountpoints.h>
+#include <specialized/osdetect.h>
 
-static posix::size_t arg_max = posix::size_t(sysconf(_SC_ARG_MAX));
-
-typedef bool (*decode_func)(FILE*, process_state_t&);
-
-bool proc_decode(pid_t pid, const char* subfile, decode_func func, process_state_t& data)
-{
-  char filename[PATH_MAX] = { 0 };
-  std::snprintf(filename, PATH_MAX, "%s/%d%c%s", procfs_path, pid,
-                subfile == nullptr ? '\0' : '/',
-                subfile == nullptr ? "" : subfile);
-
-  FILE* file = std::fopen(filename, "r");
-  if(file == NULL)
-    return posix::error_response;
-
-  if(!func(file, data))
-    return false;
-
-  return std::fclose(file) == posix::error_response;
-}
-
-bool proc_exe_symlink(pid_t pid, const char* subfile, process_state_t& data) noexcept
-{
-  char linkname[PATH_MAX] = { 0 };
-  char filename[PATH_MAX] = { 0 };
-  std::snprintf(linkname, PATH_MAX, "%s/%d/%s", procfs_path, pid, subfile); // fill buffer
-
-  posix::ssize_t length = ::readlink(linkname, filename, arg_max); // result may contain " (deleted)" (which we don't want)
-  if(length == posix::error_response)
-    return false;
-
-  filename[length] = 0; // add string terminator
-  char* pos = std::strrchr(filename, ' '); // find last space
-  if(pos != NULL && // contains a space (may be part of " (deleted)")
-     pos[sizeof(" (deleted)") - 1] == '\0' && // might end with " (deleted)"
-     pos == std::strstr(filename, " (deleted)")) // definately ends with " (deleted)"
-    *pos = 0; // add string terminator to truncate at " (deleted)"
-  data.executable = filename; // copy corrected string
-  return true;
-}
+template<typename T>
+static inline void copy_struct(T& dest, const T& source)
+  { std::memcpy(&dest, &source, sizeof(T)); }
 
 bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
 {
@@ -175,9 +58,203 @@ bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
   return true;
 }
 
-# if defined(__linux__) // Linux
-#  include <linux/kdev_t.h> // for MAJOR and MINOR macros
-#  include <inttypes.h> // for fscanf abstracted type macros
+#if defined(__FreeBSD__)  /* FreeBSD  */ || \
+    defined(__OpenBSD__)  /* OpenBSD  */ || \
+    defined(__NetBSD__)   /* NetBSD   */ || \
+    defined(__darwin__)   /* Darwin   */
+
+// *BSD/Darwin
+# include <sys/sysctl.h>
+# include <sys/user.h>
+
+// PUT
+# include <cxxutils/misc_helpers.h>
+
+# if (defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(8,0,0)) || \
+     (defined(__NetBSD__)  && KERNEL_VERSION_CODE < KERNEL_VERSION(1,5,0)) || \
+     (defined(__OpenBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,7,0))
+#  define OLD_BSD
+#  include <sys/proc.h>
+
+struct kinfo_proc {
+   struct proc kp_proc;			/* proc structure */
+   struct eproc {
+      struct	proc *e_paddr;		/* address of proc */
+      struct	session *e_sess;	/* session pointer */
+      struct	pcred e_pcred;		/* process credentials */
+      struct	ucred e_ucred;		/* current credentials */
+      struct	vmspace e_vm;		/* address space */
+      pid_t	e_ppid;			/* parent process id */
+      pid_t	e_pgid;			/* process group id */
+      short	e_jobc;			/* job control counter */
+      dev_t	e_tdev;			/* controlling tty dev */
+      pid_t	e_tpgid;		/* tty process group id */
+      struct	session *e_tsess;	/* tty session pointer */
+#define	WMESGLEN	7
+      char	e_wmesg[WMESGLEN+1];	/* wchan message */
+      segsz_t e_xsize;		/* text size */
+      short	e_xrssize;		/* text rss */
+      short	e_xccount;		/* text references */
+      short	e_xswrss;
+      long	e_flag;
+#define	EPROC_CTTY	0x01	/* controlling tty vnode active */
+#define	EPROC_SLEADER	0x02	/* session leader */
+      char	e_login[MAXLOGNAME];	/* setlogin() name */
+      long	e_spare[4];
+   } kp_eproc;
+};
+# endif
+
+bool procstat(pid_t pid, process_state_t& data) noexcept
+{
+  struct kinfo_proc info;
+  posix::size_t length;
+  int request[6] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid, sizeof(struct kinfo_proc), 0 };
+
+  if(sysctl(request, arraylength(request), NULL, &length, NULL, 0) != posix::success_response)
+    return false;
+
+  request[5] = (length / sizeof(struct kinfo_proc));
+
+  if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response)
+    return false;
+
+# if defined(OLD_BSD) || defined(__darwin__)
+  // Darwin structure documentation
+  // kinfo_proc   : https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/sysctl.h.auto.html
+  // extern_proc  : https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/proc.h.auto.html
+  // pstats       : https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/resourcevar.h.auto.html
+
+  if(!split_arguments(data.arguments, info.ki_args->ar_args))
+    return false;
+
+  data.user_id            = info.kp_eproc.e_pcred.p_ruid;
+  data.group_id           = info.kp_eproc.e_pcred.p_rgid;
+  data.process_id         = info.kp_proc.p_pid;
+  data.parent_process_id  = info.kp_eproc.e_ppid;
+  data.process_group_id   = info.kp_eproc.e_pgid;
+  data.session_id         = info.kp_proc.p_pgrp->pg_session;
+  data.tty_device         = info.kp_eproc.e_tdev;
+
+  data.name               = info.kp_proc.p_comm;
+  data.nice_value         = info.kp_proc.p_nice;
+
+  copy_struct(data.signals_pending, info.kp_proc.p_sigacts->ps_sigonstack);
+//copy_struct(data.signals_blocked, info.kp_proc.p_sigacts->ps_catchmask[???]); // TODO: Figure this part out!
+  copy_struct(data.signals_ignored, info.kp_proc.p_sigacts->ps_sigignore );
+  copy_struct(data.signals_caught , info.kp_proc.p_sigacts->ps_sigcatch  );
+
+  copy_struct(data.start_time , info.kp_proc.p_stats->p_start);
+  copy_struct(data.user_time  , info.kp_proc.p_utime);
+  copy_struct(data.system_time, info.kp_proc.p_stime);
+
+# else
+  // BSD structure documentation
+  // kinfo_proc : https://github.com/freebsd/freebsd/blob/master/sys/sys/user.h#L121
+  // pargs      : https://github.com/freebsd/freebsd/blob/master/sys/sys/proc.h#L118
+  // rusage     : https://github.com/freebsd/freebsd/blob/master/sys/sys/resource.h#L73
+
+  if(!split_arguments(data.arguments, info.ki_args->ar_args)) // pargs
+    return false;
+
+  data.user_id            = info.ki_ruid;
+  data.group_id           = info.ki_rgid;
+  data.process_id         = info.ki_pid;
+  data.parent_process_id  = info.ki_ppid;
+  data.process_group_id   = info.ki_pgid;
+  data.session_id         = info.ki_sid;
+  data.tty_device         = info.ki_tdev;
+
+  data.name               = info.ki_comm;
+  data.nice_value         = info.ki_nice;
+
+  copy_struct(data.signals_pending, info.ki_siglist  );
+  copy_struct(data.signals_blocked, info.ki_sigmask  );
+  copy_struct(data.signals_ignored, info.ki_sigignore);
+  copy_struct(data.signals_caught , info.ki_sigcatch );
+
+
+  copy_struct(data.start_time , info.ki_start);
+  copy_struct(data.user_time  , info.ki_rusage.ru_utime); // rusage
+  copy_struct(data.system_time, info.ki_rusage.ru_stime); // rusage
+
+  switch(info.ki_stat) // TODO: lookup values
+  {
+    case 'R': data.state = Running; break; // Running
+    case 'S': data.state = WaitingInterruptable; break; // Sleeping in an interruptible wait
+    case 'D': data.state = WaitingUninterruptable; break; // Waiting in uninterruptible disk sleep
+    case 'Z': data.state = Zombie; break; // Zombie
+    case 'T': data.state = Stopped; break; // Stopped (on a signal) or (before Linux 2.6.33) trace stopped
+  }
+
+# endif
+
+  return true;
+}
+
+#elif defined(__QNX__)
+// https://users.pja.edu.pl/~jms/qnx/help/watcom/clibref/qnx/qnx_psinfo.html
+
+# include <sys/psinfo.h>
+# error No Process state code exists in PUT for QNX!  Please submit a patch!
+
+
+#elif defined(__unix__) /* Generic UNIX */
+
+// POSIX
+# include <unistd.h>
+
+// POSIX++
+# include <cstdio>
+
+// PUT
+# include <specialized/mountpoints.h>
+
+static posix::size_t arg_max = posix::size_t(sysconf(_SC_ARG_MAX));
+
+typedef bool (*decode_func)(FILE*, process_state_t&);
+
+bool proc_decode(pid_t pid, const char* subfile, decode_func func, process_state_t& data)
+{
+  char filename[PATH_MAX] = { 0 };
+  std::snprintf(filename, PATH_MAX, "%s/%d%c%s", procfs_path, pid,
+                subfile == nullptr ? '\0' : '/',
+                subfile == nullptr ? "" : subfile);
+
+  FILE* file = std::fopen(filename, "r");
+  if(file == NULL)
+    return posix::error_response;
+
+  if(!func(file, data))
+    return false;
+
+  return std::fclose(file) == posix::error_response;
+}
+
+bool proc_exe_symlink(pid_t pid, const char* subfile, process_state_t& data) noexcept
+{
+  char linkname[PATH_MAX] = { 0 };
+  char filename[PATH_MAX] = { 0 };
+  std::snprintf(linkname, PATH_MAX, "%s/%d/%s", procfs_path, pid, subfile); // fill buffer
+
+  posix::ssize_t length = ::readlink(linkname, filename, arg_max); // result may contain " (deleted)" (which we don't want)
+  if(length == posix::error_response)
+    return false;
+
+  filename[length] = 0; // add string terminator
+  char* pos = std::strrchr(filename, ' '); // find last space
+  if(pos != NULL && // contains a space (may be part of " (deleted)")
+     pos[sizeof(" (deleted)") - 1] == '\0' && // might end with " (deleted)"
+     pos == std::strstr(filename, " (deleted)")) // definately ends with " (deleted)"
+    *pos = 0; // add string terminator to truncate at " (deleted)"
+  data.executable = filename; // copy corrected string
+  return true;
+}
+
+# if defined(__linux__) /* Linux    */
+
+// POSIX
+#  include <inttypes.h> // for fscanf macros
 
 bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
 {
@@ -327,10 +404,6 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
             #endif
               );
 
-#  if KERNEL_VERSION_CODE < KERNEL_VERSION(2,6,0)
-#  else
-#  endif
-
   switch(process.state)
   {
     case 'R': data.state = Running; break; // Running
@@ -392,6 +465,7 @@ bool proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
 
 # elif defined(__solaris__) /* Solaris  */ || \
        defined(__aix__)     /* AIX      */
+
 // POSIX++
 #  include <cctype>
 #  include <cassert>
@@ -443,19 +517,75 @@ bool proc_sigact_decoder(FILE* file, process_state_t& data) noexcept
   return true; // TODO!
 }
 
+# elif defined(__hpux__)  /* HP-UX    */
+
+// HP-UX
+#include <sys/param.h>
+#include <sys/pstat.h>
+
+bool proc_hpux_decode(pid_t pid, decode_func func, process_state_t& data)
+{
+  pst_status status;
+  if(pstat_getproc(&statux, sizeof(pst_status), 0, pid) == posix::error_response ||
+     !split_arguments(data.arguments, status.pst_cmd))
+    return false;
+
+/*
+  euid = pi->pst_euid;
+  egid = pi->pst_egid;
+
+  context_switches = pi->pst_nvcsw + pi->pst_nivcsw;
+  voluntary_context_switches = pi->pst_nvcsw;
+  involuntary_context_switches = pi->pst_nivcsw;
+  proc_size = (pi->pst_dsize + pi->pst_tsize + pi->pst_ssize) * sys_page_size;
+  proc_resident = pi->pst_rssize * sys_page_size;
+  start_time = pi->pst_start;
+  time_spent = pi->pst_time;
+  cpu_percent = (pi->pst_pctcpu * 100.0) / 0x8000;
+*/
+  // TODO: Missing time, signal sets and memory stats
+
+  data.name               = status.pst_ucomm;
+  data.user_id            = status.pst_uid;
+  data.group_id           = status.pst_gid;
+  data.process_id         = status.pst_pid;
+  data.parent_process_id  = status.pst_ppid;
+  data.process_group_id   = status.pst_pgrp;
+  data.session_id         = status.pst_sid; // TODO: find out if this exist
+  data.nice_value         = status.pst_n;
+
+  switch(status.pst_stat)
+  {
+    case PS_SLEEP:  data.state = WaitingInterruptable; break;
+    case PS_IDLE:   data.state = WaitingUninterruptable; break; // TODO: find out what PS_IDLE really is
+    case PS_RUN:    data.state = Running; break;
+    case PS_STOP:   data.state = Stopped; break;
+    case PS_ZOMBIE: data.state = Zombie;  break;
+    default:
+    case PS_OTHER:  data.state = Invalid; break;
+  }
+
+}
+
 # elif defined(__tru64__) /* Tru64      */ || \
        defined(__irix__)  /* IRIX       */
+
+// TODO: Missing time and memory stats
+
+// Tru64/IRIX
 #  include <sys/procfs.h>
 
 bool proc_pid_decoder(FILE* file, process_state_t& data) noexcept
 {
   prpsinfo_t info;
   prstatus_t status;
+  prusage_t  usage;
   posix::fd_t fd = ::fileno(file);
 
   if(fd == posix::error_response ||
      posix::ioctl(fd, PIOCPSINFO, &info  ) == posix::error_response ||
      posix::ioctl(fd, PIOCSTATUS, &status) == posix::error_response ||
+     posix::ioctl(fd, PIOCUSAGE,  &usage ) == posix::error_response)
      !split_arguments(data.arguments, info.pr_psargs))
     return false;
 
@@ -466,11 +596,21 @@ bool proc_pid_decoder(FILE* file, process_state_t& data) noexcept
   data.process_group_id   = info.pr_pgid;
   data.session_id         = info.pr_sid;
   data.tty_device         = info.pr_ttydev;
-  data.priority_value     = int(info.pr_nice);
+  data.nice_value         = info.pr_nice;
   data.tty_device         = info.pr_ttydev;
   data.name               = info.pr_fname;
   data.signals_pending    = status.pr_sigpend;
   data.signals_blocked    = status.pr_sighold;
+
+
+  copy_struct(data.signals_pending, status.pr_sigpend);
+  copy_struct(data.signals_blocked, status.pr_sighold);
+//  copy_struct(data.signals_ignored, ); // TODO: determine if these exist
+//  copy_struct(data.signals_caught , );
+
+  copy_struct(data.start_time , usage.pu_starttime);
+  copy_struct(data.user_time  , usage.pu_utime);
+  copy_struct(data.system_time, usage.pu_stime);
 
   switch(info.pr_sname) // TODO: lookup values
   {
@@ -494,19 +634,22 @@ inline void clear_state(process_state_t& data) noexcept
   data.name.clear();
   data.executable.clear();
   data.arguments.clear();
-  data.state = Invalid;
-  data.user_id    = uid_t(-1);
-  data.group_id   = gid_t(-1);
-  data.process_id = 0;
-  data.parent_process_id = 0;
-  data.process_group_id = 0;
-  data.session_id = 0;
-  data.tty_device = 0;
-  data.signals_pending = sigset_t();
-  data.signals_blocked = sigset_t();
-  data.signals_ignored = sigset_t();
-  data.signals_caught  = sigset_t();
-  data.priority_value  = 0;
+  data.state              = Invalid;
+  data.user_id            = uid_t(-1);
+  data.group_id           = gid_t(-1);
+  data.process_id         = 0;
+  data.parent_process_id  = 0;
+  data.process_group_id   = 0;
+  data.session_id         = 0;
+  data.tty_device         = 0;
+  data.priority_value     = 0;
+  data.nice_value         = 0;
+  std::memset(&data.signals_pending, 0, sizeof(sigset_t));
+  std::memset(&data.signals_blocked, 0, sizeof(sigset_t));
+  std::memset(&data.signals_ignored, 0, sizeof(sigset_t));
+  std::memset(&data.signals_caught , 0, sizeof(sigset_t));
+  std::memset(&data.user_time      , 0, sizeof(timeval ));
+  std::memset(&data.system_time    , 0, sizeof(timeval ));
 }
 
 bool procstat(pid_t pid, process_state_t& data) noexcept
@@ -537,8 +680,8 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
     return false;
 
 # elif defined(__hpux__) /* HP-UX */
-#  error No /proc decoding is implemented in PUT for HP-UX!  Please submit a patch!
-
+  if(!proc_hpux_decode(pid, data))
+    return false;
 # else
 #  error No /proc decoding is implemented in PUT for unrecognized UNIX!  Please submit a patch!
 # endif

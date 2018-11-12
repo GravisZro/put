@@ -44,10 +44,15 @@ struct process_state_t
   sigset_t signals_ignored; // bitmask of signals ignored
   sigset_t signals_caught;  // bitmask of signals caught
 
-  int priority_value;       // nice value
+  int priority_value;
+  int8_t nice_value;        // nice value
 
-  timespec user_time;
-  timespec system_time;
+  timeval start_time;
+  timeval user_time;
+  timeval system_time;
+
+  //segsz_t s;
+  // TODO: add memory
 };
 
 bool procstat(pid_t pid, process_state_t& data) noexcept;
