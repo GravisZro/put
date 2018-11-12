@@ -66,6 +66,10 @@ bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
 // *BSD/Darwin
 # include <sys/sysctl.h>
 # include <sys/user.h>
+# include <sys/proc.h>
+# include <sys/resource.h>
+# include <sys/resourcevar.h>
+# include <sys/signalvar.h>
 
 // PUT
 # include <cxxutils/misc_helpers.h>
@@ -74,7 +78,6 @@ bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
      (defined(__NetBSD__)  && KERNEL_VERSION_CODE < KERNEL_VERSION(1,5,0)) || \
      (defined(__OpenBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,7,0))
 #  define OLD_BSD
-#  include <sys/proc.h>
 
 struct kinfo_proc {
    struct proc kp_proc;			/* proc structure */
@@ -123,10 +126,12 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   // Darwin structure documentation
   // kinfo_proc   : https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/sysctl.h.auto.html
   // extern_proc  : https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/proc.h.auto.html
+  // rusage       : https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/resource.h.auto.html
   // pstats       : https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/resourcevar.h.auto.html
+  // sigacts      : https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/signalvar.h.auto.html
 
-  if(!split_arguments(data.arguments, info.ki_args->ar_args))
-    return false;
+//  if(!split_arguments(data.arguments, info.ki_args->ar_args))
+//    return false;
 
   data.user_id            = info.kp_eproc.e_pcred.p_ruid;
   data.group_id           = info.kp_eproc.e_pcred.p_rgid;
@@ -145,8 +150,8 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   copy_struct(data.signals_caught , info.kp_proc.p_sigacts->ps_sigcatch  );
 
   copy_struct(data.start_time , info.kp_proc.p_stats->p_start);
-  copy_struct(data.user_time  , info.kp_proc.p_utime);
-  copy_struct(data.system_time, info.kp_proc.p_stime);
+  copy_struct(data.user_time  , info.kp_proc.p_stats->p_ru.ru_utime);
+  copy_struct(data.system_time, info.kp_proc.p_stats->p_ru.ru_stime);
 
 # else
   // BSD structure documentation
