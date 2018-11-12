@@ -169,8 +169,8 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   copy_struct(data.signals_caught , info.kp_proc.p_sigcatch );
 
   //copy_struct(data.start_time , info.kp_proc.p_stats->p_start);
-  copy_struct(data.user_time  , info.kp_proc.p_ru.ru_utime);
-  copy_struct(data.system_time, info.kp_proc.p_ru.ru_stime);
+  copy_struct(data.user_time  , info.kp_proc.p_ru->ru_utime);
+  copy_struct(data.system_time, info.kp_proc.p_ru->ru_stime);
 #  else
   copy_struct(data.signals_pending, info.kp_proc.p_sigacts->ps_sigonstack);
 //copy_struct(data.signals_blocked, info.kp_proc.p_sigacts->ps_catchmask[???]); // TODO: Figure this part out!
@@ -178,8 +178,8 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   copy_struct(data.signals_caught , info.kp_proc.p_sigacts->ps_sigcatch  );
 
   copy_struct(data.start_time , info.kp_proc.p_stats->p_start);
-  copy_struct(data.user_time  , info.kp_proc.p_stats->p_ru->ru_utime);
-  copy_struct(data.system_time, info.kp_proc.p_stats->p_ru->ru_stime);
+  copy_struct(data.user_time  , info.kp_proc.p_ru.ru_utime);
+  copy_struct(data.system_time, info.kp_proc.p_ru.ru_stime);
 #  endif
 
 # else
