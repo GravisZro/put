@@ -92,25 +92,6 @@ struct pgrp {
    int pg_jobc; /* # procs qualifying pgrp for job control */
 };
 
-struct sigacts {
-   user_addr_t ps_sigact[NSIG]; /* disposition of signals */
-   user_addr_t  ps_trampact[NSIG]; /* disposition of signals */
-   sigset_t ps_catchmask[NSIG]; /* signals to be blocked */
-   sigset_t ps_sigonstack;  /* signals to take on sigstack */
-   sigset_t ps_sigintr;  /* signals that interrupt syscalls */
-   sigset_t ps_sigreset;  /* signals that reset when caught */
-   sigset_t ps_signodefer;  /* signals not masked while handled */
-   sigset_t ps_siginfo;  /* signals that want SA_SIGINFO args */
-   sigset_t ps_oldmask;  /* saved mask from before sigpause */
-   int ps_flags;  /* signal flags, below */
-   struct user_sigaltstack ps_sigstk; /* sp, length & flags */
-   int ps_sig;   /* for core dump/debugger XXX */
-   int ps_code;  /* for core dump/debugger XXX */
-   int ps_addr;  /* for core dump/debugger XXX */
-   sigset_t ps_usertramp;  /* SunOS compat; libc sigtramp XXX */
-   sigset_t ps_64regset;  /* signals that want SA_EXSIGINFO args */
-};
-
 #elif (defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(8,0,0)) || \
      (defined(__NetBSD__)  && KERNEL_VERSION_CODE < KERNEL_VERSION(1,5,0)) || \
      (defined(__OpenBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,7,0))
@@ -182,14 +163,20 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   data.name               = info.kp_proc.p_comm;
   data.nice_value         = info.kp_proc.p_nice;
 
+#if defined(__darwin__)
+  copy_struct(data.signals_pending, info.kp_proc.p_sigmask  );
+  copy_struct(data.signals_ignored, info.kp_proc.p_sigignore);
+  copy_struct(data.signals_caught , info.kp_proc.p_sigcatch );
+#else
   copy_struct(data.signals_pending, info.kp_proc.p_sigacts->ps_sigonstack);
 //copy_struct(data.signals_blocked, info.kp_proc.p_sigacts->ps_catchmask[???]); // TODO: Figure this part out!
   copy_struct(data.signals_ignored, info.kp_proc.p_sigacts->ps_sigignore );
   copy_struct(data.signals_caught , info.kp_proc.p_sigacts->ps_sigcatch  );
+#endif
 
-  copy_struct(data.start_time , info.kp_proc.p_stats->p_start);
-  copy_struct(data.user_time  , info.kp_proc.p_stats->p_ru.ru_utime);
-  copy_struct(data.system_time, info.kp_proc.p_stats->p_ru.ru_stime);
+  copy_struct(data.start_time , info.kp_eproc.e_paddr->p_stats->p_start);
+  copy_struct(data.user_time  , info.kp_eproc.e_paddr->p_stats->p_ru.ru_utime);
+  copy_struct(data.system_time, info.kp_eproc.e_paddr->p_stats->p_ru.ru_stime);
 
 # else
   // BSD structure documentation
