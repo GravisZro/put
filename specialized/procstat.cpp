@@ -118,8 +118,6 @@ struct kinfo_proc {
       short e_xccount;  /* text references */
       short e_xswrss;
       long e_flag;
-#define EPROC_CTTY 0x01 /* controlling tty vnode active */
-#define EPROC_SLEADER 0x02 /* session leader */
       char e_login[MAXLOGNAME]; /* setlogin() name */
       long e_spare[4];
    } kp_eproc;
@@ -202,11 +200,20 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   data.name               = info.ki_comm;
   data.nice_value         = info.ki_nice;
 
+  data.memory_size =
+    {
+      info.ki_rssize,
+      0,
+      info.ki_tsize,
+      info.ki_dsize,
+      info.ki_ssize,
+      sysconf(_SC_PAGESIZE)
+    };
+
   copy_struct(data.signals_pending, info.ki_siglist  );
   copy_struct(data.signals_blocked, info.ki_sigmask  );
   copy_struct(data.signals_ignored, info.ki_sigignore);
   copy_struct(data.signals_caught , info.ki_sigcatch );
-
 
   copy_struct(data.start_time , info.ki_start);
   copy_struct(data.user_time  , info.ki_rusage.ru_utime); // rusage
@@ -218,7 +225,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
     case 'S': data.state = WaitingInterruptable; break; // Sleeping in an interruptible wait
     case 'D': data.state = WaitingUninterruptable; break; // Waiting in uninterruptible disk sleep
     case 'Z': data.state = Zombie; break; // Zombie
-    case 'T': data.state = Stopped; break; // Stopped (on a signal) or (before Linux 2.6.33) trace stopped
+    case 'T': data.state = Stopped; break; // Stopped
   }
 
 # endif
@@ -529,6 +536,17 @@ bool proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
   data.session_id         = info.pr_sid;
   data.tty_device         = info.pr_ttydev;
   data.name               = info.pr_fname;
+
+  // memory
+  memory_sizes_t.page   = sysconf(_SC_PAGESIZE)
+  memory_sizes_t.rss    = info.pr_rssize;
+  memory_sizes_t.image  = info.pr_size;
+  memory_sizes_t.rss   /= memory_sizes_t.page;
+  memory_sizes_t.image /= memory_sizes_t.page;
+
+  // start time
+  copy_struct(data.start_time , info.pr_start);
+
   return true;
 }
 
@@ -538,17 +556,28 @@ bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
   if(fread(&status, sizeof(status), 1, file) <= 0)
     return false;
 
-  data.signals_pending = status.pr_lwp.pr_lwppend;
-  data.signals_blocked = status.pr_lwp.pr_lwphold;
-  data.user_time       = status.pr_utime;
-  data.system_time     = status.pr_stime;
+  // nice value
+  data.nice_value = status.pr_lwp.pr_nice;
+
+  // signals
+  copy_struct(data.signals_pending, status.pr_lwp.pr_lwppend);
+  copy_struct(data.signals_blocked, status.pr_lwp.pr_lwphold);
+
+  // system times
+  copy_struct(data.user_time  , status.pr_utime);
+  copy_struct(data.system_time, status.pr_stime);
+
+  // status
+  switch(status.pr_sname) // TODO: lookup values
+  {
+    case 'R': data.state = Running; break; // Running
+    case 'S': data.state = WaitingInterruptable; break; // Sleeping in an interruptible wait
+    case 'D': data.state = WaitingUninterruptable; break; // Waiting in uninterruptible disk sleep
+    case 'Z': data.state = Zombie; break; // Zombie
+    case 'T': data.state = Stopped; break; // Stopped
+  }
 
   return true;
-}
-
-bool proc_sigact_decoder(FILE* file, process_state_t& data) noexcept
-{
-  return true; // TODO!
 }
 
 # elif defined(__hpux__)  /* HP-UX    */
@@ -564,20 +593,7 @@ bool proc_hpux_decode(pid_t pid, decode_func func, process_state_t& data)
      !split_arguments(data.arguments, status.pst_cmd))
     return false;
 
-/*
-  euid = pi->pst_euid;
-  egid = pi->pst_egid;
-
-  context_switches = pi->pst_nvcsw + pi->pst_nivcsw;
-  voluntary_context_switches = pi->pst_nvcsw;
-  involuntary_context_switches = pi->pst_nivcsw;
-  proc_size = (pi->pst_dsize + pi->pst_tsize + pi->pst_ssize) * sys_page_size;
-  proc_resident = pi->pst_rssize * sys_page_size;
-  start_time = pi->pst_start;
-  time_spent = pi->pst_time;
-  cpu_percent = (pi->pst_pctcpu * 100.0) / 0x8000;
-*/
-  // TODO: Missing time, signal sets and memory stats
+  // TODO: Missing user time, signal sets
 
   data.name               = status.pst_ucomm;
   data.user_id            = status.pst_uid;
@@ -587,6 +603,26 @@ bool proc_hpux_decode(pid_t pid, decode_func func, process_state_t& data)
   data.process_group_id   = status.pst_pgrp;
   data.session_id         = status.pst_sid; // TODO: find out if this exist
   data.nice_value         = status.pst_n;
+
+  data.memory_size =
+    {
+      status.pst_rssize,
+      0,
+      status.pst_dsize,
+      status.pst_tsize,
+      status.pst_ssize,
+      sysconf(_SC_PAGESIZE)
+    };
+
+  copy_struct(data.start_time , status.pst_start);
+  //copy_struct(data.user_time  , status.pst_time); // TODO: find out if there is user time
+  copy_struct(data.system_time, status.pst_time);
+
+// TODO: find these
+//  copy_struct(data.signals_pending, );
+//  copy_struct(data.signals_blocked, );
+//  copy_struct(data.signals_ignored, );
+//  copy_struct(data.signals_caught , );
 
   switch(status.pst_stat)
   {
@@ -599,6 +635,7 @@ bool proc_hpux_decode(pid_t pid, decode_func func, process_state_t& data)
     case PS_OTHER:  data.state = Invalid; break;
   }
 
+  return true;
 }
 
 # elif defined(__tru64__) /* Tru64      */ || \
@@ -633,9 +670,14 @@ bool proc_pid_decoder(FILE* file, process_state_t& data) noexcept
   data.nice_value         = info.pr_nice;
   data.tty_device         = info.pr_ttydev;
   data.name               = info.pr_fname;
-  data.signals_pending    = status.pr_sigpend;
-  data.signals_blocked    = status.pr_sighold;
 
+  data.memory_size =
+    {
+      info.pr_rssize, // resident set size in pages
+      info.pr_size,   // size of process image in pages
+      0,0,0,
+      info.pr_pagesize; // system page size, in bytes
+    };
 
   copy_struct(data.signals_pending, status.pr_sigpend);
   copy_struct(data.signals_blocked, status.pr_sighold);
@@ -704,7 +746,6 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
        defined(__aix__)     /* AIX      */
   if(!proc_decode(pid, "psinfo", proc_psinfo_decoder, data) ||
      !proc_decode(pid, "status", proc_status_decoder, data) ||
-     !proc_decode(pid, "sigact", proc_sigact_decoder, data) ||
      !proc_exe_symlink(pid, "path/a.out", data))
     return false;
 
@@ -716,16 +757,10 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 # elif defined(__hpux__) /* HP-UX */
   if(!proc_hpux_decode(pid, data))
     return false;
+
 # else
 #  error No /proc decoding is implemented in PUT for unrecognized UNIX!  Please submit a patch!
 # endif
-
-  if(!data.arguments.empty())
-  {
-    const std::string& farg = data.arguments.front();
-    if(farg.find(data.name) != std::string::npos)
-      data.name = farg.substr(farg.rfind(data.name));
-  }
 
   return true;
 }
