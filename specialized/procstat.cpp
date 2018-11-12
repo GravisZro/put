@@ -63,15 +63,8 @@ bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
     defined(__NetBSD__)   /* NetBSD   */ || \
     defined(__darwin__)   /* Darwin   */
 
-// *BSD/Darwin
-# include <sys/sysctl.h>
-# include <sys/user.h>
-# include <sys/proc.h>
-# include <sys/resource.h>
-# include <sys/resourcevar.h>
-# include <sys/signalvar.h>
-
 #if defined(__darwin__) /* Darwin XNU 792+ */
+#define BSD_KERNEL_PRIVATE
 struct	session {
    int	s_count;		/* Ref cnt; pgrps in session. */
    struct	proc *s_leader;		/* Session leader. */
@@ -88,8 +81,16 @@ struct	pgrp {
    pid_t	pg_id;			/* Pgrp id. */
    int	pg_jobc;	/* # procs qualifying pgrp for job control */
 };
-
 #endif
+
+
+// *BSD/Darwin
+# include <sys/sysctl.h>
+# include <sys/user.h>
+# include <sys/proc.h>
+# include <sys/resource.h>
+# include <sys/resourcevar.h>
+# include <sys/signalvar.h>
 
 // PUT
 # include <cxxutils/misc_helpers.h>
@@ -149,6 +150,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   // rusage       : https://opensource.apple.com/source/xnu/xnu-123.5/bsd/sys/resource.h.auto.html
   // pstats       : https://opensource.apple.com/source/xnu/xnu-123.5/bsd/sys/resourcevar.h.auto.html
   // sigacts      : https://opensource.apple.com/source/xnu/xnu-123.5/bsd/sys/signalvar.h.auto.html
+  // pgrp/session : https://opensource.apple.com/source/xnu/xnu-792/bsd/sys/proc_internal.h.auto.html
 
 //  if(!split_arguments(data.arguments, info.ki_args->ar_args))
 //    return false;
