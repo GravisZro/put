@@ -163,20 +163,24 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   data.name               = info.kp_proc.p_comm;
   data.nice_value         = info.kp_proc.p_nice;
 
-#if defined(__darwin__)
+#  if defined(__darwin__)
   copy_struct(data.signals_pending, info.kp_proc.p_sigmask  );
   copy_struct(data.signals_ignored, info.kp_proc.p_sigignore);
   copy_struct(data.signals_caught , info.kp_proc.p_sigcatch );
-#else
+
+  //copy_struct(data.start_time , info.kp_proc.p_stats->p_start);
+  copy_struct(data.user_time  , info.kp_proc.p_ru.ru_utime);
+  copy_struct(data.system_time, info.kp_proc.p_ru.ru_stime);
+#  else
   copy_struct(data.signals_pending, info.kp_proc.p_sigacts->ps_sigonstack);
 //copy_struct(data.signals_blocked, info.kp_proc.p_sigacts->ps_catchmask[???]); // TODO: Figure this part out!
   copy_struct(data.signals_ignored, info.kp_proc.p_sigacts->ps_sigignore );
   copy_struct(data.signals_caught , info.kp_proc.p_sigacts->ps_sigcatch  );
-#endif
 
-  copy_struct(data.start_time , info.kp_eproc.e_paddr->p_stats->p_start);
-  copy_struct(data.user_time  , info.kp_eproc.e_paddr->p_stats->p_ru.ru_utime);
-  copy_struct(data.system_time, info.kp_eproc.e_paddr->p_stats->p_ru.ru_stime);
+  copy_struct(data.start_time , info.kp_proc.p_stats->p_start);
+  copy_struct(data.user_time  , info.kp_proc.p_stats->p_ru.ru_utime);
+  copy_struct(data.system_time, info.kp_proc.p_stats->p_ru.ru_stime);
+#  endif
 
 # else
   // BSD structure documentation
