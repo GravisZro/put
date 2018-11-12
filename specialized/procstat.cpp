@@ -72,7 +72,23 @@ bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
 # include <sys/signalvar.h>
 
 #if defined(__darwin__) /* Darwin XNU 792+ */
-# include <sys/proc_internal.h>
+struct	session {
+   int	s_count;		/* Ref cnt; pgrps in session. */
+   struct	proc *s_leader;		/* Session leader. */
+   struct	vnode *s_ttyvp;		/* Vnode of controlling terminal. */
+   struct	tty *s_ttyp;		/* Controlling terminal. */
+   pid_t	s_sid;		/* Session ID */
+   char	s_login[MAXLOGNAME];	/* Setlogin() name. */
+};
+
+struct	pgrp {
+   LIST_ENTRY(pgrp) pg_hash;	/* Hash chain. */
+   LIST_HEAD(, proc) pg_members;	/* Pointer to pgrp members. */
+   struct	session *pg_session;	/* Pointer to session. */
+   pid_t	pg_id;			/* Pgrp id. */
+   int	pg_jobc;	/* # procs qualifying pgrp for job control */
+};
+
 #endif
 
 // PUT
@@ -128,11 +144,11 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 
 # if defined(OLD_BSD) || defined(__darwin__)
   // Darwin structure documentation
-  // kinfo_proc   : https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/sysctl.h.auto.html
-  // extern_proc  : https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/proc.h.auto.html
-  // rusage       : https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/resource.h.auto.html
-  // pstats       : https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/resourcevar.h.auto.html
-  // sigacts      : https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/signalvar.h.auto.html
+  // kinfo_proc   : https://opensource.apple.com/source/xnu/xnu-123.5/bsd/sys/sysctl.h.auto.html
+  // extern_proc  : https://opensource.apple.com/source/xnu/xnu-123.5/bsd/sys/proc.h.auto.html
+  // rusage       : https://opensource.apple.com/source/xnu/xnu-123.5/bsd/sys/resource.h.auto.html
+  // pstats       : https://opensource.apple.com/source/xnu/xnu-123.5/bsd/sys/resourcevar.h.auto.html
+  // sigacts      : https://opensource.apple.com/source/xnu/xnu-123.5/bsd/sys/signalvar.h.auto.html
 
 //  if(!split_arguments(data.arguments, info.ki_args->ar_args))
 //    return false;
@@ -142,7 +158,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   data.process_id         = info.kp_proc.p_pid;
   data.parent_process_id  = info.kp_eproc.e_ppid;
   data.process_group_id   = info.kp_eproc.e_pgid;
-  data.session_id         = info.kp_proc.p_pgrp->pg_session;
+  data.session_id         = info.kp_eproc.e_sess->s_sid;
   data.tty_device         = info.kp_eproc.e_tdev;
 
   data.name               = info.kp_proc.p_comm;
