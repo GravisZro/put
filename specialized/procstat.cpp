@@ -71,6 +71,10 @@ bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
 # include <sys/resourcevar.h>
 # include <sys/signalvar.h>
 
+#if defined(__darwin__) /* Darwin XNU 792+ */
+# include <sys/proc_internal.h>
+#endif
+
 // PUT
 # include <cxxutils/misc_helpers.h>
 
