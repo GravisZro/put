@@ -96,8 +96,6 @@ bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename
   return errno == posix::success_response;
 }
 
-
-const char* fs_table_path  = "/etc/filesystems";
 #elif defined(__linux__)    /* Linux    */ || \
       defined(__hpux__)     /* HP-UX    */ || \
       defined(__irix__)     /* IRIX     */ || \
@@ -141,10 +139,18 @@ const char* fs_table_path  = "/etc/filesystems";
 # else
 const char* fs_table_path  = "/etc/fstab";
 # endif
+# if defined(__hpux__)
+#  define fstab checklist
+# endif
 
 bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
 {
+# if defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(5,1,0))
   ::setfstab(filename.c_str());
+#else
+  if(filename != fs_table_path)
+    return false;
+# endif
 
   struct fstab* entry = NULL;
   while((entry = ::getfsent()) != NULL &&
