@@ -355,7 +355,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
               "%" SCNd32 " " // ppid
               "%" SCNd32 " " // pgrp
               "%" SCNd32 " " // session
-              "%" SCNd64 " " // tty_nr
+              "%" SCNd64 " " // tty
               "%" SCNd32 " " // tpgid
               "%" SCNu32 " " // flags
               "%" SCNd32 " " // minflt
@@ -445,6 +445,11 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
             #endif
               );
 
+  data.name               = process.name;
+  data.start_time.tv_sec  = process.starttime;
+  data.user_time.tv_sec   = process.utime;
+  data.system_time.tv_sec = process.stime;
+
   switch(process.state)
   {
     case 'R': data.state = Running; break; // Running
@@ -468,8 +473,6 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
 #  endif
   }
 
-  data.name.assign(process.name + 1);
-  data.name.pop_back();
   return true;
 }
 
@@ -562,6 +565,9 @@ bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
   // signals
   copy_struct(data.signals_pending, status.pr_lwp.pr_lwppend);
   copy_struct(data.signals_blocked, status.pr_lwp.pr_lwphold);
+// TODO: find these
+//  copy_struct(data.signals_ignored, );
+//  copy_struct(data.signals_caught , );
 
   // system times
   copy_struct(data.user_time  , status.pr_utime);
@@ -615,7 +621,7 @@ bool proc_hpux_decode(pid_t pid, decode_func func, process_state_t& data)
     };
 
   copy_struct(data.start_time , status.pst_start);
-  //copy_struct(data.user_time  , status.pst_time); // TODO: find out if there is user time
+//copy_struct(data.user_time  , status.pst_time); // TODO: find out if there is user time
   copy_struct(data.system_time, status.pst_time);
 
 // TODO: find these
@@ -640,8 +646,6 @@ bool proc_hpux_decode(pid_t pid, decode_func func, process_state_t& data)
 
 # elif defined(__tru64__) /* Tru64      */ || \
        defined(__irix__)  /* IRIX       */
-
-// TODO: Missing time and memory stats
 
 // Tru64/IRIX
 #  include <sys/procfs.h>
