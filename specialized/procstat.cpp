@@ -320,9 +320,9 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
     int           stime;                    // kernel mode jiffies
     int           cutime;                   // user mode jiffies with childs
     int           cstime;                   // kernel mode jiffies with childs
-    int           counter;                  // process's next timeslice
     int           priority;                 // the standard nice value, plus fifteen
-    unsigned int  timeout;                  // The time in jiffies of the next timeout
+    int           nice;                     //
+    int           num_threads;              //
     unsigned int  itrealvalue;              // The time before the next SIGALRM is sent to the process
     int           starttime;                // Time the process started after system boot
 
@@ -355,7 +355,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
               "%" SCNd32 " " // ppid
               "%" SCNd32 " " // pgrp
               "%" SCNd32 " " // session
-              "%" SCNd64 " " // tty
+              "%" SCNd64 " " // tty_nr
               "%" SCNd32 " " // tpgid
               "%" SCNu32 " " // flags
               "%" SCNd32 " " // minflt
@@ -367,7 +367,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
               "%" SCNd32 " " // cutime
               "%" SCNd32 " " // cstime
               "%" SCNd32 " " // priority
-              "%" SCNd32 " " // nice
+              "%" SCNd8  " " // nice
               "%" SCNu32 " " // num_threads
               "%" SCNu32 " " // itrealvalue
               "%" SCNu32 " " // starttime
@@ -413,9 +413,9 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
               , &process.stime
               , &process.cutime
               , &process.cstime
-              , &process.counter
               , &process.priority
-              , &process.timeout
+              , &data.nice_value
+              , &process.num_threads
               , &process.itrealvalue
               , &process.starttime
               , &process.vsize
@@ -445,10 +445,13 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
             #endif
               );
 
+  long int ticks = sysconf(_SC_CLK_TCK);
+  data.start_time.tv_sec  = process.starttime / ticks;
+  data.user_time.tv_sec   = process.utime / ticks;
+  data.system_time.tv_sec = process.stime / ticks;
   data.name               = process.name;
-  data.start_time.tv_sec  = process.starttime;
-  data.user_time.tv_sec   = process.utime;
-  data.system_time.tv_sec = process.stime;
+
+  // TODO: add memory stuff
 
   switch(process.state)
   {
@@ -478,6 +481,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
 
 bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
 {
+  // TODO: verify conversions or is this is even the right thing :(
   uint64_t shdpnd;
   std::fscanf(file,
               "\nSigPnd: %" SCNx64
