@@ -4,8 +4,6 @@
 #include <list>
 #include <string>
 
-extern const char* fs_table_path;
-
 struct fsentry_t
 {
   char* device;
@@ -28,6 +26,7 @@ struct fsentry_t
   bool operator == (const fsentry_t& other) const;
 };
 
-bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept;
+bool filesystem_table(std::list<struct fsentry_t>& table) noexcept;
+bool mount_table(std::list<struct fsentry_t>& table) noexcept;
 
 #endif // FSTABLE_H

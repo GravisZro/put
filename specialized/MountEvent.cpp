@@ -1,7 +1,11 @@
 #include "MountEvent.h"
 
+// POSIX++
+#include <climits>
+
 // PUT
 #include <specialized/osdetect.h>
+#include <specialized/mountpoints.h>
 
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
 // Linux
@@ -13,22 +17,18 @@
 # error Unsupported platform! >:(
 #endif
 
-#ifndef MOUNT_TABLE_FILE
-#define MOUNT_TABLE_FILE  "/etc/mtab"
-#endif
-
-#include <algorithm>
+#include <algorithm> // for find
 
 MountEvent::MountEvent(void) noexcept
   : m_timer(nullptr)
 {
-    parse_table(m_table, MOUNT_TABLE_FILE);
+    mount_table(m_table); // initial scan
 
     EventBackend::callback_t comparison_func =
         [this](posix::fd_t, native_flags_t) noexcept
         {
           std::list<struct fsentry_t> new_table;
-          if(parse_table(new_table, MOUNT_TABLE_FILE))
+          if(mount_table(new_table))
           {
             for(auto& entry : new_table)
               if(std::find(m_table.begin(), m_table.end(), entry) == m_table.end())
@@ -48,8 +48,12 @@ MountEvent::MountEvent(void) noexcept
 # else
     constexpr int polling_flags = EPOLLERR | EPOLLPRI;
 # endif
+    char proc_mounts[PATH_MAX] = { 0 };
+    if(procfs_path == nullptr)
+      initialize_paths();
+    std::sscanf(proc_mounts, "%s/mounts", procfs_path);
 
-    m_fd = posix::open(MOUNT_TABLE_FILE, O_RDONLY | O_NONBLOCK);
+    m_fd = posix::open(proc_mounts, O_RDONLY | O_NONBLOCK);
     EventBackend::add(m_fd, polling_flags, comparison_func); // connect FD with flags to comparison_func
 #elif defined(__unix__)   /* Generic UNIX */
     m_timer = new TimerEvent();

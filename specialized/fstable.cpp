@@ -61,53 +61,31 @@ bool fsentry_t::operator == (const fsentry_t& other) const
 }
 
 
-#if defined(__solaris__)  /* Solaris  */
-# include <sys/vfstab.h>
-# include <cctype>
+#if defined(__solaris__) /* Solaris */
+static const char* fs_table_path  = "/etc/vfstab";
+static const char* mount_table_path = "/etc/mnttab"
+#elif defined(__hpux__)  /* HP-UX   */
+// No fstab
+static const char* mount_table_path = "/etc/mnttab"
+#elif defined(__aix__)   /* AIX     */
+static const char* fs_table_path    = "/etc/filesystems";
+// No mount table
+#else
+static const char* fs_table_path    = "/etc/fstab";
+static const char* mount_table_path = "/etc/mtab";
+#endif
 
-const char* fs_table_path  = "/etc/vfstab";
 
-int decode_pass(const char* pass)
-{
-  if(pass[1] != '\0' || // too long OR
-     std::isdigit(pass[0]) == 0) // not a digit
-    return 0;
-  return pass[0] - '0'; // get value
-}
-
-bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
-{
-  table.clear();
-  FILE* file = ::open(filename.c_str(), "r");
-  if(file == nullptr)
-    return posix::error_response;
-
-  vfstab entry;
-  while(::getvfsent(file, &entry) != posix::success_response)
-  {
-    table.emplace_back(entry.vfs_special,
-                       entry.vfs_mountp,
-                       entry.vfs_fstype,
-                       entry.vfs_mntopts,
-                       0,
-                       decode_pass(entry.vfs_fsckpass));
-  }
-  ::close(file);
-  return errno == posix::success_response;
-}
-
-#elif defined(__linux__)    /* Linux    */ || \
-      defined(__hpux__)     /* HP-UX    */ || \
-      defined(__irix__)     /* IRIX     */ || \
-      defined(__zos__)      /* z/OS     */
+#if defined(__linux__)    /* Linux    */ || \
+    defined(__aix__)      /* AIX      */ || \
+    defined(__irix__)     /* IRIX     */ || \
+    defined(__hpux__)     /* HP-UX    */
 # include <mntent.h>
 
-const char* fs_table_path  = "/etc/fstab";
-
-bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
+bool parse_table(std::list<struct fsentry_t>& table, const char* filename) noexcept
 {
   table.clear();
-  FILE* file = ::setmntent(filename.c_str(), "r");
+  FILE* file = ::setmntent(filename, "r");
   if(file == nullptr)
     return posix::error_response;
 
@@ -126,6 +104,49 @@ bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename
   return errno == posix::success_response;
 }
 
+#elif defined(__solaris__)  /* Solaris  */
+# include <sys/vfstab.h>
+# include <cctype>
+
+int decode_pass(const char* pass)
+{
+  if(pass[1] != '\0' || // too long OR
+     std::isdigit(pass[0]) == 0) // not a digit
+    return 0;
+  return pass[0] - '0'; // get value
+}
+
+bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
+{
+  table.clear();
+  FILE* file = ::open(fs_table_path, "r");
+  if(file == nullptr)
+    return posix::error_response;
+
+  vfstab entry;
+  while(::getvfsent(file, &entry) != posix::success_response)
+  {
+    table.emplace_back(entry.vfs_special,
+                       entry.vfs_mountp,
+                       entry.vfs_fstype,
+                       entry.vfs_mntopts,
+                       0,
+                       decode_pass(entry.vfs_fsckpass));
+  }
+  ::close(file);
+  return errno == posix::success_response;
+}
+#endif
+
+
+#if defined(__linux__)    /* Linux    */ || \
+    defined(__hpux__)     /* HP-UX    */ || \
+    defined(__irix__)     /* IRIX     */ || \
+    defined(__zos__)      /* z/OS     */
+
+bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
+  { return parse_table(table, fs_table_path); }
+
 #elif defined(BSD4_4)       /* *BSD     */ || \
       defined(__hpux__)     /* HP-UX    */ || \
       defined(__sunos__)    /* SunOS    */ || \
@@ -134,24 +155,12 @@ bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename
       defined(__ultrix__)   /* Ultrix   */
 # include <fstab.h>
 
-# if defined(__aix__)      /* AIX      */
-const char* fs_table_path  = "/etc/filesystems";
-# else
-const char* fs_table_path  = "/etc/fstab";
-# endif
 # if defined(__hpux__)
 #  define fstab checklist
 # endif
 
-bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
+bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
 {
-# if defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(5,1,0))
-  ::setfstab(filename.c_str());
-#else
-  if(filename != fs_table_path)
-    return false;
-# endif
-
   struct fstab* entry = NULL;
   while((entry = ::getfsent()) != NULL &&
         errno == posix::success_response)
@@ -170,8 +179,6 @@ bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename
 #  pragma message("Unrecognized UNIX variant. Using low-level parser.")
 # endif
 
-const char* fs_table_path  = "/etc/fstab";
-
 static char* skip_spaces(char* data) noexcept
 {
   while(*data && std::isspace(*data))
@@ -179,12 +186,12 @@ static char* skip_spaces(char* data) noexcept
   return data;
 }
 
-bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename) noexcept
+bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
 {
   struct fsentry_t entry;
   table.clear();
 
-  std::FILE* file = posix::fopen(filename.c_str(), "r");
+  std::FILE* file = posix::fopen(fs_table_path, "r");
 
   if(file == NULL)
     return false;
@@ -246,7 +253,55 @@ bool parse_table(std::list<struct fsentry_t>& table, const std::string& filename
 */
   return errno == posix::success_response;
 }
+#endif
 
+
+
+#if defined(__linux__)    /* Linux    */ || \
+    defined(__aix__)      /* AIX      */ || \
+    defined(__irix__)     /* IRIX     */ || \
+    defined(__solaris__)  /* Solaris  */ || \
+    defined(__hpux__)     /* HP-UX    */
+
+bool mount_table(std::list<struct fsentry_t>& table) noexcept
+  { return parse_table(table, mount_table_path); }
+
+#elif defined(BSD4_4)       /* *BSD     */ || \
+      defined(__darwin__)   /* Darwin   */ || \
+      defined(__tru64__)    /* Tru64    */
+
+# include <sys/types.h>
+
+# if defined(__NetBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,0,0)
+#  include <sys/statvfs.h>
+#  define statfs statvfs;
+#  define getfsstat(a,b,c) getvfsstat(a,b,c)
+# else
+#  include <sys/mount.h>
+# endif
+
+bool mount_table(std::list<struct fsentry_t>& table) noexcept
+{
+  int count = getfsstat(NULL, 0, 0);
+  if(count < 0)
+    return false;
+
+  struct statfs* buffer = static_cast<struct statfs*>(::malloc(sizeof(struct statfs) * count));
+  if(buffer == nullptr)
+    return false;
+
+  for(int i = 0; i < count; ++i)
+    table.emplace_back("",
+                       buffer[i].f_mntfromname,
+                       buffer[i].f_fstypename,
+                       "",
+                       0,
+                       0);
+  ::free(buffer);
+  return true;
+}
+
+#elif defined(__minix__)    /* MINIX    */ || \
 #else
-# error This platform is not supported.
+# pragma message("No mountpoint interrogation code for this platform! Please submit a patch.")
 #endif
