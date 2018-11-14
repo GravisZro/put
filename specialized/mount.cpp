@@ -173,11 +173,10 @@ bool mount(const char* device,
 {
   std::list<std::string> fslist;
   char *pos, *next;
+  int mountflags = 0;
 #if defined(__linux__)
   std::string optionlist;
-  unsigned long mountflags = 0;
-#else
-  int mountflags = 0;
+  typedef unsigned long mnt_flag_t; // defined for mount()
 #endif
 
   pos = const_cast<char*>(filesystem);
@@ -397,14 +396,10 @@ bool mount(const char* device,
   for(const std::string& fs : fslist)
   {
 #if defined(__linux__)
-    if(mount(device, path, fs.c_str(), mountflags, optionlist.c_str()) == posix::success_response)
+    if(mount(device, path, fs.c_str(), mnt_flag_t(mountflags), optionlist.c_str()) == posix::success_response)
       return true;
+#elif defined(__NetBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(5,0,0)
 #else
-
-# if defined(__NetBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(5,0,0)
-#else
-#endif
-
 #endif
   }
 
