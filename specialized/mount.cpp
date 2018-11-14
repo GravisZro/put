@@ -164,7 +164,425 @@
 #endif
 
 constexpr posix::size_t section_length(const char* start, const char* end)
-  { return end == NULL ? std::strlen(start) : posix::size_t(end - start); }
+  { return end == NULL ? std::strlen(start) : posix::size_t(end - start - 1); }
+
+struct export_args30
+{
+  char j;
+};
+
+#if 1 || defined(__NetBSD__)
+// Arguments to mount amigados filesystems.
+struct adosfs_args
+{
+  char*  fspec; // blocks special holding the fs to mount
+  struct export_args30 _pad1; // compat with old userland tools
+  uid_t  uid;   // uid that owns adosfs files
+  gid_t  gid;   // gid that owns adosfs files
+  mode_t mask;  // mask to be applied for adosfs perms
+};
+
+bool parse_arg_kv_adosfs(adosfs_args* args,
+                           char* key_start, char* key_end,
+                           char* val_start, char* val_end)
+{
+  switch(hash(key_start, section_length(key_start, key_end)))
+  {
+    case "fspec"_hash: args->fspec = val_start; return true;
+    case "uid"_hash  : args->uid   = uid_t (std::strtoul(val_start, &val_end, 10)); return true;
+    case "gid"_hash  : args->gid   = gid_t (std::strtoul(val_start, &val_end, 10)); return true;
+    case "mask"_hash : args->mask  = mode_t(std::strtoul(val_start, &val_end,  8)); return true;
+  }
+  return false;
+}
+
+//--------------------------------------------------------
+// Arguments to mount autofs filesystem.
+struct autofs_args
+{
+  char* from;
+  char* master_options;
+  char* master_prefix;
+};
+
+//--------------------------------------------------------
+// Arguments to mount ISO 9660 filesystems.
+struct iso_args
+{
+  char* fspec;  // block special device to mount
+  struct export_args30 _pad1; // compat with old userland tools
+  int   flags;  // mounting flags, see below
+};
+
+// flags
+#define ISOFSMNT_NORRIP       0x00000001 // disable Rock Ridge Ext.
+#define ISOFSMNT_GENS         0x00000002 // enable generation numbers
+#define ISOFSMNT_EXTATT       0x00000004 // enable extended attributes
+#define ISOFSMNT_NOJOLIET     0x00000008 // disable Joliet extensions
+#define ISOFSMNT_NOCASETRANS  0x00000010 // do not make names lower case
+#define ISOFSMNT_RRCASEINS    0x00000020 // case insensitive Rock Ridge
+
+
+bool parse_arg_flags_iso(iso_args* args, char* start, char* end)
+{
+  switch(hash(start, section_length(start, end)))
+  {
+    case "norrip"_hash     : args->flags |= ISOFSMNT_NORRIP       ; return true;
+    case "gens"_hash       : args->flags |= ISOFSMNT_GENS         ; return true;
+    case "extatt"_hash     : args->flags |= ISOFSMNT_EXTATT       ; return true;
+    case "nojoliet"_hash   : args->flags |= ISOFSMNT_NOJOLIET     ; return true;
+    case "nocasetrans"_hash: args->flags |= ISOFSMNT_NOCASETRANS  ; return true;
+    case "rrcaseins"_hash  : args->flags |= ISOFSMNT_RRCASEINS    ; return true;
+  }
+  return false;
+}
+
+//--------------------------------------------------------
+struct efs_args
+{
+  char* fspec;   // block special device to mount
+  int   version;
+};
+
+//--------------------------------------------------------
+// Arguments to mount Acorn Filecore filesystems.
+struct filecore_args
+{
+  char* fspec; // block special device to mount
+  struct export_args30 _pad1; // compat with old userland tools
+  uid_t uid;   // uid that owns filecore files
+  gid_t gid;   // gid that owns filecore files
+  int   flags; // mounting flags, see below
+};
+
+// flags
+#define FILECOREMNT_ROOT      0x00000000
+#define FILECOREMNT_OWNACCESS 0x00000001 // Only user has Owner access
+#define FILECOREMNT_ALLACCESS 0x00000002 // World has Owner access
+#define FILECOREMNT_OWNREAD   0x00000004 // All files have Owner read access
+#define FILECOREMNT_USEUID    0x00000008 // Use uid of mount process
+#define FILECOREMNT_FILETYPE  0x00000010 // Include filetype in filename
+
+
+bool parse_arg_kv_filecore(filecore_args* args,
+                           char* key_start, char* key_end,
+                           char* val_start, char* val_end)
+{
+  switch(hash(key_start, section_length(key_start, key_end)))
+  {
+    case "fspec"_hash: args->fspec = val_start; return true;
+    case "uid"_hash  : args->uid = uid_t (std::strtoul(val_start, &val_end, 10)); return true;
+    case "gid"_hash  : args->gid = gid_t (std::strtoul(val_start, &val_end, 10)); return true;
+  }
+  return false;
+}
+
+bool parse_arg_flags_filecore(filecore_args* args, char* start, char* end)
+{
+  switch(hash(start, section_length(start, end)))
+  {
+    case "root"_hash      : args->flags |= FILECOREMNT_ROOT     ; return true;
+    case "ownaccess"_hash : args->flags |= FILECOREMNT_OWNACCESS; return true;
+    case "allaccess"_hash : args->flags |= FILECOREMNT_ALLACCESS; return true;
+    case "ownread"_hash   : args->flags |= FILECOREMNT_OWNREAD  ; return true;
+    case "useuid"_hash    : args->flags |= FILECOREMNT_USEUID   ; return true;
+    case "filetype"_hash  : args->flags |= FILECOREMNT_FILETYPE ; return true;
+  }
+  return false;
+}
+
+
+//--------------------------------------------------------
+struct hfs_args
+{
+  char* fspec;  // block special device to mount
+};
+
+//--------------------------------------------------------
+// Arguments to mount MSDOS filesystems.
+#define MSDOSFSMNT_VERSION 3
+struct msdosfs_args
+{
+  char*  fspec; // blocks special holding the fs to mount
+  struct export_args30 _pad1; // compat with old userland tools
+  uid_t  uid;   // uid that owns msdosfs files
+  gid_t  gid;   // gid that owns msdosfs files
+  mode_t mask;  // mask to be applied for msdosfs perms
+  int    flags; // see below
+
+  // Following items added after versioning support
+  int    version; // version of the struct
+  mode_t dirmask; // v2: mask to be applied for msdosfs perms
+  int    gmtoff;  // v3: offset from UTC in seconds
+};
+
+// flags
+#define MSDOSFSMNT_SHORTNAME  0x00000001 // Force old DOS short names only
+#define MSDOSFSMNT_LONGNAME   0x00000002 // Force Win'95 long names
+#define MSDOSFSMNT_NOWIN95    0x00000004 // Completely ignore Win95 entries
+#define MSDOSFSMNT_GEMDOSFS   0x00000008 // This is a GEMDOS-flavour
+#define MSDOSFSMNT_VERSIONED  0x00000010 // Struct is versioned
+#define MSDOSFSMNT_UTF8       0x00000020 // Use UTF8 filenames
+#define MSDOSFSMNT_RONLY      0x80000000 // mounted read-only
+#define MSDOSFSMNT_WAITONFAT  0x40000000 // mounted synchronous
+#define MSDOSFS_FATMIRROR     0x20000000 // FAT is mirrored
+
+bool parse_arg_kv_msdosfs(msdosfs_args* args,
+                           char* key_start, char* key_end,
+                           char* val_start, char* val_end)
+{
+  switch(hash(key_start, section_length(key_start, key_end)))
+  {
+    case "fspec"_hash   : args->fspec   = val_start; return true;
+    case "uid"_hash     : args->uid     = uid_t (std::strtoul(val_start, &val_end, 10)); return true;
+    case "gid"_hash     : args->gid     = gid_t (std::strtoul(val_start, &val_end, 10)); return true;
+    case "mask"_hash    : args->mask    = mode_t(std::strtoul(val_start, &val_end,  8)); return true;
+    case "dirmask"_hash : args->dirmask = mode_t(std::strtoul(val_start, &val_end,  8)); args->version |= 2; return true;
+    case "gmtoff"_hash  : args->gmtoff  = int   (std::strtol (val_start, &val_end, 10)); args->version |= 3; return true;
+  }
+  return false;
+}
+
+bool parse_arg_flags_msdosfs(msdosfs_args* args, char* start, char* end)
+{
+  switch(hash(start, section_length(start, end)))
+  {
+    case "shortname"_hash   : args->flags |= MSDOSFSMNT_SHORTNAME ; return true;
+    case "longname"_hash    : args->flags |= MSDOSFSMNT_LONGNAME  ; return true;
+    case "nowin95"_hash     : args->flags |= MSDOSFSMNT_NOWIN95   ; return true;
+    case "gemdosfs"_hash    : args->flags |= MSDOSFSMNT_GEMDOSFS  ; return true;
+    case "mntversioned"_hash: args->flags |= MSDOSFSMNT_VERSIONED ; return true;
+    case "utf8"_hash        : args->flags |= MSDOSFSMNT_UTF8      ; return true;
+    case "ronly"_hash       : args->flags |= MSDOSFSMNT_RONLY     ; return true;
+    case "waitonfat"_hash   : args->flags |= MSDOSFSMNT_WAITONFAT ; return true;
+    case "fatmirror"_hash   : args->flags |= MSDOSFS_FATMIRROR    ; return true;
+  }
+  return false;
+}
+
+//--------------------------------------------------------
+// Arguments to mount NILFS filingsystem.
+#define NILFSMNT_VERSION 1
+struct nilfs_args
+{
+  uint32_t version;     // version of this structure
+  char*    fspec;       // mount specifier
+  uint32_t nilfsmflags; // mount options
+
+  int32_t  gmtoff;      // offset from UTC in seconds
+  int64_t  cpno;        // checkpoint number
+
+  // extendable
+  uint8_t  reserved[32];
+};
+
+//--------------------------------------------------------
+struct ntfs_args
+{
+  char*  fspec; // block special device to mount
+  struct export_args30 _pad1; // compat with old userland tools
+  uid_t  uid;   // uid that owns ntfs files
+  gid_t  gid;   // gid that owns ntfs files
+  mode_t mask;  // mask to be applied for ntfs perms
+  u_long flags;  // additional flags
+};
+
+// flags
+#define NTFS_MFLAG_CASEINS  0x00000001
+#define NTFS_MFLAG_ALLNAMES 0x00000002
+
+bool parse_arg_kv_ntfs(ntfs_args* args,
+                       char* key_start, char* key_end,
+                       char* val_start, char* val_end)
+{
+  switch(hash(key_start, section_length(key_start, key_end)))
+  {
+    case "fspec"_hash: args->fspec = val_start; return true;
+    case "uid"_hash  : args->uid   = uid_t (std::strtoul(val_start, &val_end, 10)); return true;
+    case "gid"_hash  : args->gid   = gid_t (std::strtoul(val_start, &val_end, 10)); return true;
+    case "mask"_hash : args->mask  = mode_t(std::strtoul(val_start, &val_end,  8)); return true;
+  }
+  return false;
+}
+
+bool parse_arg_flags_ntfs(ntfs_args* args, char* start, char* end)
+{
+  switch(hash(start, section_length(start, end)))
+  {
+    case "caseins"_hash : args->flags |= NTFS_MFLAG_CASEINS ; return true;
+    case "allnames"_hash: args->flags |= NTFS_MFLAG_ALLNAMES; return true;
+  }
+  return false;
+}
+
+//--------------------------------------------------------
+#define PTYFS_ARGSVERSION 2
+struct ptyfs_args
+{
+  int    version;
+  gid_t  gid;
+  mode_t mask;
+  int    flags;
+};
+
+
+bool parse_arg_kv_ptyfs(ptyfs_args* args,
+                        char* key_start, char* key_end,
+                        char* val_start, char* val_end)
+{
+  switch(hash(key_start, section_length(key_start, key_end)))
+  {
+    case "gid"_hash  : args->gid   = gid_t (std::strtoul(val_start, &val_end, 10)); return true;
+    case "mask"_hash : args->mask  = mode_t(std::strtoul(val_start, &val_end,  8)); return true;
+  }
+  return false;
+}
+
+//--------------------------------------------------------
+// Layout of the mount control block for a netware file system.
+struct smbfs_args
+{
+  int    version;
+  int    dev_fd;  // descriptor of open nsmb device
+  u_int  flags;
+  uid_t  uid;
+  gid_t  gid;
+  mode_t file_mode;
+  mode_t dir_mode;
+  int    caseopt;
+};
+
+// flags
+#define SMBFS_MOUNT_SOFT      0x0001
+#define SMBFS_MOUNT_INTR      0x0002
+#define SMBFS_MOUNT_STRONG    0x0004
+#define SMBFS_MOUNT_HAVE_NLS  0x0008
+#define SMBFS_MOUNT_NO_LONG   0x0010
+
+//--------------------------------------------------------
+struct sysvbfs_args
+{
+  char* fspec;  // blocks special holding the fs to mount
+};
+
+//--------------------------------------------------------
+#define TMPFS_ARGS_VERSION 1
+struct tmpfs_args
+{
+  int    version;
+
+   // Size counters.
+  ino_t  nodes_max;
+  off_t  size_max;
+
+   // Root node attributes.
+  uid_t  root_uid;
+  gid_t  root_gid;
+  mode_t root_mode;
+};
+
+//--------------------------------------------------------
+
+// Arguments to mount UDF filingsystem.
+#define UDFMNT_VERSION 1
+struct udf_args
+{
+  uint32_t version;      // version of this structure
+  char*    fspec;        // mount specifier
+  int32_t  sessionnr;    // session specifier, rel of abs
+  uint32_t udfmflags;    // mount options
+  int32_t  gmtoff;       // offset from UTC in seconds
+
+  uid_t    anon_uid;     // mapping of anonymous files uid
+  gid_t    anon_gid;     // mapping of anonymous files gid
+  uid_t    nobody_uid;   // nobody:nobody will map to -1:-1
+  gid_t    nobody_gid;   // nobody:nobody will map to -1:-1
+
+  uint32_t sector_size;  // for mounting dumps/files
+
+  // extendable
+  uint8_t  reserved[32];
+};
+
+// udf mount options
+#define UDFMNT_CLOSESESSION 0x00000001 // close session on dismount
+
+//--------------------------------------------------------
+
+struct union_args
+{
+  char* fspec; // Target of loopback
+  int   flags;  // Options on the mount
+};
+
+// flags
+#define UNMNT_ABOVE   0x0001  // Target appears below mount point
+#define UNMNT_BELOW   0x0002  // Target appears below mount point
+#define UNMNT_REPLACE 0x0003  // Target replaces mount point
+#define UNMNT_OPMASK  0x0003
+
+//--------------------------------------------------------
+
+struct v7fs_args
+{
+  char* fspec;  // blocks special holding the fs to mount
+  int   endian; // target filesystem endian
+};
+
+
+
+template<typename T> bool null_flags_parser(T*,char*,char*) { return false; }
+template<typename T> bool null_kv_parser(T*,char*,char*,char*,char*) { return false; }
+
+template<typename T>
+bool parse_arg_fspec(T* args, char* key_start, char* key_end, char* val_start, char*)
+{
+  switch(hash(key_start, section_length(key_start, key_end)))
+  {
+    case "fspec"_hash: args->fspec = val_start; return true;
+  }
+  return false;
+}
+
+
+template<typename T>
+using arg_parser_flag = bool (*)(T*, char*, char*);
+template<typename T>
+using arg_parser_kv = bool (*)(T*, char*, char*, char*, char*);
+
+template<typename T>
+bool parse_args(void*& memptr, const char* device, const std::string& options,
+                arg_parser_flag<T> parse_flag, arg_parser_kv<T> parse_kv)
+{
+  T* args = static_cast<T*>(memptr = ::malloc(sizeof(T))); // allocate memory
+  if(args == NULL)
+    return false;
+  std::memset(memptr, 0, sizeof(T)); // clear memory
+
+  char* pos = const_cast<char*>(options.c_str());
+  char* next = std::strtok(pos, "=,");
+  do
+  {
+    if(next == NULL || *next == ',')
+    {
+      if(!parse_flag(args, pos, next))
+        return false;
+      pos = next;
+    }
+    else
+    {
+      char* end = std::strtok(NULL, ",");
+      if(!parse_kv(args, pos, next, next + 1, end))
+        return false;
+      pos = end;
+    }
+
+    next = std::strtok(NULL, "=,");
+  } while(pos != NULL && ++pos);
+  return true;
+}
+#endif
+
 
 bool mount(const char* device,
            const char* path,
@@ -174,10 +592,8 @@ bool mount(const char* device,
   std::list<std::string> fslist;
   char *pos, *next;
   int mountflags = 0;
-#if defined(__linux__)
   std::string optionlist;
-  typedef unsigned long mnt_flag_t; // defined for mount()
-#endif
+  void* opt_data = nullptr;
 
   pos = const_cast<char*>(filesystem);
   next = std::strtok(pos, ",");
@@ -198,13 +614,14 @@ bool mount(const char* device,
       {
         case "defaults"_hash: break;
 
-  // Generic
+// Generic
         case "ro"_hash          : mountflags |= MNT_RDONLY      ; break;
         case "rw"_hash          : mountflags &= 0^MNT_RDONLY    ; break;
         case "noexec"_hash      : mountflags |= MNT_NOEXEC      ; break;
         case "nosuid"_hash      : mountflags |= MNT_NOSUID      ; break;
         case "nodev"_hash       : mountflags |= MNT_NODEV       ; break;
         case "sync"_hash        : mountflags |= MNT_SYNCHRONOUS ; break;
+// Linux Only
         case "nodiratime"_hash  : mountflags |= MS_NODIRATIME   ; break;
         case "move"_hash        : mountflags |= MS_MOVE         ; break;
         case "bind"_hash        : mountflags |= MS_BIND         ; break;
@@ -224,6 +641,7 @@ bool mount(const char* device,
         case "lazytime"_hash    : mountflags |= MS_LAZYTIME     ; break;
         case "active"_hash      : mountflags |= MS_ACTIVE       ; break;
         case "nouser"_hash      : mountflags |= MS_NOUSER       ; break;
+// BSD
         case "union"_hash       : mountflags |= MNT_UNION       ; break;
         case "hidden"_hash      : mountflags |= MNT_HIDDEN      ; break;
         case "nocoredump"_hash  : mountflags |= MNT_NOCOREDUMP  ; break;
@@ -242,148 +660,9 @@ bool mount(const char* device,
         case "softdep"_hash     : mountflags |= MNT_SOFTDEP     ; break;
         case "wxallowed"_hash   : mountflags |= MNT_WXALLOWED   ; break;
         default:
-  #if defined(__linux__)
           optionlist.append(pos, section_length(pos, next));
           if(next != NULL)
-              optionlist.append(1, ',');
-  #elif defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(6,0,0)
-
-  #else
-  // NetBSD
-          MOUNT_FFS
-           struct ufs_args {
-            char	   *fspec;	       /* block	special	file to	mount */
-           };
-
-          MOUNT_NFS
-           struct nfs_args {
-            int		 version;      /* args structure version */
-            struct	sockaddr *addr;	       /* file server address */
-            int		 addrlen;      /* length of address */
-            int		 sotype;       /* Socket type */
-            int		 proto;	       /* and Protocol */
-            u_char		 *fh;	       /* File handle to be mounted */
-            int		 fhsize;       /* Size,	in bytes, of fh	*/
-            int		 flags;	       /* flags	*/
-            int		 wsize;	       /* write	size in	bytes */
-            int		 rsize;	       /* read size in bytes */
-            int		 readdirsize;  /* readdir size in bytes	*/
-            int		 timeo;	       /* initial timeout in .1	secs */
-            int		 retrans;      /* times	to retry send */
-            int		 maxgrouplist; /* Max. size of group list */
-            int		 readahead;    /* # of blocks to readahead */
-            int		 leaseterm;    /* Term (sec) of	lease */
-            int		 deadthresh;   /* Retrans threshold */
-            char		 *hostname;    /* server's name	*/
-           };
-
-          MOUNT_MFS
-           struct mfs_args {
-            char	   *fspec;	       /* name to export for statfs */
-            struct	   export_args30 pad;  /* unused */
-            caddr_t   base;	       /* base of file system in mem */
-            u_long	   size;	       /* size of file system */
-           };
-
-
-
-  // Open BSD
-           MOUNT_CD9660
-            struct iso_args {
-                char	   *fspec;     /* block	special	device to mount	*/
-                struct	   export_args export_info;
-                         /* network export info */
-                int flags;	       /* mounting flags, see below */
-            };
-            #define ISOFSMNT_NORRIP   0x00000001	/* disable Rock	Ridge Ext.*/
-            #define ISOFSMNT_GENS     0x00000002	/* enable generation numbers */
-            #define ISOFSMNT_EXTATT   0x00000004	/* enable extended attributes */
-            #define ISOFSMNT_NOJOLIET 0x00000008	/* disable Joliet Ext.*/
-            #define ISOFSMNT_SESS     0x00000010	/* use iso_args.sess */
-
-           MOUNT_FFS
-            struct ufs_args {
-             char	   *fspec;	       /* block	special	file to	mount */
-             struct	   export_args export_info;
-                            /* network export information */
-            };
-
-           MOUNT_MFS
-            struct mfs_args {
-             char	   *fspec;	       /* name to export for statfs */
-             struct	   export_args export_info;
-                            /* if we	can export an MFS */
-             caddr_t   base;	       /* base of filesystem in	mem */
-             u_long	   size;	       /* size of filesystem */
-            };
-
-           MOUNT_MSDOS
-            struct msdosfs_args {
-               char	   *fspec;    /* blocks	special	holding	fs to mount */
-               struct  export_args export_info;
-                        /* network export	information */
-               uid_t   uid;	      /* uid that owns msdosfs files */
-               gid_t   gid;	      /* gid that owns msdosfs files */
-               mode_t  mask;      /* mask to be applied for	msdosfs	perms */
-               int	   flags;     /* see below */
-            };
-
-            /*
-             * Msdosfs mount options:
-             */
-            #define MSDOSFSMNT_SHORTNAME	1  /* Force old	DOS short names	only */
-            #define MSDOSFSMNT_LONGNAME	2  /* Force Win'95 long	names */
-            #define MSDOSFSMNT_NOWIN95	4  /* Completely ignore	Win95 entries */
-
-           MOUNT_NFS
-            struct nfs_args {
-             int	   version;	   /* args structure version */
-             struct	sockaddr *addr;	   /* file server address */
-             int	   addrlen;	   /* length of	address	*/
-             int	   sotype;	   /* Socket type */
-             int	   proto;	   /* and Protocol */
-             u_char	   *fh;		   /* File handle to be	mounted	*/
-             int	   fhsize;	   /* Size, in bytes, of fh */
-             int	   flags;	   /* flags */
-             int	   wsize;	   /* write size in bytes */
-             int	   rsize;	   /* read size	in bytes */
-             int	   readdirsize;	   /* readdir size in bytes */
-             int	   timeo;	   /* initial timeout in .1 secs */
-             int	   retrans;	   /* times to retry send */
-             int	   maxgrouplist;   /* Max. size	of group list */
-             int	   readahead;	   /* #	of blocks to readahead */
-             int	   leaseterm;	   /* Term (sec) of lease */
-             int	   deadthresh;	   /* Retrans threshold	*/
-             char	   *hostname;	   /* server's name */
-             int	   acregmin;	 /* Attr cache file recently modified */
-             int	   acregmax;	   /* ac file not recently modified */
-             int	   acdirmin;	   /* ac for dir recently modified */
-             int	   acdirmax;	 /* ac for dir not recently modified */
-            };
-
-           MOUNT_NTFS
-            struct ntfs_args {
-               char	   *fspec; /* block special device to mount */
-               struct  export_args export_info;
-                     /* network export information */
-               uid_t   uid;	   /* uid that owns ntfs files */
-               gid_t   gid;	   /* gid that owns ntfs files */
-               mode_t  mode;   /* mask to be applied for ntfs perms	*/
-               u_long  flag;   /* additional flags */
-            };
-
-            /*
-             * ntfs mount options:
-             */
-            #define     NTFS_MFLAG_CASEINS      0x00000001
-            #define     NTFS_MFLAG_ALLNAMES     0x00000002
-
-           MOUNT_UDF
-            struct udf_args {
-               char	   *fspec; /* block special device to mount */
-            };
-
-  #endif
+            optionlist.append(1, ',');
           break;
       }
       pos = next;
@@ -395,11 +674,45 @@ bool mount(const char* device,
 
   for(const std::string& fs : fslist)
   {
-#if defined(__linux__)
+#if 0 && defined(__linux__)
+    typedef unsigned long mnt_flag_t; // defined for mount()
     if(mount(device, path, fs.c_str(), mnt_flag_t(mountflags), optionlist.c_str()) == posix::success_response)
       return true;
 #elif defined(__NetBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(5,0,0)
 #else
+    bool parse_ok = false;
+    if(device != nullptr)
+      optionlist.append("fspec=").append(device);
+    switch(hash(fs))
+    {
+      case "adosfs"_hash  : parse_ok = parse_args(opt_data, device, optionlist, null_flags_parser       , parse_arg_kv_adosfs   ); break;
+      case "iso9660"_hash : parse_ok = parse_args(opt_data, device, optionlist, parse_arg_flags_iso     , parse_arg_fspec       ); break;
+      case "filecore"_hash: parse_ok = parse_args(opt_data, device, optionlist, parse_arg_flags_filecore, parse_arg_kv_filecore ); break;
+      case "msdosfs"_hash : parse_ok = parse_args(opt_data, device, optionlist, parse_arg_flags_msdosfs , parse_arg_kv_msdosfs  ); break;
+      case "ntfs"_hash    : parse_ok = parse_args(opt_data, device, optionlist, parse_arg_flags_ntfs    , parse_arg_kv_ntfs     ); break;
+      case "ptyfs"_hash   : parse_ok = parse_args(opt_data, device, optionlist, null_flags_parser       , parse_arg_kv_ptyfs    ); break;
+
+// incomplete implementations
+      case "autofs"_hash  : parse_ok = parse_args(opt_data, device, optionlist, null_flags_parser       , null_kv_parser<autofs_args>   ); break;
+      case "efs"_hash     : parse_ok = parse_args(opt_data, device, optionlist, null_flags_parser       , parse_arg_fspec<efs_args>     ); break;
+      case "hfs"_hash     : parse_ok = parse_args(opt_data, device, optionlist, null_flags_parser       , parse_arg_fspec<hfs_args>      ); break;
+      case "nilfs"_hash   : parse_ok = parse_args(opt_data, device, optionlist, null_flags_parser       , null_kv_parser<nilfs_args>    ); break;
+      case "smbfs"_hash   : parse_ok = parse_args(opt_data, device, optionlist, null_flags_parser       , null_kv_parser<smbfs_args>    ); break;
+      case "sysvbfs"_hash : parse_ok = parse_args(opt_data, device, optionlist, null_flags_parser       , parse_arg_fspec<sysvbfs_args> ); break;
+      case "tmpfs"_hash   : parse_ok = parse_args(opt_data, device, optionlist, null_flags_parser       , null_kv_parser<tmpfs_args>    ); break;
+      case "udf"_hash     : parse_ok = parse_args(opt_data, device, optionlist, null_flags_parser       , null_kv_parser<udf_args>      ); break;
+      case "union"_hash   : parse_ok = parse_args(opt_data, device, optionlist, null_flags_parser       , null_kv_parser<union_args>    ); break;
+      case "v7fs"_hash    : parse_ok = parse_args(opt_data, device, optionlist, null_flags_parser       , null_kv_parser<v7fs_args>     ); break;
+    }
+    if(parse_ok)
+    {
+      //do mount
+    }
+    if(opt_data != nullptr)
+    {
+      ::free(opt_data);
+      opt_data = nullptr;
+    }
 #endif
   }
 
