@@ -2,10 +2,10 @@
 #define MOUNT_H
 
 bool mount(const char* device,
-          const char* path,
-          const char* filesystem,
-          const char* options) noexcept;
+           const char* path,
+           const char* filesystem,
+           const char* options = nullptr) noexcept;
 
-bool unmount(const char* path) noexcept;
+bool unmount(const char* path, const char* options = nullptr) noexcept;
 
 #endif // MOUNT_H
