@@ -878,6 +878,7 @@ bool mount_bsd(const char* device,
        (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(1,2,0)) || \
         defined(__OpenBSD__)    || \
         defined(__DragonFly__)  || \
+        defined(__darwin__)     || \
         defined(__sunos__)
 #  if defined(__sunos__)
       typedef caddr_t mount_data_t;
