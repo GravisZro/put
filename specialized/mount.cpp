@@ -13,6 +13,7 @@
 
 // POSIX++
 #include <cstring>
+#include <cstdlib>
 
 // STL
 #include <list>
@@ -194,12 +195,12 @@ struct export_bsdargs
 {
   int       ex_flags;   /* export related flags */
   uid_t     ex_root;    /* mapping for root uid */
-  struct xucred
+  struct xucred_t
   {
-     uid_t	cr_uid;			/* user id */
-     gid_t	cr_gid;			/* group id */
-     short	cr_ngroups;		/* number of groups */
-     gid_t	cr_groups[16];	/* groups */
+     uid_t	ex_uid;			/* user id */
+     gid_t	ex_gid;			/* group id */
+     short	ex_ngroups;		/* number of groups */
+     gid_t	ex_groups[16];	/* groups */
   } ex_anon;    /* mapping for anonymous user */
   sockaddr* ex_addr;    /* net address to which exported */
   int       ex_addrlen; /* and the net address length */
