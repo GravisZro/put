@@ -1,171 +1,168 @@
 #include "mount.h"
 
-// PUT
-#include <specialized/osdetect.h>
-#include <cxxutils/posix_helpers.h>
-
-#if defined(__linux__)    /* Linux  */ || \
-    defined(BSD)          /* *BSD   */ || \
-    defined(__darwin__)   /* Darwin */
-# include <sys/param.h>
-# include <sys/mount.h>
-#endif
-
 // POSIX++
-#include <cstring>
 #include <cstdlib>
+
+// POSIX
+#include <socket.h>
+
+// PUT
+#include <cxxutils/posix_helpers.h>
+#include <cxxutils/hashing.h>
+#include <specialized/osdetect.h>
 
 // STL
 #include <list>
 #include <string>
 
-// PUT
-#include <cxxutils/hashing.h>
+// Linux/*BSD/Darwin
+#include <sys/mount.h>
+
 
 #define MAX_MOUNT_MEM 160
 
 // common mount flags
 #if defined(__linux__)
-#define MNT_RDONLY        MS_RDONLY
-#define MNT_NOEXEC        MS_NOEXEC
-#define MNT_NOSUID        MS_NOSUID
-#define MNT_NODEV         MS_NODEV
-#define MNT_SYNCHRONOUS   MS_SYNCHRONOUS
-#define MNT_NOATIME       MS_NOATIME
-#define MNT_RELATIME      MS_RELATIME
+# define MNT_RDONLY       MS_RDONLY
+# define MNT_NOEXEC       MS_NOEXEC
+# define MNT_NOSUID       MS_NOSUID
+# define MNT_NODEV        MS_NODEV
+# define MNT_SYNCHRONOUS  MS_SYNCHRONOUS
+# define MNT_NOATIME      MS_NOATIME
+# define MNT_RELATIME     MS_RELATIME
 #elif defined(BSD) && !defined(MNT_RDONLY)
-#define MNT_RDONLY        M_RDONLY
-#define MNT_NOEXEC        M_NOEXEC
-#define MNT_NOSUID        M_NOSUID
-#define MNT_NODEV         M_NODEV
-#define MNT_SYNCHRONOUS   M_SYNCHRONOUS
-#define MNT_RDONLY        M_RDONLY
+# define MNT_RDONLY       M_RDONLY
+# define MNT_NOEXEC       M_NOEXEC
+# define MNT_NOSUID       M_NOSUID
+# define MNT_NODEV        M_NODEV
+# define MNT_SYNCHRONOUS  M_SYNCHRONOUS
+# define MNT_RDONLY       M_RDONLY
 #endif
 
 // Linux flags
 #ifndef MS_NODIRATIME
-# define MS_NODIRATIME 0
+# define MS_NODIRATIME    0
 #endif
 #ifndef MS_MOVE
-# define MS_MOVE 0
+# define MS_MOVE          0
 #endif
 #ifndef MS_BIND
-# define MS_BIND 0
+# define MS_BIND          0
 #endif
 #ifndef MS_REMOUNT
-# define MS_REMOUNT 0
+# define MS_REMOUNT       0
 #endif
 #ifndef MS_MANDLOCK
-# define MS_MANDLOCK 0
+# define MS_MANDLOCK      0
 #endif
 #ifndef MS_DIRSYNC
-# define MS_DIRSYNC 0
+# define MS_DIRSYNC       0
 #endif
 #ifndef MS_REC
-# define MS_REC 0
+# define MS_REC           0
 #endif
 #ifndef MS_SILENT
-# define MS_SILENT 0
+# define MS_SILENT        0
 #endif
 #ifndef MS_POSIXACL
-# define MS_POSIXACL 0
+# define MS_POSIXACL      0
 #endif
 #ifndef MS_UNBINDABLE
-# define MS_UNBINDABLE 0
+# define MS_UNBINDABLE    0
 #endif
 #ifndef MS_PRIVATE
-# define MS_PRIVATE 0
+# define MS_PRIVATE       0
 #endif
 #ifndef MS_SLAVE
-# define MS_SLAVE 0
+# define MS_SLAVE         0
 #endif
 #ifndef MS_SHARED
-# define MS_SHARED 0
+# define MS_SHARED        0
 #endif
 #ifndef MS_KERNMOUNT
-# define MS_KERNMOUNT 0
+# define MS_KERNMOUNT     0
 #endif
 #ifndef MS_I_VERSION
-# define MS_I_VERSION 0
+# define MS_I_VERSION     0
 #endif
 #ifndef MS_STRICTATIME
-# define MS_STRICTATIME 0
+# define MS_STRICTATIME   0
 #endif
 #ifndef MS_LAZYTIME
-# define MS_LAZYTIME 0
+# define MS_LAZYTIME      0
 #endif
 #ifndef MS_ACTIVE
-# define MS_ACTIVE 0
+# define MS_ACTIVE        0
 #endif
 #ifndef MS_NOUSER
-# define MS_NOUSER 0
+# define MS_NOUSER        0
 #endif
 
 // BSD flags
 #ifndef MNT_UNION
-# define MNT_UNION 0
+# define MNT_UNION        0
 #endif
 #ifndef MNT_HIDDEN
-# define MNT_HIDDEN 0
+# define MNT_HIDDEN       0
 #endif
 #ifndef MNT_NOCOREDUMP
-# define MNT_NOCOREDUMP 0
+# define MNT_NOCOREDUMP   0
 #endif
 #ifndef MNT_NOATIME
-# define MNT_NOATIME 0
+# define MNT_NOATIME      0
 #endif
 #ifndef MNT_RELATIME
-# define MNT_RELATIME 0
+# define MNT_RELATIME     0
 #endif
 #ifndef MNT_NODEVMTIME
-# define MNT_NODEVMTIME 0
+# define MNT_NODEVMTIME   0
 #endif
 #ifndef MNT_SYMPERM
-# define MNT_SYMPERM 0
+# define MNT_SYMPERM      0
 #endif
 #ifndef MNT_ASYNC
-# define MNT_ASYNC 0
+# define MNT_ASYNC        0
 #endif
 #ifndef MNT_LOG
-# define MNT_LOG 0
+# define MNT_LOG          0
 #endif
 #ifndef MNT_EXTATTR
-# define MNT_EXTATTR 0
+# define MNT_EXTATTR      0
 #endif
 #ifndef MNT_SNAPSHOT
-# define MNT_SNAPSHOT 0
+# define MNT_SNAPSHOT     0
 #endif
 #ifndef MNT_SUIDDIR
-# define MNT_SUIDDIR 0
+# define MNT_SUIDDIR      0
 #endif
 #ifndef MNT_NOCLUSTERR
-# define MNT_NOCLUSTERR 0
+# define MNT_NOCLUSTERR   0
 #endif
 #ifndef MNT_NOCLUSTERW
-# define MNT_NOCLUSTERW 0
+# define MNT_NOCLUSTERW   0
 #endif
 #ifndef MNT_EXTATTR
-# define MNT_EXTATTR 0
+# define MNT_EXTATTR      0
 #endif
 #ifndef MNT_SOFTDEP
-# define MNT_SOFTDEP 0
+# define MNT_SOFTDEP      0
 #endif
 #ifndef MNT_WXALLOWED
-# define MNT_WXALLOWED 0
+# define MNT_WXALLOWED    0
 #endif
 
 // unmount flags
 #ifndef MNT_FORCE
-# define MNT_FORCE 0
+# define MNT_FORCE        0
 #endif
 #ifndef MNT_DETACH
-# define MNT_DETACH 0
+# define MNT_DETACH       0
 #endif
 #ifndef MNT_EXPIRE
-# define MNT_EXPIRE 0
+# define MNT_EXPIRE       0
 #endif
 #ifndef UMOUNT_NOFOLLOW
-# define UMOUNT_NOFOLLOW 0
+# define UMOUNT_NOFOLLOW  0
 #endif
 
 constexpr posix::size_t section_length(const char* start, const char* end)
@@ -189,23 +186,21 @@ bool parse_arg_fspec(T* args, char* key_start, char* key_end, char* val_start, c
   return false;
 }
 
-#include <socket.h>
-
 struct export_bsdargs
 {
-  int       ex_flags;   /* export related flags */
-  uid_t     ex_root;    /* mapping for root uid */
+  int       ex_flags;   // export related flags
+  uid_t     ex_root;    // mapping for root uid
   struct xucred_t
   {
-     uid_t	ex_uid;			/* user id */
-     gid_t	ex_gid;			/* group id */
-     short	ex_ngroups;		/* number of groups */
-     gid_t	ex_groups[16];	/* groups */
-  } ex_anon;    /* mapping for anonymous user */
-  sockaddr* ex_addr;    /* net address to which exported */
-  int       ex_addrlen; /* and the net address length */
-  sockaddr* ex_mask;    /* mask of valid bits in saddr */
-  int       ex_masklen; /* and the smask length */
+     uid_t	ex_uid;			// user id
+     gid_t	ex_gid;			// group id
+     short	ex_ngroups;		// number of groups
+     gid_t	ex_groups[16];	// groups
+  } ex_anon;            // mapping for anonymous user
+  sockaddr* ex_addr;    // net address to which exported
+  int       ex_addrlen; // and the net address length
+  sockaddr* ex_mask;    // mask of valid bits in saddr
+  int       ex_masklen; // and the smask length
 };
 
 // Arguments to mount amigados filesystems.
