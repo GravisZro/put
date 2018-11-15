@@ -735,19 +735,11 @@ bool mount_bsd(const char* device,
                      void* data) noexcept
 #endif
 {
-  std::list<std::string> fslist;
+  char fslist[1024] = { 0 };
+  std::strncpy(fslist, filesystem, 1024);
   char *pos, *next;
   int mountflags = 0;
   std::string optionlist;
-
-  pos = const_cast<char*>(filesystem);
-  next = std::strtok(pos, ",");
-  do
-  {
-    fslist.emplace_back(pos, section_length(pos, next));
-    pos = next;
-    next = std::strtok(NULL, ",");
-  } while(pos != NULL && ++pos);
 
   if(options != nullptr)
   {
@@ -816,12 +808,19 @@ bool mount_bsd(const char* device,
 
   //MNT_UPDATE, MNT_RELOAD, and MNT_GETARGS
 
-  for(const std::string& fs : fslist)
+
+  pos = fslist;
+  next = std::strtok(pos, ",");
+  do
   {
+    if(next != NULL)
+      *next = '\0';
 #if !defined(BSD) && defined(__linux__)
     typedef unsigned long mnt_flag_t; // defined for mount()
-    if(::mount(device, path, fs.c_str(), mnt_flag_t(mountflags), optionlist.c_str()) == posix::success_response)
+    if(::mount(device, path, pos, mnt_flag_t(mountflags), optionlist.c_str()) == posix::success_response)
       return true;
+#elif defined(__minix__)
+
 #elif defined(BSD)
 # define CASE_CONCAT(a, b) a##b
 # define CASE_QUOTE(x) #x
@@ -836,7 +835,7 @@ bool mount_bsd(const char* device,
     bool parse_ok = false;
     if(device != nullptr)
       optionlist.append("fspec=").append(device);
-    switch(hash(fs))
+    switch(hash(pos))
     {
       case "cd9660"_hash:
       PARSE_ARG_CASE(iso9660);
@@ -871,25 +870,39 @@ bool mount_bsd(const char* device,
     }
     if(parse_ok)
     {
-# if (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(3,0,0)) || \
-     (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(1,2,0)) || \
-      defined(__OpenBSD__) || \
-      defined(__linux__) || \
-      defined(__minix__) || \
-      defined()
-      if(::mount(fs.c_str(), path, mountflags, data) == posix::success_response)
+# if defined(__NetBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(5,0,0)
+      if(::mount(pos, path, mountflags, data, MAX_MOUNT_MEM) == posix::success_response)
         return true;
 
-# elif defined(__NetBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(5,0,0)
-      if(::mount(fs.c_str(), path, mountflags, data, MAX_MOUNT_MEM) == posix::success_response)
+# elif (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(3,0,0)) || \
+       (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(1,2,0)) || \
+        defined(__OpenBSD__)    || \
+        defined(__DragonFly__)  || \
+        defined(__sunos__)
+#  if defined(__sunos__)
+      typedef caddr_t mount_data_t;
+#  else
+      typedef void* mount_data_t;
+#  endif
+      if(::mount(pos, path, mountflags, reinterpret_cast<mount_data_t>(data)) == posix::success_response)
         return true;
-# else
-      if(::mount(fs.c_str(), path, mountflags, data) == posix::success_response)
+
+# else // ye olde "int type" based mount()
+      typedef caddr_t mount_data_t;
+      int fstype = 0;
+      switch(hash(pos))
+      {
+        case "ffs"_hash: fstype = 1; break;
+      }
+
+      if(::mount(fstype, path, mountflags, reinterpret_cast<mount_data_t>(data)) == posix::success_response)
         return true;
 # endif
     }
 #endif
-  }
+    pos = next;
+    next = std::strtok(NULL, ",");
+  } while(pos != NULL && ++pos);
 
   return false;
 }
@@ -934,7 +947,7 @@ dev_t device_id(const char* device) noexcept
 #endif
 
 #if defined(target_translator)
-static inline bool device2dir(const char* in, const char* out) noexcept
+static inline bool device2dir(const char* in, char* out) noexcept
 {
   bool rvalue = false;
   struct stat buf;
@@ -953,7 +966,7 @@ static inline bool device2dir(const char* in, const char* out) noexcept
   return rvalue;
 }
 
-static inline bool dir2device(const char* in, const char* out) noexcept
+static inline bool dir2device(const char* in, char* out) noexcept
 {
   bool rvalue = false;
   struct stat buf;
