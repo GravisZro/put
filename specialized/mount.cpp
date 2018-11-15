@@ -228,8 +228,8 @@ bool parse_arg_kv_adosfs(adosfs_bsdargs* args,
   return parse_arg_fspec(args, key_start, key_end, val_start, val_end);
 }
 
-# define parse_arg_flags_adosfs null_flags_parser<adosfs_bsdargs>
-# define arg_finalize_adosfs    null_finalizer<adosfs_bsdargs>
+auto parse_arg_flags_adosfs = null_flags_parser<adosfs_bsdargs>;
+auto arg_finalize_adosfs    = null_finalizer   <adosfs_bsdargs>;
 
 //--------------------------------------------------------
 // Arguments to mount autofs filesystem.
@@ -289,10 +289,9 @@ bool parse_arg_kv_iso9660(iso9660_bsdargs* args,
   return false;
 }
 #else
-# define parse_arg_kv_iso9660  null_kv_parser<iso9660_bsdargs>
+auto parse_arg_kv_iso9660 = null_kv_parser<iso9660_bsdargs>;
 #endif
-
-# define arg_finalize_iso9660    null_finalizer<iso9660_bsdargs>
+auto arg_finalize_iso9660 = null_finalizer<iso9660_bsdargs>;
 
 
 //--------------------------------------------------------
@@ -303,9 +302,9 @@ struct ufs_bsdargs
   export_bsdargs export_info; // network export information
 };
 
-# define parse_arg_kv_ufs    parse_arg_fspec<ufs_bsdargs>
-# define parse_arg_flags_ufs null_flags_parser<ufs_bsdargs>
-# define arg_finalize_ufs    null_finalizer<ufs_bsdargs>
+auto parse_arg_kv_ufs    = parse_arg_fspec  <ufs_bsdargs>;
+auto parse_arg_flags_ufs = null_flags_parser<ufs_bsdargs>;
+auto arg_finalize_ufs    = null_finalizer   <ufs_bsdargs>;
 
 //--------------------------------------------------------
 struct efs_bsdargs
@@ -360,7 +359,7 @@ bool parse_arg_flags_filecore(filecore_bsdargs* args, char* start, char* end)
   return false;
 }
 
-# define arg_finalize_filecore    null_finalizer<filecore_bsdargs>
+auto arg_finalize_filecore = null_finalizer<filecore_bsdargs>;
 
 //--------------------------------------------------------
 struct hfs_bsdargs
@@ -368,9 +367,9 @@ struct hfs_bsdargs
   char* fspec;  // block special device to mount
 };
 
-# define parse_arg_kv_hfs    parse_arg_fspec<hfs_bsdargs>
-# define parse_arg_flags_hfs null_flags_parser<hfs_bsdargs>
-# define arg_finalize_hfs    null_finalizer<hfs_bsdargs>
+auto parse_arg_kv_hfs    = parse_arg_fspec  <hfs_bsdargs>;
+auto parse_arg_flags_hfs = null_flags_parser<hfs_bsdargs>;
+auto arg_finalize_hfs    = null_finalizer   <hfs_bsdargs>;
 
 //--------------------------------------------------------
 // Arguments to mount MSDOS filesystems.
@@ -501,7 +500,7 @@ bool parse_arg_flags_ntfs(ntfs_bsdargs* args, char* start, char* end)
   return false;
 }
 
-# define arg_finalize_ntfs    null_finalizer<ntfs_bsdargs>
+auto arg_finalize_ntfs = null_finalizer<ntfs_bsdargs>;
 
 //--------------------------------------------------------
 #define PTYFS_ARGSVERSION 2
@@ -573,9 +572,9 @@ struct sysvbfs_bsdargs
   char* fspec;  // blocks special holding the fs to mount
 };
 
-# define parse_arg_kv_sysvbfs    parse_arg_fspec<sysvbfs_bsdargs>
-# define parse_arg_flags_sysvbfs null_flags_parser<sysvbfs_bsdargs>
-# define arg_finalize_sysvbfs    null_finalizer<sysvbfs_bsdargs>
+auto parse_arg_kv_sysvbfs    = parse_arg_fspec  <sysvbfs_bsdargs>;
+auto parse_arg_flags_sysvbfs = null_flags_parser<sysvbfs_bsdargs>;
+auto arg_finalize_sysvbfs    = null_finalizer   <sysvbfs_bsdargs>;
 
 //--------------------------------------------------------
 #define TMPFS_ARGS_VERSION 1
@@ -593,8 +592,7 @@ struct tmpfs_bsdargs
   mode_t root_mode;
 };
 
-
-# define parse_arg_flags_tmpfs null_flags_parser<tmpfs_bsdargs>
+auto parse_arg_flags_tmpfs = null_flags_parser<tmpfs_bsdargs>;
 
 void arg_finalize_tmpfs(tmpfs_bsdargs* data)
 {
@@ -646,7 +644,7 @@ struct union_bsdargs
 #define UNMNT_BELOW   0x0002  // Target appears below mount point
 #define UNMNT_REPLACE 0x0003  // Target replaces mount point
 
-# define parse_arg_kv_union    parse_arg_fspec<union_bsdargs>
+auto parse_arg_kv_union = parse_arg_fspec<union_bsdargs>;
 
 bool parse_arg_flags_union(union_bsdargs* args, char* start, char* end)
 {
@@ -659,7 +657,7 @@ bool parse_arg_flags_union(union_bsdargs* args, char* start, char* end)
   return false;
 }
 
-# define arg_finalize_union    null_finalizer<union_bsdargs>
+auto arg_finalize_union = null_finalizer<union_bsdargs>;
 
 //--------------------------------------------------------
 
@@ -670,9 +668,9 @@ struct v7fs_bsdargs
 };
 
 
-//# define parse_arg_kv_v7fs    parse_arg_fspec<v7fs_bsdargs>
-# define parse_arg_flags_v7fs null_flags_parser<v7fs_bsdargs>
-# define arg_finalize_v7fs    null_finalizer<v7fs_bsdargs>
+//auto parse_arg_kv_v7fs   = parse_arg_fspec  <v7fs_bsdargs>;
+auto parse_arg_flags_v7fs = null_flags_parser<v7fs_bsdargs>;
+auto arg_finalize_v7fs    = null_finalizer   <v7fs_bsdargs>;
 
 
 template<typename T>
@@ -715,11 +713,11 @@ bool parse_args(void* data, const std::string& options,
 }
 
 
-bool submount(const char* device,
-              const char* path,
-              const char* filesystem,
-              const char* options,
-                    void* data) noexcept;
+bool mount_bsd(const char* device,
+               const char* path,
+               const char* filesystem,
+               const char* options,
+                     void* data) noexcept;
 #endif
 bool mount(const char* device,
            const char* path,
@@ -730,16 +728,16 @@ bool mount(const char* device,
   void* data = ::malloc(MAX_MOUNT_MEM); // allocate memory
   if(data == NULL)
     return false;
-  bool result = submount(device, path, filesystem, options, data);
+  bool result = mount_bsd(device, path, filesystem, options, data);
   ::free(data);
   return result;
 }
 
-bool submount(const char* device,
-              const char* path,
-              const char* filesystem,
-              const char* options,
-                    void* data) noexcept
+bool mount_bsd(const char* device,
+               const char* path,
+               const char* filesystem,
+               const char* options,
+                     void* data) noexcept
 #endif
 {
   std::list<std::string> fslist;
@@ -831,9 +829,9 @@ bool submount(const char* device,
     if(::mount(device, path, fs.c_str(), mnt_flag_t(mountflags), optionlist.c_str()) == posix::success_response)
       return true;
 #elif defined(BSD)
-#define CASE_CONCAT(a, b) a##b
-#define CASE_QUOTE(x) #x
-#define PARSE_ARG_CASE(x) \
+# define CASE_CONCAT(a, b) a##b
+# define CASE_QUOTE(x) #x
+# define PARSE_ARG_CASE(x) \
     case compiletime_hash(CASE_QUOTE(x), sizeof(CASE_QUOTE(x)) - 1) : \
       parse_ok = parse_args(data, optionlist, \
                             CASE_CONCAT(parse_arg_flags_, x), \
@@ -877,13 +875,13 @@ bool submount(const char* device,
     }
     if(parse_ok)
     {
-#if defined(__NetBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(5,0,0)
-      if(mount(fs.c_str(), path, mountflags, data, MAX_MOUNT_MEM) == posix::success_response)
+# if defined(__NetBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(5,0,0)
+      if(::mount(fs.c_str(), path, mountflags, data, MAX_MOUNT_MEM) == posix::success_response)
         return true;
-#else
+# else
       if(::mount(fs.c_str(), path, mountflags, data) == posix::success_response)
         return true;
-#endif
+# endif
     }
 #endif
   }
