@@ -956,7 +956,7 @@ static inline bool link_resolve(const char* input, char* output) noexcept
 {
   assert(input != output);
   return readlink(input, output, PATH_MAX) > 0 ||
-      (errno == EINVAL && std::strncpy(input, output, PATH_MAX));
+      (errno == EINVAL && std::strncpy(output, input, PATH_MAX));
 }
 
 static inline bool device2dir(const char* input, char* output) noexcept
