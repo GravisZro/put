@@ -46,6 +46,7 @@ SOURCES       = tests/build.cpp \
 		specialized/procstat.cpp \
 		specialized/proclist.cpp \
 		specialized/fstable.cpp \
+		specialized/mount.cpp \
 		specialized/mountpoints.cpp \
 #		specialized/module.cpp \
 		specialized/MountEvent.cpp \

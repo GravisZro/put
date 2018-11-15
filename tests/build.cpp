@@ -10,6 +10,7 @@
 #include <specialized/peercred.h>
 #include <specialized/fstable.h>
 #include <specialized/module.h>
+#include <specialized/mount.h>
 #include <specialized/capabilities.h>
 #include <specialized/FileEvent.h>
 #include <specialized/PollEvent.h>
