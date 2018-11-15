@@ -911,14 +911,14 @@ bool mount_bsd(const char* device,
 // ====== UNMOUNT ======
 
 #if defined(__ultrix__)
-# define target_translator  dir2device
-# define simple_unmount(x)   umount(device_id(x))
+# define target_translator      dir2device
+# define simple_unmount(x)      umount(device_id(x))
 dev_t device_id(const char* device) noexcept
 {
   struct stat buf;
   if(stat(device, &buf) == posix::error_response)
     return 0;
-  return S_ISBLK(buf.st_mode) ? buf.st_dev : 0;
+  return S_ISBLK(buf.st_mode) ? buf.st_rdev : 0;
 }
 #elif defined(__hpux__)
 # define target_translator      dir2device
@@ -931,10 +931,10 @@ dev_t device_id(const char* device) noexcept
 # define simple_unmount(x)      umount(x)
 #elif (defined(__linux__) && KERNEL_VERSION_CODE < KERNEL_VERSION(2,1,116)) || \
        defined(__irix__)
-# define translated_target      target
+# define target_translator      link_resolve
 # define simple_unmount(x)      umount(x)
 #elif defined(__linux__)
-# define translated_target      target
+# define target_translator      link_resolve
 # define flagged_unmount(x, y)  umount2(x, y)
 #elif defined(__solaris__)
 # define target_translator      device2dir
@@ -947,58 +947,75 @@ dev_t device_id(const char* device) noexcept
 # define flagged_unmount(x, y)  unmount(x, y)
 #endif
 
-#if defined(target_translator)
-static inline bool device2dir(const char* in, char* out) noexcept
+// POSIX
+#include <sys/stat.h>
+#include <climits>
+#include <cassert>
+
+static inline bool link_resolve(const char* input, char* output) noexcept
 {
-  bool rvalue = false;
+  assert(input != output);
+  return readlink(input, output, PATH_MAX) > 0 ||
+      (errno == EINVAL && std::strncpy(input, output, PATH_MAX));
+}
+
+static inline bool device2dir(const char* input, char* output) noexcept
+{
   struct stat buf;
-  if(stat(in, &buf) == posix::success_response)
+  if(stat(input, &buf) == posix::success_response)
   {
-    if(S_ISDIR(buf.st_mode))
+    if(S_ISLNK(buf.st_mode))
     {
-      ::strncpy(out, in, PATH_MAX);
-      rvalue = true;
+      return link_resolve(input, output) &&
+               device2dir(output, output);
+    }
+    else if(S_ISDIR(buf.st_mode))
+    {
+      if(input != output)
+        std::strncpy(output, input, PATH_MAX);
+      return true;
     }
     else if(S_ISBLK(buf.st_mode))
     {
 
     }
   }
-  return rvalue;
+  return false;
 }
 
-static inline bool dir2device(const char* in, char* out) noexcept
+static inline bool dir2device(const char* input, char* output) noexcept
 {
   bool rvalue = false;
   struct stat buf;
-  if(stat(in, &buf) == posix::success_response)
+  if(stat(input, &buf) == posix::success_response)
   {
-    if(S_ISBLK(buf.st_mode))
+    if(S_ISLNK(buf.st_mode))
     {
-      ::strncpy(out, in, PATH_MAX);
-      rvalue = true;
+      return link_resolve(input, output) &&
+               dir2device(output, output);
+    }
+    else if(S_ISBLK(buf.st_mode))
+    {
+      if(input != output)
+        std::strncpy(output, input, PATH_MAX);
+      return true;
     }
     else if(S_ISDIR(buf.st_mode))
     {
 
     }
   }
-  return rvalue;
+  return false;
 }
-#endif
-
-
 
 bool unmount(const char* target, const char* options) noexcept
 {
+  char translated_target[PATH_MAX] = { 0 };
+
 #if defined(simple_unmount)
 # pragma message("Warning: unmount() options are not supported.")
-# if defined(target_translator)
-  char translated_target[PATH_MAX] = { 0 };
-  if(!target_translator(target, translated_target))
-    return false;
-# endif
-  return simple_unmount(translated_target) != posix::success_response;
+  return target_translator(target, translated_target) &&
+         simple_unmount(translated_target) != posix::success_response;
 
 #elif defined(flagged_unmount)
   int flags = 0;
@@ -1020,12 +1037,8 @@ bool unmount(const char* target, const char* options) noexcept
     } while(pos != NULL && ++pos);
   }
 
-# if defined(target_translator)
-  char translated_target[PATH_MAX] = { 0 };
-  if(!target_translator(target, translated_target))
-    return false;
-# endif
-  return flagged_unmount(translated_target, flags) != posix::success_response;
+  return target_translator(target, translated_target) &&
+         flagged_unmount(translated_target, flags) != posix::success_response;
 #else
 #error OS not added to unmount list
 #endif
