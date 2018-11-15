@@ -170,7 +170,7 @@
 constexpr posix::size_t section_length(const char* start, const char* end)
   { return end == NULL ? std::strlen(start) : posix::size_t(end - start - 1); }
 
-#define BSD
+//#define BSD
 
 #if defined(BSD)
 template<typename T> bool null_flags_parser(T*,char*,char*) { return false; }
@@ -822,7 +822,7 @@ bool mount_bsd(const char* device,
 
   for(const std::string& fs : fslist)
   {
-#if 0 && defined(__linux__)
+#if !defined(BSD) && defined(__linux__)
     typedef unsigned long mnt_flag_t; // defined for mount()
     if(::mount(device, path, fs.c_str(), mnt_flag_t(mountflags), optionlist.c_str()) == posix::success_response)
       return true;
