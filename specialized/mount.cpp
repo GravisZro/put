@@ -23,6 +23,7 @@
 
 #define MAX_MOUNT_MEM 160
 
+// common mount flags
 #if defined(__linux__)
 #define MNT_RDONLY        MS_RDONLY
 #define MNT_NOEXEC        MS_NOEXEC
@@ -40,8 +41,7 @@
 #define MNT_RDONLY        M_RDONLY
 #endif
 
-
-// Linux Only
+// Linux flags
 #ifndef MS_NODIRATIME
 # define MS_NODIRATIME 0
 #endif
@@ -100,6 +100,7 @@
 # define MS_NOUSER 0
 #endif
 
+// BSD flags
 #ifndef MNT_UNION
 # define MNT_UNION 0
 #endif
@@ -152,6 +153,7 @@
 # define MNT_WXALLOWED 0
 #endif
 
+// unmount flags
 #ifndef MNT_FORCE
 # define MNT_FORCE 0
 #endif
@@ -250,25 +252,25 @@ struct iso9660_bsdargs
 };
 
 // flags
-#define ISOFSMNT_NORRIP       0x00000001 // disable Rock Ridge Ext.
-#define ISOFSMNT_GENS         0x00000002 // enable generation numbers
-#define ISOFSMNT_EXTATT       0x00000004 // enable extended attributes
-#define ISOFSMNT_NOJOLIET     0x00000008 // disable Joliet extensions
-#define ISOFSMNT_NOCASETRANS  0x00000010 // do not make names lower case
-#define ISOFSMNT_RRCASEINS    0x00000020 // case insensitive Rock Ridge
-#define ISOFSMNT_SESS         0x00000010 // use iso_args.sess
+#define BSD_ISOFSMNT_NORRIP       0x00000001 // disable Rock Ridge Ext.
+#define BSD_ISOFSMNT_GENS         0x00000002 // enable generation numbers
+#define BSD_ISOFSMNT_EXTATT       0x00000004 // enable extended attributes
+#define BSD_ISOFSMNT_NOJOLIET     0x00000008 // disable Joliet extensions
+#define BSD_ISOFSMNT_NOCASETRANS  0x00000010 // do not make names lower case
+#define BSD_ISOFSMNT_RRCASEINS    0x00000020 // case insensitive Rock Ridge
+#define BSD_ISOFSMNT_SESS         0x00000010 // use iso_args.sess
 
 bool parse_arg_flags_iso9660(iso9660_bsdargs* args, char* start, char* end)
 {
   switch(hash(start, section_length(start, end)))
   {
-    case "norrip"_hash     : args->flags |= ISOFSMNT_NORRIP       ; return true;
-    case "gens"_hash       : args->flags |= ISOFSMNT_GENS         ; return true;
-    case "extatt"_hash     : args->flags |= ISOFSMNT_EXTATT       ; return true;
-    case "nojoliet"_hash   : args->flags |= ISOFSMNT_NOJOLIET     ; return true;
+    case "norrip"_hash     : args->flags |= BSD_ISOFSMNT_NORRIP       ; return true;
+    case "gens"_hash       : args->flags |= BSD_ISOFSMNT_GENS         ; return true;
+    case "extatt"_hash     : args->flags |= BSD_ISOFSMNT_EXTATT       ; return true;
+    case "nojoliet"_hash   : args->flags |= BSD_ISOFSMNT_NOJOLIET     ; return true;
 #if defined(__NetBSD__)
-    case "nocasetrans"_hash: args->flags |= ISOFSMNT_NOCASETRANS  ; return true;
-    case "rrcaseins"_hash  : args->flags |= ISOFSMNT_RRCASEINS    ; return true;
+    case "nocasetrans"_hash: args->flags |= BSD_ISOFSMNT_NOCASETRANS  ; return true;
+    case "rrcaseins"_hash  : args->flags |= BSD_ISOFSMNT_RRCASEINS    ; return true;
 #endif
   }
   return false;
@@ -283,7 +285,7 @@ bool parse_arg_kv_iso9660(iso9660_bsdargs* args,
   {
     case "session"_hash:
       args->sess = int(std::strtol(val_start, &val_end, 10));
-      args->flags |= ISOFSMNT_SESS;
+      args->flags |= BSD_ISOFSMNT_SESS;
       return true;
   }
   return false;
@@ -325,12 +327,12 @@ struct filecore_bsdargs
 };
 
 // flags
-#define FILECOREMNT_ROOT      0x00000000
-#define FILECOREMNT_OWNACCESS 0x00000001 // Only user has Owner access
-#define FILECOREMNT_ALLACCESS 0x00000002 // World has Owner access
-#define FILECOREMNT_OWNREAD   0x00000004 // All files have Owner read access
-#define FILECOREMNT_USEUID    0x00000008 // Use uid of mount process
-#define FILECOREMNT_FILETYPE  0x00000010 // Include filetype in filename
+#define BSD_FILECOREMNT_ROOT      0x00000000
+#define BSD_FILECOREMNT_OWNACCESS 0x00000001 // Only user has Owner access
+#define BSD_FILECOREMNT_ALLACCESS 0x00000002 // World has Owner access
+#define BSD_FILECOREMNT_OWNREAD   0x00000004 // All files have Owner read access
+#define BSD_FILECOREMNT_USEUID    0x00000008 // Use uid of mount process
+#define BSD_FILECOREMNT_FILETYPE  0x00000010 // Include filetype in filename
 
 
 bool parse_arg_kv_filecore(filecore_bsdargs* args,
@@ -349,12 +351,12 @@ bool parse_arg_flags_filecore(filecore_bsdargs* args, char* start, char* end)
 {
   switch(hash(start, section_length(start, end)))
   {
-    case "root"_hash      : args->flags |= FILECOREMNT_ROOT     ; return true;
-    case "ownaccess"_hash : args->flags |= FILECOREMNT_OWNACCESS; return true;
-    case "allaccess"_hash : args->flags |= FILECOREMNT_ALLACCESS; return true;
-    case "ownread"_hash   : args->flags |= FILECOREMNT_OWNREAD  ; return true;
-    case "useuid"_hash    : args->flags |= FILECOREMNT_USEUID   ; return true;
-    case "filetype"_hash  : args->flags |= FILECOREMNT_FILETYPE ; return true;
+    case "root"_hash      : args->flags |= BSD_FILECOREMNT_ROOT     ; return true;
+    case "ownaccess"_hash : args->flags |= BSD_FILECOREMNT_OWNACCESS; return true;
+    case "allaccess"_hash : args->flags |= BSD_FILECOREMNT_ALLACCESS; return true;
+    case "ownread"_hash   : args->flags |= BSD_FILECOREMNT_OWNREAD  ; return true;
+    case "useuid"_hash    : args->flags |= BSD_FILECOREMNT_USEUID   ; return true;
+    case "filetype"_hash  : args->flags |= BSD_FILECOREMNT_FILETYPE ; return true;
   }
   return false;
 }
@@ -373,7 +375,6 @@ auto arg_finalize_hfs    = null_finalizer   <hfs_bsdargs>;
 
 //--------------------------------------------------------
 // Arguments to mount MSDOS filesystems.
-#define MSDOSFSMNT_VERSION 3
 struct msdosfs_bsdargs
 {
   char*  fspec; // blocks special holding the fs to mount
@@ -390,15 +391,15 @@ struct msdosfs_bsdargs
 };
 
 // flags
-#define MSDOSFSMNT_SHORTNAME  0x00000001 // Force old DOS short names only
-#define MSDOSFSMNT_LONGNAME   0x00000002 // Force Win'95 long names
-#define MSDOSFSMNT_NOWIN95    0x00000004 // Completely ignore Win95 entries
-#define MSDOSFSMNT_GEMDOSFS   0x00000008 // This is a GEMDOS-flavour
-#define MSDOSFSMNT_VERSIONED  0x00000010 // Struct is versioned
-#define MSDOSFSMNT_UTF8       0x00000020 // Use UTF8 filenames
-#define MSDOSFSMNT_RONLY      0x80000000 // mounted read-only
-#define MSDOSFSMNT_WAITONFAT  0x40000000 // mounted synchronous
-#define MSDOSFS_FATMIRROR     0x20000000 // FAT is mirrored
+#define BSD_MSDOSFSMNT_SHORTNAME  0x00000001 // Force old DOS short names only
+#define BSD_MSDOSFSMNT_LONGNAME   0x00000002 // Force Win'95 long names
+#define BSD_MSDOSFSMNT_NOWIN95    0x00000004 // Completely ignore Win95 entries
+#define BSD_MSDOSFSMNT_GEMDOSFS   0x00000008 // This is a GEMDOS-flavour
+#define BSD_MSDOSFSMNT_VERSIONED  0x00000010 // Struct is versioned
+#define BSD_MSDOSFSMNT_UTF8       0x00000020 // Use UTF8 filenames
+#define BSD_MSDOSFSMNT_RONLY      0x80000000 // mounted read-only
+#define BSD_MSDOSFSMNT_WAITONFAT  0x40000000 // mounted synchronous
+#define BSD_MSDOSFS_FATMIRROR     0x20000000 // FAT is mirrored
 
 bool parse_arg_kv_msdosfs(msdosfs_bsdargs* args,
                            char* key_start, char* key_end,
@@ -419,15 +420,15 @@ bool parse_arg_flags_msdosfs(msdosfs_bsdargs* args, char* start, char* end)
 {
   switch(hash(start, section_length(start, end)))
   {
-    case "shortname"_hash   : args->flags |= MSDOSFSMNT_SHORTNAME ; return true;
-    case "longname"_hash    : args->flags |= MSDOSFSMNT_LONGNAME  ; return true;
-    case "nowin95"_hash     : args->flags |= MSDOSFSMNT_NOWIN95   ; return true;
-    case "gemdosfs"_hash    : args->flags |= MSDOSFSMNT_GEMDOSFS  ; return true;
-    case "mntversioned"_hash: args->flags |= MSDOSFSMNT_VERSIONED ; return true;
-    case "utf8"_hash        : args->flags |= MSDOSFSMNT_UTF8      ; return true;
-    case "ronly"_hash       : args->flags |= MSDOSFSMNT_RONLY     ; return true;
-    case "waitonfat"_hash   : args->flags |= MSDOSFSMNT_WAITONFAT ; return true;
-    case "fatmirror"_hash   : args->flags |= MSDOSFS_FATMIRROR    ; return true;
+    case "shortname"_hash   : args->flags |= BSD_MSDOSFSMNT_SHORTNAME ; return true;
+    case "longname"_hash    : args->flags |= BSD_MSDOSFSMNT_LONGNAME  ; return true;
+    case "nowin95"_hash     : args->flags |= BSD_MSDOSFSMNT_NOWIN95   ; return true;
+    case "gemdosfs"_hash    : args->flags |= BSD_MSDOSFSMNT_GEMDOSFS  ; return true;
+    case "mntversioned"_hash: args->flags |= BSD_MSDOSFSMNT_VERSIONED ; return true;
+    case "utf8"_hash        : args->flags |= BSD_MSDOSFSMNT_UTF8      ; return true;
+    case "ronly"_hash       : args->flags |= BSD_MSDOSFSMNT_RONLY     ; return true;
+    case "waitonfat"_hash   : args->flags |= BSD_MSDOSFSMNT_WAITONFAT ; return true;
+    case "fatmirror"_hash   : args->flags |= BSD_MSDOSFS_FATMIRROR    ; return true;
   }
   return false;
 }
@@ -443,7 +444,6 @@ void arg_finalize_msdosfs(msdosfs_bsdargs* data)
 
 //--------------------------------------------------------
 // Arguments to mount NILFS filingsystem.
-#define NILFSMNT_VERSION 1
 struct nilfs_bsdargs
 {
   uint32_t version;     // version of this structure
@@ -474,8 +474,8 @@ struct ntfs_bsdargs
 };
 
 // flags
-#define NTFS_MFLAG_CASEINS  0x00000001
-#define NTFS_MFLAG_ALLNAMES 0x00000002
+#define BSD_NTFS_MFLAG_CASEINS  0x00000001
+#define BSD_NTFS_MFLAG_ALLNAMES 0x00000002
 
 bool parse_arg_kv_ntfs(ntfs_bsdargs* args,
                        char* key_start, char* key_end,
@@ -494,8 +494,8 @@ bool parse_arg_flags_ntfs(ntfs_bsdargs* args, char* start, char* end)
 {
   switch(hash(start, section_length(start, end)))
   {
-    case "caseins"_hash : args->flags |= NTFS_MFLAG_CASEINS ; return true;
-    case "allnames"_hash: args->flags |= NTFS_MFLAG_ALLNAMES; return true;
+    case "caseins"_hash : args->flags |= BSD_NTFS_MFLAG_CASEINS ; return true;
+    case "allnames"_hash: args->flags |= BSD_NTFS_MFLAG_ALLNAMES; return true;
   }
   return false;
 }
@@ -539,7 +539,7 @@ bool parse_arg_flags_ptyfs(ptyfs_bsdargs* args, char* start, char* end)
 void arg_finalize_ptyfs(ptyfs_bsdargs* data)
 {
   data->version = 1;
-  if(data->gid != 0 || data->mask != 0)
+  if(data->gid != 0 || data->mask != 0) // TODO: verify
     data->version = 2;
 }
 
@@ -559,11 +559,11 @@ struct smbfs_bsdargs
 };
 
 // flags
-#define SMBFS_MOUNT_SOFT      0x0001
-#define SMBFS_MOUNT_INTR      0x0002
-#define SMBFS_MOUNT_STRONG    0x0004
-#define SMBFS_MOUNT_HAVE_NLS  0x0008
-#define SMBFS_MOUNT_NO_LONG   0x0010
+#define BSD_SMBFS_MOUNT_SOFT      0x0001
+#define BSD_SMBFS_MOUNT_INTR      0x0002
+#define BSD_SMBFS_MOUNT_STRONG    0x0004
+#define BSD_SMBFS_MOUNT_HAVE_NLS  0x0008
+#define BSD_SMBFS_MOUNT_NO_LONG   0x0010
 
 
 //--------------------------------------------------------
@@ -577,7 +577,6 @@ auto parse_arg_flags_sysvbfs = null_flags_parser<sysvbfs_bsdargs>;
 auto arg_finalize_sysvbfs    = null_finalizer   <sysvbfs_bsdargs>;
 
 //--------------------------------------------------------
-#define TMPFS_ARGS_VERSION 1
 struct tmpfs_bsdargs
 {
   int    version;
@@ -602,7 +601,6 @@ void arg_finalize_tmpfs(tmpfs_bsdargs* data)
 //--------------------------------------------------------
 
 // Arguments to mount UDF filingsystem.
-#define UDFMNT_VERSION 1
 struct udf_bsdargs
 {
   uint32_t version;      // version of this structure
@@ -623,7 +621,7 @@ struct udf_bsdargs
 };
 
 // udf mount options
-#define UDFMNT_CLOSESESSION 0x00000001 // close session on dismount
+#define BSD_UDFMNT_CLOSESESSION 0x00000001 // close session on dismount
 
 
 void arg_finalize_udf(udf_bsdargs* data)
@@ -640,9 +638,9 @@ struct union_bsdargs
 };
 
 // flags
-#define UNMNT_ABOVE   0x0001  // Target appears below mount point
-#define UNMNT_BELOW   0x0002  // Target appears below mount point
-#define UNMNT_REPLACE 0x0003  // Target replaces mount point
+#define BSD_UNMNT_ABOVE   0x0001  // Target appears below mount point
+#define BSD_UNMNT_BELOW   0x0002  // Target appears below mount point
+#define BSD_UNMNT_REPLACE 0x0003  // Target replaces mount point
 
 auto parse_arg_kv_union = parse_arg_fspec<union_bsdargs>;
 
@@ -650,9 +648,9 @@ bool parse_arg_flags_union(union_bsdargs* args, char* start, char* end)
 {
   switch(hash(start, section_length(start, end)))
   {
-    case "above"_hash   : args->flags |= UNMNT_ABOVE  ; return true;
-    case "below"_hash   : args->flags |= UNMNT_BELOW  ; return true;
-    case "replace"_hash : args->flags |= UNMNT_REPLACE; return true;
+    case "above"_hash   : args->flags |= BSD_UNMNT_ABOVE  ; return true;
+    case "below"_hash   : args->flags |= BSD_UNMNT_BELOW  ; return true;
+    case "replace"_hash : args->flags |= BSD_UNMNT_REPLACE; return true;
   }
   return false;
 }
@@ -858,14 +856,14 @@ bool mount_bsd(const char* device,
       PARSE_ARG_CASE(ntfs);
       PARSE_ARG_CASE(hfs);
       PARSE_ARG_CASE(ptyfs);
+      PARSE_ARG_CASE(sysvbfs);
+      PARSE_ARG_CASE(union);
       PARSE_ARG_CASE(autofs);
       PARSE_ARG_CASE(efs);
       PARSE_ARG_CASE(nilfs);
       PARSE_ARG_CASE(smbfs);
-      PARSE_ARG_CASE(sysvbfs);
       PARSE_ARG_CASE(tmpfs);
       PARSE_ARG_CASE(udf);
-      PARSE_ARG_CASE(union);
       PARSE_ARG_CASE(nfs);
       PARSE_ARG_CASE(mfs);
       PARSE_ARG_CASE(afs);
