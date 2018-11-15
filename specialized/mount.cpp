@@ -858,6 +858,7 @@ bool mount_bsd(const char* device,
       PARSE_ARG_CASE(ptyfs);
       PARSE_ARG_CASE(sysvbfs);
       PARSE_ARG_CASE(union);
+/*
       PARSE_ARG_CASE(autofs);
       PARSE_ARG_CASE(efs);
       PARSE_ARG_CASE(nilfs);
@@ -870,6 +871,7 @@ bool mount_bsd(const char* device,
       PARSE_ARG_CASE(fuse);
       PARSE_ARG_CASE(ext2fs);
       PARSE_ARG_CASE(ncpfs);
+*/
     }
     if(parse_ok)
     {
