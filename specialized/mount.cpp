@@ -214,14 +214,14 @@ struct adosfs_bsdargs
 };
 
 bool parse_arg_kv_adosfs(adosfs_bsdargs* args,
-                           char* key_start, char* key_end,
-                           char* val_start, char* val_end)
+                         char* key_start, char* key_end,
+                         char* val_start, char* val_end)
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
-    case "uid"_hash  : args->uid   = uid_t (std::strtoul(val_start, &val_end, 10)); return true;
-    case "gid"_hash  : args->gid   = gid_t (std::strtoul(val_start, &val_end, 10)); return true;
-    case "mask"_hash : args->mask  = mode_t(std::strtoul(val_start, &val_end,  8)); return true;
+    case "uid"_hash  : args->uid  = uid_t (std::strtoul(val_start, &val_end, 10)); return true;
+    case "gid"_hash  : args->gid  = gid_t (std::strtoul(val_start, &val_end, 10)); return true;
+    case "mask"_hash : args->mask = mode_t(std::strtoul(val_start, &val_end,  8)); return true;
   }
   return parse_arg_fspec(args, key_start, key_end, val_start, val_end);
 }
@@ -499,7 +499,6 @@ bool parse_arg_flags_ntfs(ntfs_bsdargs* args, char* start, char* end)
 auto arg_finalize_ntfs = null_finalizer<ntfs_bsdargs>;
 
 //--------------------------------------------------------
-#define PTYFS_ARGSVERSION 2
 struct ptyfs_bsdargs
 {
   int    version;
@@ -507,7 +506,6 @@ struct ptyfs_bsdargs
   mode_t mask;
   int    flags;
 };
-
 
 bool parse_arg_kv_ptyfs(ptyfs_bsdargs* args,
                         char* key_start, char* key_end,
@@ -530,7 +528,6 @@ bool parse_arg_flags_ptyfs(ptyfs_bsdargs* args, char* start, char* end)
   }
   return false;
 }
-
 
 void arg_finalize_ptyfs(ptyfs_bsdargs* data)
 {
