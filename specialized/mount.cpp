@@ -15,9 +15,13 @@
 #include <list>
 #include <string>
 
-// Linux/*BSD/Darwin
-#include <sys/mount.h>
 
+#if defined(__ultrix__)
+# include <sys/fs_types.h>
+#else
+// Linux/*BSD/Darwin
+# include <sys/mount.h>
+#endif
 
 #define MAX_MOUNT_MEM 160
 
@@ -788,7 +792,6 @@ bool mount_bsd(const char* device,
         case "nocoredump"_hash  : mountflags |= MNT_NOCOREDUMP  ; break;
         case "noatime"_hash     : mountflags |= MNT_NOATIME     ; break;
         case "relatime"_hash    : mountflags |= MNT_RELATIME    ; break;
-        case "norelatime"_hash  : mountflags &= 0^MNT_RELATIME  ; break;
         case "nodevmtime"_hash  : mountflags |= MNT_NODEVMTIME  ; break;
         case "symperm"_hash     : mountflags |= MNT_SYMPERM     ; break;
         case "async"_hash       : mountflags |= MNT_ASYNC       ; break;
@@ -868,7 +871,16 @@ bool mount_bsd(const char* device,
     }
     if(parse_ok)
     {
-# if defined(__NetBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(5,0,0)
+# if (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(3,0,0)) || \
+     (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(1,2,0)) || \
+      defined(__OpenBSD__) || \
+      defined(__linux__) || \
+      defined(__minix__) || \
+      defined()
+      if(::mount(fs.c_str(), path, mountflags, data) == posix::success_response)
+        return true;
+
+# elif defined(__NetBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(5,0,0)
       if(::mount(fs.c_str(), path, mountflags, data, MAX_MOUNT_MEM) == posix::success_response)
         return true;
 # else
@@ -882,13 +894,100 @@ bool mount_bsd(const char* device,
   return false;
 }
 
-bool unmount(const char* path, const char* options) noexcept
-{
-#if defined(__linux__) && KERNEL_VERSION_CODE < KERNEL_VERSION(2,1,116)
-  return umount(path) != posix::success_response;
-#else
-  int flags = 0;
+// ====== UNMOUNT ======
 
+#if defined(__ultrix__)
+# define target_translator  dir2device
+# define simple_unmount(x)   umount(device_id(x))
+dev_t device_id(const char* device) noexcept
+{
+  struct stat buf;
+  if(stat(device, &buf) == posix::error_response)
+    return 0;
+  return S_ISBLK(buf.st_mode) ? buf.st_dev : 0;
+}
+#elif defined(__hpux__)
+# define target_translator      dir2device
+# define simple_unmount(x)      umount(x)
+#elif defined(__sunos__)
+# define target_translator      dir2device
+# define simple_unmount(x)      unmount(x)
+#elif defined(__minix__)
+# define target_translator      device2dir
+# define simple_unmount(x)      umount(x)
+#elif (defined(__linux__) && KERNEL_VERSION_CODE < KERNEL_VERSION(2,1,116)) || \
+       defined(__irix__)
+# define translated_target      target
+# define simple_unmount(x)      umount(x)
+#elif defined(__linux__)
+# define translated_target      target
+# define flagged_unmount(x, y)  umount2(x, y)
+#elif defined(__solaris__)
+# define target_translator      device2dir
+# define flagged_unmount(x, y)  umount2(x, y)
+#elif defined(__tru64__)
+# define target_translator      device2dir
+# define flagged_unmount(x, y)  umount(x, y)
+#elif defined(BSD)
+# define target_translator      device2dir
+# define flagged_unmount(x, y)  unmount(x, y)
+#endif
+
+#if defined(target_translator)
+static inline bool device2dir(const char* in, const char* out) noexcept
+{
+  bool rvalue = false;
+  struct stat buf;
+  if(stat(in, &buf) == posix::success_response)
+  {
+    if(S_ISDIR(buf.st_mode))
+    {
+      ::strncpy(out, in, PATH_MAX);
+      rvalue = true;
+    }
+    else if(S_ISBLK(buf.st_mode))
+    {
+
+    }
+  }
+  return rvalue;
+}
+
+static inline bool dir2device(const char* in, const char* out) noexcept
+{
+  bool rvalue = false;
+  struct stat buf;
+  if(stat(in, &buf) == posix::success_response)
+  {
+    if(S_ISBLK(buf.st_mode))
+    {
+      ::strncpy(out, in, PATH_MAX);
+      rvalue = true;
+    }
+    else if(S_ISDIR(buf.st_mode))
+    {
+
+    }
+  }
+  return rvalue;
+}
+#endif
+
+
+
+bool unmount(const char* target, const char* options) noexcept
+{
+#if defined(simple_unmount)
+# pragma message("Warning: unmount() options are not supported.")
+# if defined(target_translator)
+  char translated_target[PATH_MAX] = { 0 };
+  if(!target_translator(target, translated_target))
+    return false;
+# endif
+  return simple_unmount(translated_target) != posix::success_response;
+
+#elif defined(flagged_unmount)
+  int flags = 0;
   if(options != nullptr)
   {
     char* pos = const_cast<char*>(options);
@@ -907,10 +1006,13 @@ bool unmount(const char* path, const char* options) noexcept
     } while(pos != NULL && ++pos);
   }
 
-# if defined(__linux__)
-  return umount2(path, flags) != posix::success_response;
-# else
-  return unmount(path, flags) != posix::success_response;
+# if defined(target_translator)
+  char translated_target[PATH_MAX] = { 0 };
+  if(!target_translator(target, translated_target))
+    return false;
 # endif
+  return flagged_unmount(translated_target, flags) != posix::success_response;
+#else
+#error OS not added to unmount list
 #endif
 }
