@@ -161,7 +161,7 @@
 #ifndef MNT_DETACH
 # define MNT_DETACH 0
 #endif
-#ifndef MNT_DETACH
+#ifndef MNT_EXPIRE
 # define MNT_EXPIRE 0
 #endif
 #ifndef UMOUNT_NOFOLLOW
