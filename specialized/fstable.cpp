@@ -301,7 +301,7 @@ bool mount_table(std::list<struct fsentry_t>& table) noexcept
      defined(__OpenBSD__)
                        buffer[i].f_fstypename,
 #else
-                       ""
+                       "",
 #endif
                        "",
                        0,
