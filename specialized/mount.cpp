@@ -231,7 +231,7 @@
 constexpr posix::size_t section_length(const char* start, const char* end)
   { return end == NULL ? std::strlen(start) : posix::size_t(end - start - 1); }
 
-//#define BSD
+#define BSD
 
 #if defined(BSD)
 template<typename T> bool null_flags_parser(T*,char*,char*) { return false; }
@@ -1066,7 +1066,7 @@ static inline bool device2dir(const char* input, char* output) noexcept
         std::strncpy(output, input, PATH_MAX);
       return true;
     }
-    else if(S_ISBLK(buf.st_mode))
+    else if(S_ISBLK(buf.st_mode) || S_ISCHR(buf.st_mode))
     {
       std::list<fsentry_t> table;
       if(mount_table(table))
@@ -1080,7 +1080,6 @@ static inline bool device2dir(const char* input, char* output) noexcept
 
 static inline bool dir2device(const char* input, char* output) noexcept
 {
-  bool rvalue = false;
   struct stat buf;
   if(stat(input, &buf) == posix::success_response)
   {
@@ -1089,7 +1088,7 @@ static inline bool dir2device(const char* input, char* output) noexcept
       return link_resolve(input, output) &&
                dir2device(output, output);
     }
-    else if(S_ISBLK(buf.st_mode))
+    else if(S_ISBLK(buf.st_mode) || S_ISCHR(buf.st_mode))
     {
       if(input != output)
         std::strncpy(output, input, PATH_MAX);
