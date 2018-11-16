@@ -169,6 +169,65 @@
 # define UMOUNT_NOFOLLOW  0
 #endif
 
+// BSD filesystem types
+#ifndef MOUNT_UFS
+# define MOUNT_UFS        0
+#endif
+#ifndef MOUNT_NFS
+# define MOUNT_NFS        0
+#endif
+#ifndef MOUNT_MFS
+# define MOUNT_MFS        0
+#endif
+#ifndef MOUNT_MSDOS
+# define MOUNT_MSDOS      0
+#endif
+#ifndef MOUNT_LFS
+# define MOUNT_LFS        0
+#endif
+#ifndef MOUNT_LOFS
+# define MOUNT_LOFS       0
+#endif
+#ifndef MOUNT_FDESC
+# define MOUNT_FDESC      0
+#endif
+#ifndef MOUNT_PORTAL
+# define MOUNT_PORTAL     0
+#endif
+#ifndef MOUNT_NULL
+# define MOUNT_NULL       0
+#endif
+#ifndef MOUNT_UMAP
+# define MOUNT_UMAP       0
+#endif
+#ifndef MOUNT_KERNFS
+# define MOUNT_KERNFS     0
+#endif
+#ifndef MOUNT_PROCFS
+# define MOUNT_PROCFS     0
+#endif
+#ifndef MOUNT_AFS
+# define MOUNT_AFS        0
+#endif
+#ifndef MOUNT_CD9660
+# define MOUNT_CD9660     0
+#endif
+#ifndef MOUNT_UNION
+# define MOUNT_UNION      0
+#endif
+#ifndef MOUNT_DEVFS
+# define MOUNT_DEVFS      0
+#endif
+#ifndef MOUNT_EXT2FS
+# define MOUNT_EXT2FS     0
+#endif
+#ifndef MOUNT_TFS
+# define MOUNT_TFS        0
+#endif
+#ifndef MOUNT_CFS
+# define MOUNT_CFS        0
+#endif
+
 constexpr posix::size_t section_length(const char* start, const char* end)
   { return end == NULL ? std::strlen(start) : posix::size_t(end - start - 1); }
 
@@ -196,10 +255,10 @@ struct export_bsdargs
   uid_t     ex_root;    // mapping for root uid
   struct xucred_t
   {
-     uid_t	ex_uid;			// user id
-     gid_t	ex_gid;			// group id
-     short	ex_ngroups;		// number of groups
-     gid_t	ex_groups[16];	// groups
+     uid_t ex_uid;   // user id
+     gid_t ex_gid;   // group id
+     short ex_ngroups;  // number of groups
+     gid_t ex_groups[16]; // groups
   } ex_anon;            // mapping for anonymous user
   sockaddr* ex_addr;    // net address to which exported
   int       ex_addrlen; // and the net address length
@@ -244,7 +303,7 @@ struct autofs_bsdargs
 
 //--------------------------------------------------------
 // Arguments to mount ISO 9660 filesystems.
-struct iso9660_bsdargs
+struct cd9660_bsdargs
 {
   char* fspec;  // block special device to mount
   export_bsdargs export_info; // network export information
@@ -260,7 +319,7 @@ struct iso9660_bsdargs
 #define BSD_ISOFSMNT_RRCASEINS    0x00000020 // case insensitive Rock Ridge
 #define BSD_ISOFSMNT_SESS         0x00000010 // use iso_args.sess
 
-bool parse_arg_flags_iso9660(iso9660_bsdargs* args, char* start, char* end)
+bool parse_arg_flags_cd9660(cd9660_bsdargs* args, char* start, char* end)
 {
   switch(hash(start, section_length(start, end)))
   {
@@ -277,9 +336,9 @@ bool parse_arg_flags_iso9660(iso9660_bsdargs* args, char* start, char* end)
 }
 
 #if defined(__OpenBSD__)
-bool parse_arg_kv_iso9660(iso9660_bsdargs* args,
-                          char* key_start, char* key_end,
-                          char* val_start, char* val_end)
+bool parse_arg_kv_cd9660(cd9660_bsdargs* args,
+                         char* key_start, char* key_end,
+                         char* val_start, char* val_end)
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
@@ -291,9 +350,9 @@ bool parse_arg_kv_iso9660(iso9660_bsdargs* args,
   return false;
 }
 #else
-auto parse_arg_kv_iso9660 = null_kv_parser<iso9660_bsdargs>;
+auto parse_arg_kv_cd9660 = null_kv_parser<cd9660_bsdargs>;
 #endif
-auto arg_finalize_iso9660 = null_finalizer<iso9660_bsdargs>;
+auto arg_finalize_cd9660 = null_finalizer<cd9660_bsdargs>;
 
 
 //--------------------------------------------------------
@@ -839,8 +898,8 @@ bool mount_bsd(const char* device,
       optionlist.append("fspec=").append(device);
     switch(hash(pos))
     {
-      case "cd9660"_hash:
-      PARSE_ARG_CASE(iso9660);
+      case "iso9660"_hash:
+      PARSE_ARG_CASE(cd9660);
 
       case "msdos"_hash:
       PARSE_ARG_CASE(msdosfs);
@@ -891,11 +950,40 @@ bool mount_bsd(const char* device,
         return true;
 
 # else // ye olde "int type" based mount()
+#  define FSTYPE_CASE(name, value) \
+    case compiletime_hash(CASE_QUOTE(name), sizeof(CASE_QUOTE(name)) - 1) : \
+      fstype = value; \
+      break
+
       typedef caddr_t mount_data_t;
       int fstype = 0;
       switch(hash(pos))
       {
-        case "ffs"_hash: fstype = 1; break;
+        // modern aliases
+        FSTYPE_CASE(iso9660 , MOUNT_CD9660); // ISO9660 (aka CDROM) Filesystem
+        FSTYPE_CASE(ffs     , MOUNT_UFS   ); // Fast Filesystem
+        FSTYPE_CASE(msdosfs , MOUNT_MSDOS ); // MS/DOS Filesystem
+
+        // filesystems
+        FSTYPE_CASE(ufs   , MOUNT_UFS   ); // Fast Filesystem
+        FSTYPE_CASE(nfs   , MOUNT_NFS   ); // Sun-compatible Network Filesystem
+        FSTYPE_CASE(mfs   , MOUNT_MFS   ); // Memory-based Filesystem
+        FSTYPE_CASE(msdos , MOUNT_MSDOS ); // MS/DOS Filesystem
+        FSTYPE_CASE(lfs   , MOUNT_LFS   ); // Log-based Filesystem
+        FSTYPE_CASE(lofs  , MOUNT_LOFS  ); // Loopback Filesystem
+        FSTYPE_CASE(fdesc , MOUNT_FDESC ); // File Descriptor Filesystem
+        FSTYPE_CASE(portal, MOUNT_PORTAL); // Portal Filesystem
+        FSTYPE_CASE(null  , MOUNT_NULL  ); // Minimal Filesystem Layer
+        FSTYPE_CASE(umap  , MOUNT_UMAP  ); // User/Group Identifier Remapping Filesystem
+        FSTYPE_CASE(kernfs, MOUNT_KERNFS); // Kernel Information Filesystem
+        FSTYPE_CASE(procfs, MOUNT_PROCFS); // /proc Filesystem
+        FSTYPE_CASE(afs   , MOUNT_AFS   ); // Andrew Filesystem
+        FSTYPE_CASE(cd9660, MOUNT_CD9660); // ISO9660 (aka CDROM) Filesystem
+        FSTYPE_CASE(union , MOUNT_UNION ); // Union (translucent) Filesystem
+        FSTYPE_CASE(devfs , MOUNT_DEVFS ); // existing device Filesystem
+        FSTYPE_CASE(ext2fs, MOUNT_EXT2FS); // Linux EXT2FS
+        FSTYPE_CASE(tfs   , MOUNT_TFS   ); // Netcon Novell filesystem
+        FSTYPE_CASE(cfs   , MOUNT_CFS   ); // Coda filesystem
       }
 
       if(::mount(fstype, path, mountflags, reinterpret_cast<mount_data_t>(data)) == posix::success_response)
