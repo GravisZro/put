@@ -5,56 +5,72 @@
 
 /*
  * Free open source OS detection macros
- *--------------------------------------------------------
- * __linux__          // Linux          (version support)
- * __kfreebsd__       // kFreeBSD       (version support)
- * __FreeBSD__        // FreeBSD        (version support)
- * __NetBSD__         // NetBSD         (version support)
- * __OpenBSD__        // OpenBSD        (version support)
- * __DragonFly__      // DragonFly BSD
- * __minix__          // MINIX
- * __plan9__          // Plan 9
- * __ecos__           // eCos
- * __SYLLABLE__       // Syllable
- *
+ *-------------------------------------------------------*
+ * __linux__           | Linux          | VS | *nix      |
+ * __kfreebsd__        | kFreeBSD       | VS | BSD       |
+ * __FreeBSD__         | FreeBSD        | VS | BSD       |
+ * __NetBSD__          | NetBSD         | VS | BSD       |
+ * __OpenBSD__         | OpenBSD        | VS | BSD       |
+ * __DragonFly__       | DragonFly BSD  |    | BSD       |
+ * __minix__           | MINIX          |    | *nix      |
+ * __plan9__           | Plan 9         |    | *nix      |
+ * __ecos__            | eCos           |    | alien/PC  |
+ * __SYLLABLE__        | Syllable       |    | alien     |
+ *-------------------------------------------------------*
  *
  * Commercial open source OS detection macros
- *--------------------------------------------------------
- * __darwin__         // Darwin
- * __sunos__          // SunOS
- * __solaris__        // Solaris
- * __sco_openserver__ // SCO OpenServer
- * __bsdi__           // BSD/OS         (version support)
- *
+ *-------------------------------------------------------*
+ * __darwin__          | Darwin         |    | BSD       |
+ * __sunos__           | SunOS          |    | BSD       |
+ * __solaris__         | Solaris        |    | SysV      |
+ * __sco_openserver__  | SCO OpenServer |    | SysV->BSD |
+ * __bsdi__            | BSD/OS         | VS | *BSD      |
+ *-------------------------------------------------------*
  *
  * Commercial closed source OS detection macros
- *--------------------------------------------------------
- * __zos__            // z/OS
- * __tru64__          // Tru64 (OSF/1)
- * __hpux__           // HP-UX
- * __irix__           // IRIX
- * __unixware__       // UnixWare
- * __dynix__          // DYNIX
- * __mpeix__          // MPE/iX
- * __vms__            // VMS
- * __aix__            // AIX            (version support)
- * __dcosx__          // DC/OSx
- * __reliant_unix__   // Reliant UNIX
- * __interix__        // Interix
- * __OS2__            // OS/2
- * __ultrix__         // Ultrix
- * __dgux__           // DG/UX
- * __amigaos__        // AmigaOS
- * __QNX__            // QNX
- * __BEOS__           // BeOS
- * __MORPHOS__        // MorphOS
- * __Lynx__           // LynxOS
- * __nucleus__        // Nucleus RTOS
- * __VOS__            // Stratus VOS
+ *-------------------------------------------------------*
+ * __zos__             | z/OS           |    | alien/PC  |
+ * __tru64__           | Tru64 (OSF/1)  |    | BSD       |
+ * __hpux__            | HP-UX          |    | SysV      |
+ * __irix__            | IRIX           |    | SysV/BSD  |
+ * __unixware__        | UnixWare       |    | SysV      |
+ * __dynix__           | DYNIX          |    | BSD->SysV |
+ * __mpeix__           | MPE/iX         |    | alien/PC  |
+ * __vms__             | VMS            |    | alien/PC  |
+ * __aix__             | AIX            |    | SysV/BSD  |
+ * __dcosx__           | DC/OSx         |    | SysV      |
+ * __reliant_unix__    | Reliant UNIX   |    | SysV      |
+ * __interix__         | Interix        |    | alien/PC  |
+ * __OS2__             | OS/2           |    | alien     |
+ * __ultrix__          | Ultrix         |    | SysV/BSD  |
+ * __dgux__            | DG/UX          |    | SysV/BSD  |
+ * __amigaos__         | AmigaOS        |    | alien     |
+ * __QNX__             | QNX            |    | alien/PC  |
+ * __BEOS__            | BeOS           |    | alien     |
+ * __MORPHOS__         | MorphOS        |    | alien     |
+ * __Lynx__            | LynxOS         |    | *nix      |
+ * __nucleus__         | Nucleus RTOS   |    | alien/PC  |
+ * __VOS__             | Stratus VOS    |    | alien     |
+ *-------------------------------------------------------*
+ *
+ * Notes
+ *-------------------------------------------------------------
+ * "VS"        - Version support indicating the ability to use the OS version support
+ *               perprocessor macros in applications
+ *
+ * "*nix"      - An OS modeled after UNIX a.k.a. a UNIX clone
+ * "SysV"      - Based on UNIX System V
+ * "BSD"       - Based on BSD
+ * "SysV/BSD"  - Based on UNIX System V but adds BSD extensions
+ * "BSD->SysV" - Earlier versions based on BSD but later version based on UNIX System V
+ * "SysV->BSD" - Earlier versions based on UNIX System V but later version based on BSD
+ * "alien"     - An OS not based on or modeled after UNIX
+ * "alien/PC"  - An OS not based on or modeled after UNIX but has a POSIX compatibility
+ *               layer that enables POSIX functionality
  *
  *
  * OS version support macros
- *-------------------------------
+ *-------------------------------------------------------------
  * KERNEL_VERSION_CODE      // value of the current kernel version
  * KERNEL_VERSION(x, y, z)  // generate value of a specific kernel version
  *
