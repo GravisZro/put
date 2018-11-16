@@ -298,7 +298,8 @@ bool mount_table(std::list<struct fsentry_t>& table) noexcept
                        buffer[i].f_mntonname,
 #if (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(3,0,0)) || \
     (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(1,0,0)) || \
-     defined(__OpenBSD__)
+     defined(__OpenBSD__) || \
+     defined(__darwin__)
                        buffer[i].f_fstypename,
 #else
                        "",
