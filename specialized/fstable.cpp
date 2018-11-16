@@ -294,9 +294,15 @@ bool mount_table(std::list<struct fsentry_t>& table) noexcept
     return false;
 
   for(int i = 0; i < count; ++i)
-    table.emplace_back("",
-                       buffer[i].f_mntfromname,
+    table.emplace_back(buffer[i].f_mntfromname,
+                       buffer[i].f_mntonname,
+#if (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(3,0,0)) || \
+    (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(1,0,0)) || \
+     defined(__OpenBSD__)
                        buffer[i].f_fstypename,
+#else
+                       ""
+#endif
                        "",
                        0,
                        0);
