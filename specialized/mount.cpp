@@ -231,7 +231,7 @@
 constexpr posix::size_t section_length(const char* start, const char* end)
   { return end == NULL ? std::strlen(start) : posix::size_t(end - start - 1); }
 
-#define BSD
+//#define BSD
 
 #if defined(BSD)
 template<typename T> bool null_flags_parser(T*,char*,char*) { return false; }
