@@ -951,6 +951,7 @@ dev_t device_id(const char* device) noexcept
 #include <sys/stat.h>
 #include <climits>
 #include <cassert>
+#include <specialized/fstable.h>
 
 static inline bool link_resolve(const char* input, char* output) noexcept
 {
@@ -977,7 +978,11 @@ static inline bool device2dir(const char* input, char* output) noexcept
     }
     else if(S_ISBLK(buf.st_mode))
     {
-
+      std::list<fsentry_t> table;
+      if(mount_table(table))
+        for(const fsentry_t& entry : table)
+          if(!std::strcmp(entry.device, input))
+            return std::strncpy(output, entry.path, PATH_MAX) == output;
     }
   }
   return false;
@@ -1002,7 +1007,11 @@ static inline bool dir2device(const char* input, char* output) noexcept
     }
     else if(S_ISDIR(buf.st_mode))
     {
-
+      std::list<fsentry_t> table;
+      if(mount_table(table))
+        for(const fsentry_t& entry : table)
+          if(!std::strcmp(entry.path, input))
+            return std::strncpy(output, entry.device, PATH_MAX) == output;
     }
   }
   return false;
