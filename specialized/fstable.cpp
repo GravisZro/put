@@ -310,7 +310,6 @@ bool mount_table(std::list<struct fsentry_t>& table) noexcept
   return true;
 }
 
-#elif defined(__minix__)    /* MINIX    */ || \
 #else
 # pragma message("No mountpoint interrogation code for this platform! Please submit a patch.")
 #endif
