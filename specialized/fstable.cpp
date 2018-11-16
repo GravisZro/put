@@ -290,6 +290,9 @@ bool mount_table(std::list<struct fsentry_t>& table) noexcept
   if(buffer == nullptr)
     return false;
 
+  if(getfsstat(buffer, sizeof(struct statfs) * count, 0) != posix::success_response)
+    return false;
+
   for(int i = 0; i < count; ++i)
     table.emplace_back("",
                        buffer[i].f_mntfromname,
