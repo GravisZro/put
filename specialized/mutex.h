@@ -20,9 +20,9 @@ typedef pthread_mutex_t mutex_type;
 # define SINGLE_THREADED_APPLICATION
 #endif
 
-#if !defined(SINGLE_THREADED_APPLICATION)
 namespace posix
 {
+#if !defined(SINGLE_THREADED_APPLICATION)
   class mutex
   {
   public:
@@ -33,6 +33,13 @@ namespace posix
   private:
     mutex_type m_mutex;
   };
+#else
+  struct mutex
+  {
+    constexpr bool lock(void) const noexcept { return true; }
+    constexpr bool unlock(void) const noexcept { return true; }
+  };
+#endif
 
   template<typename T>
   struct lockable : T, posix::mutex
@@ -42,19 +49,5 @@ namespace posix
       : T(args...) { }
   };
 }
-
-#else
-namespace posix
-{
-  template<typename T>
-  struct lockable : T
-  {
-    template<typename... ArgTypes>
-    lockable(ArgTypes... args) noexcept : T(args...) { }
-    constexpr bool lock(void) const noexcept { return true; }
-    constexpr bool unlock(void) const noexcept { return true; }
-  };
-}
-#endif
 
 #endif // MUTEX_H
