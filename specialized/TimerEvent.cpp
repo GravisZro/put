@@ -217,7 +217,8 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
     auto iter = events.find(fd);
     if(iter != events.end())
     {
-      const eventinfo_t& data = iter->second;
+      eventinfo_t data = iter->second; // copy data
+      events.erase(iter);
       posix::close(data.fd[Read]);
       posix::close(data.fd[Write]);
       return ::timer_delete(data.timer) == posix::success_response;
