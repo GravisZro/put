@@ -6,14 +6,14 @@
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,13) /* Linux 2.6.13+ */
 
 // POSIX++
-#include <cstring>
-#include <cassert>
+# include <cstring>
+# include <cassert>
 
 // Linux
-#include <sys/inotify.h>
+# include <sys/inotify.h>
 
 // PUT
-#include <cxxutils/vterm.h>
+# include <cxxutils/vterm.h>
 
 // file/directory flags
 static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
@@ -141,7 +141,7 @@ FileEvent::~FileEvent(void) noexcept
       (defined(__OpenBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,9,0))  /* OpenBSD 2.9+  */ || \
       (defined(__NetBSD__)  && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,0,0))  /* NetBSD 2+     */
 
-#include <sys/event.h> // kqueue
+# include <sys/event.h> // kqueue
 
 static constexpr native_flags_t composite_flag(uint16_t actions, int16_t filters, uint32_t flags) noexcept
   { return native_flags_t(actions) | (native_flags_t(uint16_t(filters)) << 16) | (native_flags_t(flags) << 32); }
@@ -192,16 +192,147 @@ FileEvent::~FileEvent(void) noexcept
   m_fd = posix::invalid_descriptor;
 }
 
-#elif defined(__solaris__) /* Solaris */
-# error No file event backend code exists in PUT for Solaris!  Please submit a patch!
-
-#elif defined(__QNX__) // QNX
-// QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
-# error No file event backend code exists in PUT for QNX!  Please submit a patch!
-
-#elif defined(__unix__)
-# error No file event backend code exists in PUT for this UNIX!  Please submit a patch!
-
 #else
-# error This platform is not supported.
+// POSIX++
+# include <cstring>
+# include <cassert>
+
+// POSIX
+# include <sys/stat.h>
+
+// PUT
+# include <cxxutils/vterm.h>
+# include <specialized/TimerEvent.h>
+
+enum {
+  Read = 0,
+  Write = 1,
+};
+
+template<typename T>
+static inline bool data_identical(T& a, T& b) noexcept
+{ return std::memcmp(&a, &b, sizeof(T)) == 0; }
+
+struct FileEvent::platform_dependant // file notification (TimerEvent)
+{
+  struct eventinfo_t
+  {
+    posix::fd_t fd[2]; // two fds for pipe based communication
+    const char* file;
+    Flags_t flags;
+    struct stat status;
+    TimerEvent timer;
+    uint32_t test_count;
+  };
+
+  std::unordered_map<posix::fd_t, eventinfo_t> events;
+
+  posix::fd_t add(const char* file, Flags_t flags) noexcept
+  {
+    eventinfo_t data;
+    data.file = file;
+    data.flags = flags;
+    data.test_count = 0;
+
+    if(::lstat(file, &data.status) == posix::error_response ||
+       !posix::pipe(data.fd))
+      return posix::invalid_descriptor;
+
+    posix::fd_t& readfd = data.fd[Read];
+    posix::fcntl(readfd, F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::donotblock(readfd); // don't block
+
+    auto pair = events.emplace(readfd, data);
+    if(!pair.second) // emplace failed
+      return posix::invalid_descriptor;
+
+    Object::connect(data.timer.expired,
+                    Object::fslot_t<void>([this, pair](void) noexcept
+                      { update(pair.first->second); }));
+
+    data.timer.start(1000, true);
+    return readfd;
+  }
+
+  void update(eventinfo_t& data) noexcept
+  {
+    Flags_t flags;
+    struct stat status;
+    if(::lstat(data.file, &status) == posix::success_response &&
+       !data_identical(data.status, status))
+    {
+      flags.ReadEvent    = data_identical(data.status.st_atim, status.st_atim) ? 0 : 1;
+      flags.WriteEvent   = data_identical(data.status.st_mtim, status.st_mtim) ? 0 : 1;
+      flags.AttributeMod = data.status.st_mode == status.st_mode &&
+                           data.status.st_uid  == status.st_uid &&
+                           data.status.st_gid  == status.st_gid &&
+                           data.status.st_rdev == status.st_rdev ? 0 : 1;
+      flags.Moved        = data.status.st_dev  == status.st_dev &&
+                           data.status.st_ino  == status.st_ino  ? 0 : 1;
+    }
+    else
+    {
+      switch(errno)
+      {
+        case EACCES: flags.AttributeMod = 1; break;
+        case ENOTDIR:
+        case ENOENT: flags.Deleted = 1; break; // file may be moved but assume it's deleted
+      }
+    }
+    if(flags)
+    {
+      data.test_count = 0;
+      posix::write(data.fd[Write], &flags, sizeof(flags));
+    }
+    if(flags.Deleted)
+      remove(data.fd[Read]);
+    else
+    {
+      if(data.test_count == 0)
+        data.timer.start(1000, true); // test once per second
+      else if(data.test_count == 10)
+        data.timer.start(10000, true); // test every 10 seconds
+      else if(data.test_count == 100)
+        data.timer.start(100000, true); // test every 100 seconds
+      data.test_count++;
+    }
+  }
+
+  bool remove(posix::fd_t fd) noexcept
+  {
+    auto iter = events.find(fd);
+    if(iter != events.end())
+    {
+      posix::close(iter->second.fd[Read]);
+      posix::close(iter->second.fd[Write]);
+      events.erase(iter);
+      return true;
+    }
+    return false;
+  }
+} FileEvent::s_platform;
+
+
+FileEvent::FileEvent(const std::string& _file, Flags_t _flags) noexcept
+  : m_file(_file),
+    m_flags(_flags),
+    m_fd(posix::invalid_descriptor)
+{
+  m_fd = s_platform.add(m_file.c_str(), m_flags);
+  EventBackend::add(m_fd, EventBackend::SimplePollReadFlags,
+                    [this](posix::fd_t lambda_fd, native_flags_t) noexcept
+                    {
+                      Flags_t event_flags, new_flags;
+                      while(posix::read(lambda_fd, &new_flags, sizeof(event_flags)) != posix::error_response) // read all events
+                        event_flags = event_flags | new_flags; // compose new flag result
+                      assert(m_flags & event_flags); // at least one flag matches
+                      Object::enqueue(activated, m_file, event_flags);
+                    });
+}
+
+FileEvent::~FileEvent(void) noexcept
+{
+  assert(EventBackend::remove(m_fd, EventBackend::SimplePollReadFlags));
+  s_platform.remove(m_fd); // may already be deleted
+}
 #endif
