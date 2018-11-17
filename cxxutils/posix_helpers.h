@@ -292,7 +292,7 @@ namespace posix
 
 // variadic POSIX wrappers
   template<typename... ArgTypes>
-#if defined(SA_RESTART) && !defined(INTERRUPTED_WRAPPER)
+#if defined(SA_RESTART) && defined(DISABLE_INTERRUPTED_WRAPPER)
   constexpr fd_t open(const char *path, int oflag, ArgTypes... args) noexcept
     { return ::open(path, oflag, args...); }
 #else
@@ -307,7 +307,7 @@ namespace posix
 #endif
 
   template<typename IntType, typename... ArgTypes>
-#if defined(SA_RESTART) && !defined(INTERRUPTED_WRAPPER)
+#if defined(SA_RESTART) && defined(DISABLE_INTERRUPTED_WRAPPER)
   constexpr int ioctl(fd_t fd, IntType request, ArgTypes... args) noexcept
   {
     static_assert(std::is_integral<IntType>::value, "Has to be an integer type!");

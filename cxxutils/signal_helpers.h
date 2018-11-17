@@ -15,7 +15,7 @@
 # endif
 #endif
 
-#if defined(SA_RESTART) && !defined(INTERRUPTED_WRAPPER)
+#if defined(SA_RESTART) && defined(DISABLE_INTERRUPTED_WRAPPER)
 #pragma message("All interrupt handlers need to use the SA_RESTART flag!")
 #endif
 
@@ -24,7 +24,7 @@ namespace posix
   template<typename RType, typename... ArgTypes>
   using function = RType(*)(ArgTypes...);
 
-#if defined(SA_RESTART) && !defined(INTERRUPTED_WRAPPER)
+#if defined(SA_RESTART) && defined(DISABLE_INTERRUPTED_WRAPPER)
   template<typename RType, typename... ArgTypes> constexpr RType  ignore_interruption(function<RType , ArgTypes...> func, ArgTypes... args) noexcept { return func(args...); }
   template<typename RType, typename... ArgTypes> constexpr RType* ignore_interruption(function<RType*, ArgTypes...> func, ArgTypes... args) noexcept { return func(args...); }
 #else
