@@ -234,7 +234,7 @@ struct FileEvent::platform_dependant // file notification (TimerEvent)
     data.flags = flags;
     data.test_count = 0;
 
-    if(::lstat(file, &data.status) == posix::error_response ||
+    if(::stat(file, &data.status) == posix::error_response ||
        !posix::pipe(data.fd))
       return posix::invalid_descriptor;
 
@@ -258,7 +258,7 @@ struct FileEvent::platform_dependant // file notification (TimerEvent)
   {
     Flags_t flags;
     struct stat status;
-    if(::lstat(data.file, &status) == posix::success_response &&
+    if(::stat(data.file, &status) == posix::success_response &&
        !data_identical(data.status, status))
     {
       flags.ReadEvent    = data_identical(data.status.st_atim, status.st_atim) ? 0 : 1;
