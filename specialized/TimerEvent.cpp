@@ -24,10 +24,10 @@ TimerEvent::TimerEvent(void) noexcept
   }
 
   EventBackend::add(m_fd, EventBackend::SimplePollReadFlags, // connect communications pipe to a lambda function
-                    [this](posix::fd_t fd, native_flags_t) noexcept
+                    [this](posix::fd_t lambda_fd, native_flags_t) noexcept
   {
     uint64_t discard;
-    while(posix::read(fd, &discard, sizeof(discard)) != posix::error_response);
+    while(posix::read(lambda_fd, &discard, sizeof(discard)) != posix::error_response);
     Object::enqueue(expired);
   });
 }
@@ -232,10 +232,10 @@ TimerEvent::TimerEvent(void) noexcept
 {
   m_fd = s_platform.add();
   EventBackend::add(m_fd, EventBackend::SimplePollReadFlags, // connect communications pipe to a lambda function
-                    [this](posix::fd_t fd, native_flags_t) noexcept
+                    [this](posix::fd_t lambda_fd, native_flags_t) noexcept
   {
     uint64_t discard;
-    while(posix::read(fd, &discard, sizeof(discard)) != posix::error_response);
+    while(posix::read(lambda_fd, &discard, sizeof(discard)) != posix::error_response);
     Object::enqueue(expired);
   });
 }
