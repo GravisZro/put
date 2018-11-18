@@ -10,11 +10,11 @@
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
 // Linux
 # if defined(FORCE_POSIX_POLL)
-# include <poll.h>
-    constexpr int const_polling_flags = POLLERR | POLLPRI;
+#  include <poll.h>
+constexpr int const_polling_flags = POLLERR | POLLPRI;
 # else
-# include <sys/epoll.h>
-    constexpr int const_polling_flags = EPOLLERR | EPOLLPRI;
+#  include <sys/epoll.h>
+constexpr int const_polling_flags = EPOLLERR | EPOLLPRI;
 # endif
 
 
