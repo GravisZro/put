@@ -57,7 +57,7 @@ MountEvent::MountEvent(void) noexcept
     EventBackend::add(m_fd, polling_flags, comparison_func); // connect FD with flags to comparison_func
 #elif defined(__unix__)   /* Generic UNIX */
     m_timer = new TimerEvent();
-    m_timer->start(10000000, 10000000); // once per 10 seconds
+    m_timer->start(seconds(10), true); // once per 10 seconds
     Object::connect(m_timer->expired, fslot_t<void>([comparison_func](void) noexcept { comparison_func(0,0); }));
 #endif
 }
