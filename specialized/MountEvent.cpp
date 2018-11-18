@@ -9,7 +9,15 @@
 
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
 // Linux
+# if defined(FORCE_POSIX_POLL)
+# include <poll.h>
+    constexpr int const_polling_flags = POLLERR | POLLPRI;
+# else
 # include <sys/epoll.h>
+    constexpr int const_polling_flags = EPOLLERR | EPOLLPRI;
+# endif
+
+
 #elif defined(__unix__)   /* Generic UNIX */
 // PUT
 # include <specialized/TimerEvent.h>
@@ -43,18 +51,13 @@ MountEvent::MountEvent(void) noexcept
         };
 
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
-# if defined(FORCE_POSIX_POLL)
-    constexpr int polling_flags = POLLERR | POLLPRI;
-# else
-    constexpr int polling_flags = EPOLLERR | EPOLLPRI;
-# endif
     char proc_mounts[PATH_MAX] = { 0 };
     if(procfs_path == nullptr)
       initialize_paths();
     std::sscanf(proc_mounts, "%s/mounts", procfs_path);
 
     m_fd = posix::open(proc_mounts, O_RDONLY | O_NONBLOCK);
-    EventBackend::add(m_fd, polling_flags, comparison_func); // connect FD with flags to comparison_func
+    EventBackend::add(m_fd, const_polling_flags, comparison_func); // connect FD with flags to comparison_func
 #elif defined(__unix__)   /* Generic UNIX */
     m_timer = new TimerEvent();
     m_timer->start(seconds(10), true); // once per 10 seconds
@@ -65,7 +68,7 @@ MountEvent::MountEvent(void) noexcept
 MountEvent::~MountEvent(void) noexcept
 {
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
-  EventBackend::remove(m_fd, EPOLLERR | EPOLLPRI); // disconnect FD with flags from signal
+  EventBackend::remove(m_fd, const_polling_flags); // disconnect FD with flags from signal
   posix::close(m_fd);
 #elif defined(__unix__)   /* Generic UNIX */
   if(m_timer != nullptr)
