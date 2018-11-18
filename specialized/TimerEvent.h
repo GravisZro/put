@@ -4,6 +4,8 @@
 // PUT
 #include <object.h>
 
+template<typename T> constexpr milliseconds_t seconds(T count) { return 1000 * count; }
+
 class TimerEvent : public Object
 {
 public:
