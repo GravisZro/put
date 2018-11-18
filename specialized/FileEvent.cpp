@@ -289,11 +289,11 @@ struct FileEvent::platform_dependant // file notification (TimerEvent)
     else
     {
       if(data.test_count == 0)
-        data.timer.start(1000, true); // test once per second
+        data.timer.start(seconds(1), true); // test once per second
       else if(data.test_count == 10)
-        data.timer.start(10000, true); // test every 10 seconds
+        data.timer.start(seconds(10), true); // test every 10 seconds
       else if(data.test_count == 100)
-        data.timer.start(100000, true); // test every 100 seconds
+        data.timer.start(seconds(100), true); // test every 100 seconds
       data.test_count++;
     }
   }
