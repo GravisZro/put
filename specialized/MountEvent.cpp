@@ -16,8 +16,6 @@ constexpr int const_polling_flags = POLLERR | POLLPRI;
 #  include <sys/epoll.h>
 constexpr int const_polling_flags = EPOLLERR | EPOLLPRI;
 # endif
-
-
 #elif defined(__unix__)   /* Generic UNIX */
 // PUT
 # include <specialized/TimerEvent.h>
