@@ -2,6 +2,7 @@
 
 // POSIX++
 #include <cstdlib>
+#include <cctype>
 
 // POSIX
 #include <socket.h>
@@ -242,11 +243,12 @@ template<typename T> void null_finalizer(T*) { }
 template<typename T>
 T decode(const char* start, const char* end, int base)
 {
+  static_assert(base <= 10, "bases hire than 10 are not supported");
   T value = 0;
   bool neg = *start == '-';
   if(neg)
     ++start;
-  for(const char* pos = start; pos != end; ++pos)
+  for(const char* pos = start; pos != end && std::isdigit(*pos); ++pos)
   {
     value *= base;
     value += *pos - '0';
