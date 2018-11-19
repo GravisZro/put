@@ -235,13 +235,13 @@ constexpr posix::size_t section_length(const char* start, const char* end)
 //#define BSD
 
 #if defined(BSD)
-template<typename T> bool null_flags_parser(T*,char*,char*) { return false; }
-template<typename T> bool null_kv_parser(T*,char*,char*,char*,char*) { return false; }
+template<typename T> bool null_flags_parser(T*,const char*,const char*) { return false; }
+template<typename T> bool null_kv_parser(T*,const char*,const char*,const char*,const char*) { return false; }
 template<typename T> void null_finalizer(T*) { }
 
 
 template<typename T>
-bool parse_arg_fspec(T* args, char* key_start, char* key_end, char* val_start, char*)
+bool parse_arg_fspec(T* args, const char* key_start, const char* key_end, const char* val_start, const char*)
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
@@ -270,7 +270,7 @@ struct export_bsdargs
 // Arguments to mount amigados filesystems.
 struct adosfs_bsdargs
 {
-  char*  fspec; // blocks special holding the fs to mount
+  const char*    fspec;       // block special device to mount
   export_bsdargs export_info; // network export information
   uid_t  uid;   // uid that owns adosfs files
   gid_t  gid;   // gid that owns adosfs files
@@ -278,8 +278,8 @@ struct adosfs_bsdargs
 };
 
 bool parse_arg_kv_adosfs(adosfs_bsdargs* args,
-                         char* key_start, char* key_end,
-                         char* val_start, char* val_end)
+                         const char* key_start, const char* key_end,
+                         const char* val_start, const char* val_end)
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
@@ -297,16 +297,16 @@ auto arg_finalize_adosfs    = null_finalizer   <adosfs_bsdargs>;
 // Arguments to mount autofs filesystem.
 struct autofs_bsdargs
 {
-  char* from;
-  char* master_options;
-  char* master_prefix;
+  const char* from;
+  const char* master_options;
+  const char* master_prefix;
 };
 
 //--------------------------------------------------------
 // Arguments to mount ISO 9660 filesystems.
 struct cd9660_bsdargs
 {
-  char* fspec;  // block special device to mount
+  const char*    fspec;       // block special device to mount
   export_bsdargs export_info; // network export information
   int   flags;  // mounting flags, see below
 };
@@ -320,7 +320,7 @@ struct cd9660_bsdargs
 #define BSD_ISOFSMNT_RRCASEINS    0x00000020 // case insensitive Rock Ridge
 #define BSD_ISOFSMNT_SESS         0x00000010 // use iso_args.sess
 
-bool parse_arg_flags_cd9660(cd9660_bsdargs* args, char* start, char* end)
+bool parse_arg_flags_cd9660(cd9660_bsdargs* args, const char* start, const char* end)
 {
   switch(hash(start, section_length(start, end)))
   {
@@ -338,8 +338,8 @@ bool parse_arg_flags_cd9660(cd9660_bsdargs* args, char* start, char* end)
 
 #if defined(__OpenBSD__)
 bool parse_arg_kv_cd9660(cd9660_bsdargs* args,
-                         char* key_start, char* key_end,
-                         char* val_start, char* val_end)
+                         const char* key_start, const char* key_end,
+                         const char* val_start, const char* val_end)
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
@@ -360,7 +360,7 @@ auto arg_finalize_cd9660 = null_finalizer<cd9660_bsdargs>;
 
 struct ufs_bsdargs
 {
-  char*  fspec;    // block special device to mount */
+  const char*    fspec;       // block special device to mount
   export_bsdargs export_info; // network export information
 };
 
@@ -371,7 +371,7 @@ auto arg_finalize_ufs    = null_finalizer   <ufs_bsdargs>;
 //--------------------------------------------------------
 struct efs_bsdargs
 {
-  char* fspec;   // block special device to mount
+  const char* fspec;   // block special device to mount
   int   version;
 };
 
@@ -379,7 +379,7 @@ struct efs_bsdargs
 // Arguments to mount Acorn Filecore filesystems.
 struct filecore_bsdargs
 {
-  char* fspec; // block special device to mount
+  const char*    fspec;       // block special device to mount
   export_bsdargs export_info; // network export information
   uid_t uid;   // uid that owns filecore files
   gid_t gid;   // gid that owns filecore files
@@ -396,8 +396,8 @@ struct filecore_bsdargs
 
 
 bool parse_arg_kv_filecore(filecore_bsdargs* args,
-                           char* key_start, char* key_end,
-                           char* val_start, char* val_end)
+                           const char* key_start, const char* key_end,
+                           const char* val_start, const char* val_end)
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
@@ -407,7 +407,7 @@ bool parse_arg_kv_filecore(filecore_bsdargs* args,
   return parse_arg_fspec(args, key_start, key_end, val_start, val_end);
 }
 
-bool parse_arg_flags_filecore(filecore_bsdargs* args, char* start, char* end)
+bool parse_arg_flags_filecore(filecore_bsdargs* args, const char* start, const char* end)
 {
   switch(hash(start, section_length(start, end)))
   {
@@ -426,7 +426,7 @@ auto arg_finalize_filecore = null_finalizer<filecore_bsdargs>;
 //--------------------------------------------------------
 struct hfs_bsdargs
 {
-  char* fspec;  // block special device to mount
+  const char* fspec;  // block special device to mount
 };
 
 auto parse_arg_kv_hfs    = parse_arg_fspec  <hfs_bsdargs>;
@@ -437,7 +437,7 @@ auto arg_finalize_hfs    = null_finalizer   <hfs_bsdargs>;
 // Arguments to mount MSDOS filesystems.
 struct msdosfs_bsdargs
 {
-  char*  fspec; // blocks special holding the fs to mount
+  const char*    fspec;       // block special device to mount
   export_bsdargs export_info; // network export information
   uid_t  uid;   // uid that owns msdosfs files
   gid_t  gid;   // gid that owns msdosfs files
@@ -462,8 +462,8 @@ struct msdosfs_bsdargs
 #define BSD_MSDOSFS_FATMIRROR     0x20000000 // FAT is mirrored
 
 bool parse_arg_kv_msdosfs(msdosfs_bsdargs* args,
-                           char* key_start, char* key_end,
-                           char* val_start, char* val_end)
+                           const char* key_start, const char* key_end,
+                           const char* val_start, const char* val_end)
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
@@ -476,7 +476,7 @@ bool parse_arg_kv_msdosfs(msdosfs_bsdargs* args,
   return parse_arg_fspec(args, key_start, key_end, val_start, val_end);
 }
 
-bool parse_arg_flags_msdosfs(msdosfs_bsdargs* args, char* start, char* end)
+bool parse_arg_flags_msdosfs(msdosfs_bsdargs* args, const char* start, const char* end)
 {
   switch(hash(start, section_length(start, end)))
   {
@@ -507,7 +507,7 @@ void arg_finalize_msdosfs(msdosfs_bsdargs* data)
 struct nilfs_bsdargs
 {
   uint32_t version;     // version of this structure
-  char*    fspec;       // mount specifier
+  const char* fspec;       // mount specifier
   uint32_t nilfsmflags; // mount options
 
   int32_t  gmtoff;      // offset from UTC in seconds
@@ -525,7 +525,7 @@ void arg_finalize_nilfs(nilfs_bsdargs* data)
 //--------------------------------------------------------
 struct ntfs_bsdargs
 {
-  char*  fspec; // block special device to mount
+  const char*    fspec;       // block special device to mount
   export_bsdargs export_info; // network export information
   uid_t  uid;   // uid that owns ntfs files
   gid_t  gid;   // gid that owns ntfs files
@@ -538,8 +538,8 @@ struct ntfs_bsdargs
 #define BSD_NTFS_MFLAG_ALLNAMES 0x00000002
 
 bool parse_arg_kv_ntfs(ntfs_bsdargs* args,
-                       char* key_start, char* key_end,
-                       char* val_start, char* val_end)
+                       const char* key_start, const char* key_end,
+                       const char* val_start, const char* val_end)
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
@@ -550,7 +550,7 @@ bool parse_arg_kv_ntfs(ntfs_bsdargs* args,
   return parse_arg_fspec(args, key_start, key_end, val_start, val_end);
 }
 
-bool parse_arg_flags_ntfs(ntfs_bsdargs* args, char* start, char* end)
+bool parse_arg_flags_ntfs(ntfs_bsdargs* args, const char* start, const char* end)
 {
   switch(hash(start, section_length(start, end)))
   {
@@ -572,8 +572,8 @@ struct ptyfs_bsdargs
 };
 
 bool parse_arg_kv_ptyfs(ptyfs_bsdargs* args,
-                        char* key_start, char* key_end,
-                        char* val_start, char* val_end)
+                        const char* key_start, const char* key_end,
+                        const char* val_start, const char* val_end)
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
@@ -583,7 +583,7 @@ bool parse_arg_kv_ptyfs(ptyfs_bsdargs* args,
   return false;
 }
 
-bool parse_arg_flags_ptyfs(ptyfs_bsdargs* args, char* start, char* end)
+bool parse_arg_flags_ptyfs(ptyfs_bsdargs* args, const char* start, const char* end)
 {
   switch(hash(start, section_length(start, end)))
   {
@@ -626,7 +626,7 @@ struct smbfs_bsdargs
 //--------------------------------------------------------
 struct sysvbfs_bsdargs
 {
-  char* fspec;  // blocks special holding the fs to mount
+  const char* fspec;  // blocks special holding the fs to mount
 };
 
 auto parse_arg_kv_sysvbfs    = parse_arg_fspec  <sysvbfs_bsdargs>;
@@ -661,7 +661,7 @@ void arg_finalize_tmpfs(tmpfs_bsdargs* data)
 struct udf_bsdargs
 {
   uint32_t version;      // version of this structure
-  char*    fspec;        // mount specifier
+  const char* fspec;        // mount specifier
   int32_t  sessionnr;    // session specifier, rel of abs
   uint32_t flags;    // mount options
   int32_t  gmtoff;       // offset from UTC in seconds
@@ -690,7 +690,7 @@ void arg_finalize_udf(udf_bsdargs* data)
 
 struct union_bsdargs
 {
-  char* fspec; // Target of loopback
+  const char* fspec; // Target of loopback
   int   flags;  // Options on the mount
 };
 
@@ -701,7 +701,7 @@ struct union_bsdargs
 
 auto parse_arg_kv_union = parse_arg_fspec<union_bsdargs>;
 
-bool parse_arg_flags_union(union_bsdargs* args, char* start, char* end)
+bool parse_arg_flags_union(union_bsdargs* args, const char* start, const char* end)
 {
   switch(hash(start, section_length(start, end)))
   {
@@ -718,7 +718,7 @@ auto arg_finalize_union = null_finalizer<union_bsdargs>;
 
 struct v7fs_bsdargs
 {
-  char* fspec;  // blocks special holding the fs to mount
+  const char* fspec;  // blocks special holding the fs to mount
   int   endian; // target filesystem endian
 };
 
@@ -731,9 +731,9 @@ auto arg_finalize_v7fs    = null_finalizer   <v7fs_bsdargs>;
 template<typename T>
 using arg_finalize = void (*)(T*);
 template<typename T>
-using arg_parser_flag = bool (*)(T*, char*, char*);
+using arg_parser_flag = bool (*)(T*, const char*, const char*);
 template<typename T>
-using arg_parser_kv = bool (*)(T*, char*, char*, char*, char*);
+using arg_parser_kv = bool (*)(T*, const char*, const char*, const char*, const char*);
 
 template<typename T>
 bool parse_args(void* data, const std::string& options,
@@ -756,7 +756,7 @@ bool parse_args(void* data, const std::string& options,
     }
     else
     {
-      char* end = tok.next(',');
+      const char* end = tok.next(',');
       if(!parse_kv(args, pos, next, next + 1, end))
         return false;
       pos = end;
