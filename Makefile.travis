@@ -40,7 +40,7 @@ SOURCES       = tests/build.cpp \
 		cxxutils/configmanip.cpp \
 		cxxutils/syslogstream.cpp \
 		cxxutils/translate.cpp \
-		specialized/stringtoken.cpp \
+		cxxutils/stringtoken.cpp \
 		specialized/eventbackend.cpp \
 		specialized/mutex.cpp \
 		specialized/peercred.cpp \
