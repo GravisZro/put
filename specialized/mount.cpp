@@ -239,6 +239,22 @@ template<typename T> bool null_flags_parser(T*,const char*,const char*) { return
 template<typename T> bool null_kv_parser(T*,const char*,const char*,const char*,const char*) { return false; }
 template<typename T> void null_finalizer(T*) { }
 
+template<typename T>
+T decode(const char* start, const char* end, int base)
+{
+  T value = 0;
+  bool neg = *start == '-';
+  if(neg)
+    ++start;
+  for(const char* pos = start; pos != end; ++pos)
+  {
+    value *= base;
+    value += *pos - '0';
+  }
+  if(neg)
+    value *= -1;
+  return value;
+}
 
 template<typename T>
 bool parse_arg_fspec(T* args, const char* key_start, const char* key_end, const char* val_start, const char*)
@@ -283,9 +299,9 @@ bool parse_arg_kv_adosfs(adosfs_bsdargs* args,
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
-    case "uid"_hash  : args->uid  = uid_t (std::strtoul(val_start, &val_end, 10)); return true;
-    case "gid"_hash  : args->gid  = gid_t (std::strtoul(val_start, &val_end, 10)); return true;
-    case "mask"_hash : args->mask = mode_t(std::strtoul(val_start, &val_end,  8)); return true;
+    case "uid"_hash  : args->uid  = decode<uid_t >(val_start, val_end, 10); return true;
+    case "gid"_hash  : args->gid  = decode<gid_t >(val_start, val_end, 10); return true;
+    case "mask"_hash : args->mask = decode<mode_t>(val_start, val_end,  8); return true;
   }
   return parse_arg_fspec(args, key_start, key_end, val_start, val_end);
 }
@@ -344,7 +360,7 @@ bool parse_arg_kv_cd9660(cd9660_bsdargs* args,
   switch(hash(key_start, section_length(key_start, key_end)))
   {
     case "session"_hash:
-      args->sess = int(std::strtol(val_start, &val_end, 10));
+      args->sess = decode<int>(val_start, val_end, 10);
       args->flags |= BSD_ISOFSMNT_SESS;
       return true;
   }
@@ -401,8 +417,8 @@ bool parse_arg_kv_filecore(filecore_bsdargs* args,
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
-    case "uid"_hash  : args->uid = uid_t (std::strtoul(val_start, &val_end, 10)); return true;
-    case "gid"_hash  : args->gid = gid_t (std::strtoul(val_start, &val_end, 10)); return true;
+    case "uid"_hash  : args->uid = decode<uid_t>(val_start, val_end, 10); return true;
+    case "gid"_hash  : args->gid = decode<gid_t>(val_start, val_end, 10); return true;
   }
   return parse_arg_fspec(args, key_start, key_end, val_start, val_end);
 }
@@ -467,11 +483,11 @@ bool parse_arg_kv_msdosfs(msdosfs_bsdargs* args,
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
-    case "uid"_hash     : args->uid     = uid_t (std::strtoul(val_start, &val_end, 10)); return true;
-    case "gid"_hash     : args->gid     = gid_t (std::strtoul(val_start, &val_end, 10)); return true;
-    case "mask"_hash    : args->mask    = mode_t(std::strtoul(val_start, &val_end,  8)); return true;
-    case "dirmask"_hash : args->dirmask = mode_t(std::strtoul(val_start, &val_end,  8)); args->version |= 2; return true;
-    case "gmtoff"_hash  : args->gmtoff  = int   (std::strtol (val_start, &val_end, 10)); args->version |= 3; return true;
+    case "uid"_hash     : args->uid     = decode<uid_t >(val_start, val_end, 10); return true;
+    case "gid"_hash     : args->gid     = decode<gid_t >(val_start, val_end, 10); return true;
+    case "mask"_hash    : args->mask    = decode<mode_t>(val_start, val_end,  8); return true;
+    case "dirmask"_hash : args->dirmask = decode<mode_t>(val_start, val_end,  8); args->version |= 2; return true;
+    case "gmtoff"_hash  : args->gmtoff  = decode<int   >(val_start, val_end, 10); args->version |= 3; return true;
   }
   return parse_arg_fspec(args, key_start, key_end, val_start, val_end);
 }
@@ -543,9 +559,9 @@ bool parse_arg_kv_ntfs(ntfs_bsdargs* args,
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
-    case "uid"_hash  : args->uid   = uid_t (std::strtoul(val_start, &val_end, 10)); return true;
-    case "gid"_hash  : args->gid   = gid_t (std::strtoul(val_start, &val_end, 10)); return true;
-    case "mask"_hash : args->mask  = mode_t(std::strtoul(val_start, &val_end,  8)); return true;
+    case "uid"_hash  : args->uid   = decode<uid_t >(val_start, val_end, 10); return true;
+    case "gid"_hash  : args->gid   = decode<gid_t >(val_start, val_end, 10); return true;
+    case "mask"_hash : args->mask  = decode<mode_t>(val_start, val_end,  8); return true;
   }
   return parse_arg_fspec(args, key_start, key_end, val_start, val_end);
 }
@@ -577,8 +593,8 @@ bool parse_arg_kv_ptyfs(ptyfs_bsdargs* args,
 {
   switch(hash(key_start, section_length(key_start, key_end)))
   {
-    case "gid"_hash  : args->gid   = gid_t (std::strtoul(val_start, &val_end, 10)); return true;
-    case "mask"_hash : args->mask  = mode_t(std::strtoul(val_start, &val_end,  8)); return true;
+    case "gid"_hash  : args->gid   = decode<gid_t >(val_start, val_end, 10); return true;
+    case "mask"_hash : args->mask  = decode<mode_t>(val_start, val_end,  8); return true;
   }
   return false;
 }
