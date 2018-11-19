@@ -9,6 +9,7 @@
 // PUT
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/hashing.h>
+#include <cxxutils/stringtoken.h>
 #include <specialized/osdetect.h>
 
 // STL
@@ -229,7 +230,7 @@
 #endif
 
 constexpr posix::size_t section_length(const char* start, const char* end)
-  { return end == NULL ? std::strlen(start) : posix::size_t(end - start - 1); }
+  { return end == nullptr ? std::strlen(start) : posix::size_t(end - start - 1); }
 
 //#define BSD
 
@@ -742,11 +743,12 @@ bool parse_args(void* data, const std::string& options,
 {
   std::memset(data, 0, MAX_MOUNT_MEM);
   T* args = static_cast<T*>(data);
-  char* pos = const_cast<char*>(options.c_str());
-  char* next = std::strtok(pos, "=,");
+  StringToken tok(options.c_str());
+  const char* pos = tok.pos();
+  const char* next = tok.next("=,");
   do
   {
-    if(next == NULL || *next == ',')
+    if(next == nullptr || *next == ',')
     {
       if(!parse_flag(args, pos, next))
         return false;
@@ -754,14 +756,14 @@ bool parse_args(void* data, const std::string& options,
     }
     else
     {
-      char* end = std::strtok(NULL, ",");
+      char* end = tok.next(',');
       if(!parse_kv(args, pos, next, next + 1, end))
         return false;
       pos = end;
     }
 
-    next = std::strtok(NULL, "=,");
-  } while(pos != NULL && ++pos);
+    next = tok.next("=,");
+  } while(pos != nullptr && ++pos);
   finalize(args);
   return true;
 }
@@ -796,14 +798,16 @@ bool mount_bsd(const char* device,
 {
   char fslist[1024] = { 0 };
   std::strncpy(fslist, filesystem, 1024);
-  char *pos, *next;
+  const char *pos, *next;
+  StringToken tok;
   int mountflags = 0;
   std::string optionlist;
 
   if(options != nullptr)
   {
-    pos = const_cast<char*>(options);
-    next = std::strtok(pos, ",");
+    tok.setOrigin(options);
+    pos = tok.pos();
+    next = tok.next(',');
     do
     {
       switch(hash(pos, section_length(pos, next)))
@@ -856,24 +860,25 @@ bool mount_bsd(const char* device,
         case "wxallowed"_hash   : mountflags |= MNT_WXALLOWED   ; break;
         default:
           optionlist.append(pos, section_length(pos, next));
-          if(next != NULL)
+          if(next != nullptr)
             optionlist.append(1, ',');
           break;
       }
       pos = next;
-      next = std::strtok(NULL, ",");
-    } while(pos != NULL && ++pos);
+      next = tok.next(',');
+    } while(pos != nullptr && ++pos);
   }
 
   //MNT_UPDATE, MNT_RELOAD, and MNT_GETARGS
 
 
-  pos = fslist;
-  next = std::strtok(pos, ",");
+  tok.setOrigin(fslist);
+  pos = tok.pos();
+  next = tok.next(',');
   do
   {
-    if(next != NULL)
-      *next = '\0';
+    if(next != nullptr)
+      *const_cast<char*>(next) = '\0';
 #if !defined(BSD) && defined(__linux__)
     typedef unsigned long mnt_flag_t; // defined for mount()
     if(::mount(device, path, pos, mnt_flag_t(mountflags), optionlist.c_str()) == posix::success_response)
@@ -992,7 +997,7 @@ bool mount_bsd(const char* device,
     }
 #endif
     pos = next;
-    next = std::strtok(NULL, ",");
+    next = tok.next(',');
   } while(pos != NULL && ++pos);
 
   return false;
@@ -1119,8 +1124,9 @@ bool unmount(const char* target, const char* options) noexcept
   int flags = 0;
   if(options != nullptr)
   {
-    char* pos = const_cast<char*>(options);
-    char* next = std::strtok(pos, ",");
+    StringToken tok(options);
+    const char* pos = tok.pos();
+    const char* next = tok.next(',');
     do
     {
       switch(hash(pos, section_length(pos, next)))
@@ -1131,8 +1137,8 @@ bool unmount(const char* target, const char* options) noexcept
         case "nofollow"_hash: flags |= UMOUNT_NOFOLLOW ; break;
       }
       pos = next;
-      next = std::strtok(NULL, ",");
-    } while(pos != NULL && ++pos);
+      next = tok.next(',');
+    } while(pos != nullptr && ++pos);
   }
 
   return target_translator(target, translated_target) &&
