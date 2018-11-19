@@ -2,7 +2,7 @@
 
 // POSIX++
 #include <cstdlib>
-#include <cctype>
+#include <cassert>
 
 // POSIX
 #include <socket.h>
@@ -243,7 +243,7 @@ template<typename T> void null_finalizer(T*) { }
 template<typename T>
 T decode(const char* start, const char* end, int base)
 {
-  static_assert(base <= 10, "bases hire than 10 are not supported");
+  assert(base <= 10);
   T value = 0;
   bool neg = *start == '-';
   if(neg)
