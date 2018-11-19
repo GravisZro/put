@@ -29,6 +29,7 @@
 #include <cxxutils/syslogstream.h>
 #include <cxxutils/nullable.h>
 #include <cxxutils/hashing.h>
+#include <cxxutils/stringtoken.h>
 
 int main(int argc, char *argv[])
 {
