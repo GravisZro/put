@@ -79,4 +79,3 @@ git:
 script:
   - make -e CXX=$COMPILER -e VERBOSE=true -f Makefile.travis
   - ./bin/tests/proclist_test
-  - ps -A -o pid=""|wc -w
