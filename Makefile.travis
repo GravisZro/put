@@ -52,6 +52,7 @@ SOURCES       = application.cpp \
 		specialized/FileEvent.cpp \
 		specialized/PollEvent.cpp \
 		specialized/ProcessEvent.cpp \
+		specialized/TimerEvent.cpp \
 #		specialized/module.cpp \
 #		integration/sdl.cpp
 
