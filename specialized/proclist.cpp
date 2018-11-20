@@ -88,6 +88,7 @@ static_assert(sizeof(pid_t) <= sizeof(int), "insufficient storage type for maxim
 
 bool proclist(std::vector<pid_t>& list) noexcept
 {
+  errno = posix::success_response; // clear errno since it's required in this function
   list.clear();
 
   if(procfs_path == nullptr &&

@@ -32,8 +32,7 @@ CXXFLAGS      = $(CFLAGS) -fno-exceptions -fno-rtti
 LDFLAGS       = 
 
 TARGET        = buildtest
-SOURCES       = tests/build.cpp \
-		application.cpp \
+SOURCES       = application.cpp \
 		socket.cpp \
 		childprocess.cpp \
 		cxxutils/vfifo.cpp \
@@ -49,18 +48,21 @@ SOURCES       = tests/build.cpp \
 		specialized/fstable.cpp \
 		specialized/mount.cpp \
 		specialized/mountpoints.cpp \
-#		specialized/module.cpp \
 		specialized/MountEvent.cpp \
 		specialized/FileEvent.cpp \
 		specialized/PollEvent.cpp \
 		specialized/ProcessEvent.cpp \
+#		specialized/module.cpp \
 #		integration/sdl.cpp
 
+TESTSOURCES   = tests/build_test.cpp \
+		tests/proclist_test.cpp
 OBJS := $(SOURCES:.s=.o)
 OBJS := $(OBJS:.c=.o)
 OBJS := $(OBJS:.cpp=.o)
 OBJS := $(foreach f,$(OBJS),$(BUILD_PATH)/$(f))
 SOURCES := $(foreach f,$(SOURCES),$(SOURCE_PATH)/$(f))
+TESTS := $(foreach f,$(TESTSOURCES:.cpp=),$(BUILD_PATH)/$(f))
 
 $(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.cpp
 	@echo [Compiling]: $<
@@ -70,7 +72,11 @@ $(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.c
 	@echo [Compiling]: $<
 	$(QUIET) $(CC) -c -o $@ $< $(CSTANDARD) $(CFLAGS)
 
-$(TARGET): OUTPUT_DIR $(OBJS)
+$(BUILD_PATH)/%: $(BUILD_PATH)/%.o
+	@echo [Linking]: $@
+	$(QUIET) $(CXX) -o $@ $@.o $(OBJS) $(CXXSTANDARD) $(CXXFLAGS)
+
+$(TARGET): OUTPUT_DIR $(OBJS) $(TESTS)
 	@echo [Completed]: $@
 
 OUTPUT_DIR:
