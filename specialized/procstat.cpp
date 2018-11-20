@@ -203,7 +203,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   data.memory_size =
     {
       info.ki_rssize,
-      0,
+      -1,
       info.ki_tsize,
       info.ki_dsize,
       info.ki_ssize,
@@ -232,13 +232,6 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 
   return true;
 }
-
-#elif defined(__QNX__)
-// https://users.pja.edu.pl/~jms/qnx/help/watcom/clibref/qnx/qnx_psinfo.html
-
-# include <sys/psinfo.h>
-# error No Process state code exists in PUT for QNX!  Please submit a patch!
-
 
 #elif defined(__unix__) /* Generic UNIX */
 
@@ -617,7 +610,7 @@ bool proc_hpux_decode(pid_t pid, decode_func func, process_state_t& data)
   data.memory_size =
     {
       status.pst_rssize,
-      0,
+      -1,
       status.pst_dsize,
       status.pst_tsize,
       status.pst_ssize,
@@ -683,7 +676,7 @@ bool proc_pid_decoder(FILE* file, process_state_t& data) noexcept
     {
       info.pr_rssize, // resident set size in pages
       info.pr_size,   // size of process image in pages
-      0,0,0,
+      -1,-1,-1,
       info.pr_pagesize; // system page size, in bytes
     };
 
