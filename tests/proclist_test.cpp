@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
     }
   }
   flaw(!everypid.empty(),
-       terminal::critical, for(pid_t onepid : everypid){ std::printf("extra pid: %d", onepid); },EXIT_FAILURE,
+       terminal::critical, for(pid_t onepid : everypid){ std::fprintf(stderr,"extra pid: %d\n", onepid); },EXIT_FAILURE,
        "PID count didn't match:\nextra pid count: %d\npids matched: %d", everypid.size(), match_count);
 
   std::printf("Found %li PIDs\nTEST PASSED!\n", match_count);
