@@ -25,6 +25,11 @@ int main(int argc, char* argv[])
        terminal::critical,,EXIT_FAILURE,
        "proclist() failed: %s", std::strerror(errno))
 
+  printf("pids:\n");
+  for(pid_t onepid : everypid)
+    std::printf("%d ", onepid);
+  printf("\nend\n");
+
   enum {
     Read = 0,
     Write = 1,
@@ -79,11 +84,17 @@ int main(int argc, char* argv[])
       flaw(std::find(everypid.begin(), everypid.end(), pid) == everypid.end(),
            terminal::critical,,EXIT_FAILURE,
            "unable to find PID: %d", pid);
+      everypid.erase(std::find(everypid.begin(), everypid.end()));
+
+      flaw(std::find(everypid.begin(), everypid.end(), pid) == everypid.end(),
+           terminal::critical,,EXIT_FAILURE,
+           "duplicate PID found");
+
       ++match_count;
     }
   }
   flaw(match_count != everypid.size(),
-       terminal::critical,,EXIT_FAILURE,
+       terminal::critical, for(pid_t onepid : everypid){ std::printf("extra pid: %d", onepid); },EXIT_FAILURE,
        "PID count didn't match:\nprocstat returned: %d\npids matched: %d", everypid.size(), match_count);
 
   std::printf("Found %li PIDs\nTEST PASSED!\n", everypid.size());
