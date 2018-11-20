@@ -42,6 +42,7 @@ bool proclist(std::vector<pid_t>& list) noexcept
   if(::sysctl(request, arraylength(request), NULL, &length, NULL, 0) != posix::success_response)
     return false;
 
+  length /= sizeof(kinfo_proc); // length is returned in bytes
   proc_list.resize(length);
   if(proc_list.size() < length) // if resize failed to allocate the required memory
   {
