@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
   posix_spawn_file_actions_addclose(&action, stdout_pipe[Write]);
   posix_spawn_file_actions_addclose(&action, stderr_pipe[Write]);
 
-  const char* args[5] = { "ps", "-A", "-o", "pid=\"\"", NULL };
+  const char* args[5] = { "ps", "-A", "-o", "pid=", NULL };
 
   pid_t pspid = 0;
   flaw(posix_spawnp(&pspid,
@@ -66,17 +66,26 @@ int main(int argc, char* argv[])
 
   ::sleep(1);
 
-  FILE* fptr = ::fdopen(stdout_pipe[Read], "r");
+  char pid_str[7] = {'\0'};
   pid_t pid = 0;
-  while(::fscanf(fptr, "%d\n", &pid))
+
+  posix::donotblock(stdout_pipe[Read]);
+  size_t match_count = 0;
+  while(posix::read(stdout_pipe[Read], pid_str, 6) > 0)
   {
+    pid = std::atoi(pid_str);
     if(pid != pspid) // ignore ps command PID
     {
       flaw(std::find(everypid.begin(), everypid.end(), pid) == everypid.end(),
            terminal::critical,,EXIT_FAILURE,
            "unable to find PID: %d", pid);
+      ++match_count;
     }
   }
+  flaw(match_count != everypid.size(),
+       terminal::critical,,EXIT_FAILURE,
+       "PID count didn't match:\nprocstat returned: %d\npids matched: %d", everypid.size(), match_count);
+
   std::printf("Found %li PIDs\nTEST PASSED!\n", everypid.size());
   return EXIT_SUCCESS;
 }
