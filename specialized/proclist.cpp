@@ -31,7 +31,7 @@ typedef struct proc kinfo_proc;
 #endif
 
 
-bool proclist(std::vector<pid_t>& list) noexcept
+bool proclist(std::set<pid_t>& list) noexcept
 {
   size_t length = 0;
   std::vector<kinfo_proc> proc_list;
@@ -50,22 +50,15 @@ bool proclist(std::vector<pid_t>& list) noexcept
     return false;
   }
 
-  list.reserve(length);
-  if(list.capacity() < length) // if reserve failed to allocate the required memory
-  {
-    errno = int(std::errc::not_enough_memory);
-    return false;
-  }
-
   length *= sizeof(kinfo_proc); // length is now bytes
   if(::sysctl(request, arraylength(request), proc_list.data(), &length, NULL, 0) != posix::success_response)
     return false;
 
   for(const kinfo_proc& proc_info : proc_list)
 #if defined(__darwin__)
-    list.push_back(proc_info.kp_proc.p_pid);
+    list.emplace(proc_info.kp_proc.p_pid);
 #else
-    list.push_back(proc_info.ki_pid);
+    list.emplace(proc_info.ki_pid);
 #endif
 
   return true;
@@ -88,7 +81,7 @@ bool proclist(std::vector<pid_t>& list) noexcept
 
 static_assert(sizeof(pid_t) <= sizeof(int), "insufficient storage type for maximum number of pids");
 
-bool proclist(std::vector<pid_t>& list) noexcept
+bool proclist(std::set<pid_t>& list) noexcept
 {
   errno = posix::success_response; // clear errno since it's required in this function
   list.clear();
@@ -110,18 +103,11 @@ bool proclist(std::vector<pid_t>& list) noexcept
 
   if(errno == posix::success_response)
   {
-    list.reserve(length);
-    if(list.capacity() < length) // if reserve failed to allocate the required memory
-    {
-      errno = int(std::errc::not_enough_memory);
-      return false;
-    }
-
     ::rewinddir(dirp);
 
     while((entry = ::readdir(dirp)) != NULL)
       if(entry->d_type == DT_DIR && std::atoi(entry->d_name))
-        list.push_back(std::atoi(entry->d_name));
+        list.emplace(std::atoi(entry->d_name));
   }
 
   if(::closedir(dirp) == posix::error_response)

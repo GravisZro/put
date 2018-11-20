@@ -9,7 +9,6 @@
 #include <unistd.h>
 
 // STL
-#include <vector>
 #include <algorithm>
 
 // PUT
@@ -19,7 +18,7 @@
 
 int main(int argc, char* argv[])
 {
-  std::vector<pid_t> everypid;
+  std::set<pid_t> everypid;
 
   flaw(!proclist(everypid),
        terminal::critical,,EXIT_FAILURE,
@@ -86,18 +85,13 @@ int main(int argc, char* argv[])
            "unable to find PID: %d", pid);
 
       everypid.erase(std::find(everypid.begin(), everypid.end(), pid));
-
-      flaw(std::find(everypid.begin(), everypid.end(), pid) == everypid.end(),
-           terminal::critical,,EXIT_FAILURE,
-           "duplicate PID found");
-
       ++match_count;
     }
   }
-  flaw(match_count != everypid.size(),
+  flaw(!everypid.empty(),
        terminal::critical, for(pid_t onepid : everypid){ std::printf("extra pid: %d", onepid); },EXIT_FAILURE,
-       "PID count didn't match:\nprocstat returned: %d\npids matched: %d", everypid.size(), match_count);
+       "PID count didn't match:\nextra pid count: %d\npids matched: %d", everypid.size(), match_count);
 
-  std::printf("Found %li PIDs\nTEST PASSED!\n", everypid.size());
+  std::printf("Found %li PIDs\nTEST PASSED!\n", match_count);
   return EXIT_SUCCESS;
 }
