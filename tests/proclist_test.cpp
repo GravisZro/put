@@ -84,7 +84,8 @@ int main(int argc, char* argv[])
       flaw(std::find(everypid.begin(), everypid.end(), pid) == everypid.end(),
            terminal::critical,,EXIT_FAILURE,
            "unable to find PID: %d", pid);
-      everypid.erase(std::find(everypid.begin(), everypid.end()));
+
+      everypid.erase(std::find(everypid.begin(), everypid.end(), pid));
 
       flaw(std::find(everypid.begin(), everypid.end(), pid) == everypid.end(),
            terminal::critical,,EXIT_FAILURE,
