@@ -1,3 +1,7 @@
+# Build path
+
+bin
+
 # C++ objects and libs
 
 *.slo
