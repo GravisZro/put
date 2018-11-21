@@ -24,7 +24,7 @@ enum ExecutionState : char
   Stopped = 'T',                // stopped/tracing execution
 };
 
-typedef int32_t segsz_t; // memory segment size
+typedef intptr_t segsz_t; // memory segment size
 
 struct process_state_t
 {
@@ -32,8 +32,10 @@ struct process_state_t
   std::string executable;   // full path to executable
   std::vector<std::string> arguments; // arguments of launched executable
   ExecutionState state;     // process execution state
-  uid_t user_id;            // process associated user id
-  gid_t group_id;           // process associated group id
+  uid_t effective_user_id;  // process effective user id
+  gid_t effective_group_id; // process effective group id
+  uid_t real_user_id;       // process real user id
+  gid_t real_group_id;      // process real group id
   pid_t process_id;         // process id
   pid_t parent_process_id;  // process id of the parent process
   pid_t process_group_id;   // process group id
@@ -48,6 +50,8 @@ struct process_state_t
 
   int priority_value;
   int8_t nice_value;        // nice value
+
+  uint16_t percent_cpu;     // percent of cpu in use
 
   timeval start_time;       // process start time
   timeval user_time;        // process user time spent

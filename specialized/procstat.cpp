@@ -297,8 +297,6 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
 //    pid_t         pid;                      // The process id.
     char          name[PATH_MAX];           // The filename of the executable
     char          state;                    // R is running, S is sleeping, D is sleeping in an uninterruptible wait, Z is zombie, T is traced or stopped
-    uid_t         euid;                     // effective user id
-    gid_t         egid;                     // effective group id
 //    pid_t         ppid;                     // The pid of the parent.
 //    pid_t         pgrp;                     // The pgrp of the process.
 //    pid_t         session;                  // The session id of the process.
@@ -406,7 +404,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
               , &process.stime
               , &process.cutime
               , &process.cstime
-              , &process.priority
+              , &data.priority_value
               , &data.nice_value
               , &process.num_threads
               , &process.itrealvalue
@@ -443,8 +441,16 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
   data.user_time.tv_sec   = process.utime / ticks;
   data.system_time.tv_sec = process.stime / ticks;
   data.name               = process.name;
+  //data.priority_value // TODO: fixup based on kernel version
 
-  // TODO: add memory stuff
+  // TODO: add better memory info
+  data.memory_size =
+  {
+    segsz_t(process.rss),
+    segsz_t(process.vsize),
+    -1,-1,-1,
+    sysconf(_SC_PAGESIZE)
+  };
 
   switch(process.state)
   {
@@ -476,6 +482,21 @@ bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
 {
   // TODO: verify conversions or is this is even the right thing :(
   uint64_t shdpnd;
+  uid_t saved_uid, fs_uid;
+  gid_t saved_gid, fs_gid;
+
+  std::fscanf(file,
+              "\nUid:\t%" SCNi32 "\t%" SCNi32 "\t%" SCNi32 "\t%" SCNi32
+              "\nGid:\t%" SCNi32 "\t%" SCNi32 "\t%" SCNi32 "\t%" SCNi32,
+              &data.effective_user_id,
+              &data.real_user_id,
+              &saved_uid,
+              &fs_uid,
+              &data.effective_group_id,
+              &data.real_group_id,
+              &saved_gid,
+              &fs_gid);
+
   std::fscanf(file,
               "\nSigPnd: %" SCNx64
               "\nShdPnd: %" SCNx64
@@ -528,21 +549,26 @@ bool proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
      !split_arguments(data.arguments, info.pr_psargs))
     return false;
 
-  data.user_id            = info.pr_uid;
-  data.group_id           = info.pr_gid;
+  data.effective_user_id  = info.pr_euid;
+  data.effective_group_id = info.pr_egid;
+  data.real_user_id       = info.pr_uid;
+  data.real_group_id      = info.pr_gid;
   data.process_id         = info.pr_pid;
   data.parent_process_id  = info.pr_ppid;
   data.process_group_id   = info.pr_pgid;
   data.session_id         = info.pr_sid;
   data.tty_device         = info.pr_ttydev;
   data.name               = info.pr_fname;
+  data.percent_cpu        = info.pr_pctcpu;
 
   // memory
-  memory_sizes_t.page   = sysconf(_SC_PAGESIZE)
-  memory_sizes_t.rss    = info.pr_rssize;
-  memory_sizes_t.image  = info.pr_size;
-  memory_sizes_t.rss   /= memory_sizes_t.page;
-  memory_sizes_t.image /= memory_sizes_t.page;
+  data.memory_size =
+  {
+    info.pr_rssize,
+    info.pr_size,
+    -1,-1,-1,
+    sysconf(_SC_PAGESIZE)
+  };
 
   // start time
   copy_struct(data.start_time , info.pr_start);
@@ -583,6 +609,87 @@ bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
   return true;
 }
 
+# elif defined(__tru64__) /* Tru64      */ || \
+       defined(__irix__)  /* IRIX       */
+
+// Tru64/IRIX
+#  include <sys/procfs.h>
+
+bool proc_pid_decoder(FILE* file, process_state_t& data) noexcept
+{
+  prpsinfo_t info;
+  prstatus_t status;
+  prusage_t  usage;
+  prcred_t   creds;
+  posix::fd_t fd = ::fileno(file);
+
+  if(fd == posix::error_response ||
+     posix::ioctl(fd, PIOCPSINFO, &info  ) == posix::error_response ||
+     posix::ioctl(fd, PIOCSTATUS, &status) == posix::error_response ||
+     posix::ioctl(fd, PIOCUSAGE , &usage ) == posix::error_response ||
+     posix::ioctl(fd, PIOCCRED  , &creds ) == posix::error_response)
+     !split_arguments(data.arguments, info.pr_psargs))
+    return false;
+
+  // Info
+  data.process_id         = info.pr_pid;
+  data.parent_process_id  = info.pr_ppid;
+  data.process_group_id   = info.pr_pgid;
+  data.session_id         = info.pr_sid;
+  data.tty_device         = info.pr_ttydev;
+  data.nice_value         = info.pr_nice;
+  data.tty_device         = info.pr_ttydev;
+  data.name               = info.pr_fname;
+  data.priority_value     = int(info.pr_pri);
+
+  data.memory_size =
+    {
+      info.pr_rssize, // resident set size in pages
+      info.pr_size,   // size of process image in pages
+      -1,-1,-1,
+      info.pr_pagesize; // system page size, in bytes
+    };
+
+
+  switch(info.pr_sname) // TODO: lookup values
+  {
+    case 'R': data.state = Running; break; // Running
+    case 'S': data.state = WaitingInterruptable; break; // Sleeping in an interruptible wait
+    case 'D': data.state = WaitingUninterruptable; break; // Waiting in uninterruptible disk sleep
+    case 'Z': data.state = Zombie; break; // Zombie
+    case 'T': data.state = Stopped; break; // Stopped (on a signal) or (before Linux 2.6.33) trace stopped
+  }
+
+  if(info.pr_zomb)
+    data.state = Zombie;
+
+  // Creds
+  data.real_user_id       = creds.pr_ruid;
+  data.effective_user_id  = creds.pr_euid;
+  data.real_group_id      = creds.pr_rgid;
+  data.effective_group_id = creds.pr_egid;
+
+  // Status
+  copy_struct(data.signals_pending, status.pr_sigpend);
+  copy_struct(data.signals_blocked, status.pr_sighold);
+//  copy_struct(data.signals_ignored, ); // TODO: determine if these exist
+//  copy_struct(data.signals_caught , );
+
+
+  // Usage
+#if defined(__irix__)
+  copy_struct(data.start_time , usage.pu_starttime);
+  copy_struct(data.user_time  , usage.pu_utime);
+  copy_struct(data.system_time, usage.pu_stime);
+#elif
+  copy_struct(data.start_time , usage.pr_create);
+  copy_struct(data.user_time  , usage.pr_utime);
+  copy_struct(data.system_time, usage.pr_stime);
+#endif
+
+  return true;
+}
+
 # elif defined(__hpux__)  /* HP-UX    */
 
 // HP-UX
@@ -599,12 +706,15 @@ bool proc_hpux_decode(pid_t pid, decode_func func, process_state_t& data)
   // TODO: Missing user time, signal sets
 
   data.name               = status.pst_ucomm;
-  data.user_id            = status.pst_uid;
-  data.group_id           = status.pst_gid;
+  data.real_user_id       = status.pst_uid;  // TODO: is pst_uid effective or real UID?
+  data.real_group_id      = status.pst_gid;  // TODO: is pst_gid effective or real GID?
+  data.effective_user_id  = status.pst_euid; // TODO: does pst_euid exist?
+  data.effective_group_id = status.pst_egid; // TODO: does pst_egid exist?
+
   data.process_id         = status.pst_pid;
   data.parent_process_id  = status.pst_ppid;
   data.process_group_id   = status.pst_pgrp;
-  data.session_id         = status.pst_sid; // TODO: find out if this exist
+  data.session_id         = status.pst_sid; // TODO: does pst_sid exist?
   data.nice_value         = status.pst_n;
 
   data.memory_size =
@@ -640,70 +750,6 @@ bool proc_hpux_decode(pid_t pid, decode_func func, process_state_t& data)
 
   return true;
 }
-
-# elif defined(__tru64__) /* Tru64      */ || \
-       defined(__irix__)  /* IRIX       */
-
-// Tru64/IRIX
-#  include <sys/procfs.h>
-
-bool proc_pid_decoder(FILE* file, process_state_t& data) noexcept
-{
-  prpsinfo_t info;
-  prstatus_t status;
-  prusage_t  usage;
-  posix::fd_t fd = ::fileno(file);
-
-  if(fd == posix::error_response ||
-     posix::ioctl(fd, PIOCPSINFO, &info  ) == posix::error_response ||
-     posix::ioctl(fd, PIOCSTATUS, &status) == posix::error_response ||
-     posix::ioctl(fd, PIOCUSAGE,  &usage ) == posix::error_response)
-     !split_arguments(data.arguments, info.pr_psargs))
-    return false;
-
-  data.user_id            = info.pr_uid;
-  data.group_id           = info.pr_gid;
-  data.process_id         = info.pr_pid;
-  data.parent_process_id  = info.pr_ppid;
-  data.process_group_id   = info.pr_pgid;
-  data.session_id         = info.pr_sid;
-  data.tty_device         = info.pr_ttydev;
-  data.nice_value         = info.pr_nice;
-  data.tty_device         = info.pr_ttydev;
-  data.name               = info.pr_fname;
-
-  data.memory_size =
-    {
-      info.pr_rssize, // resident set size in pages
-      info.pr_size,   // size of process image in pages
-      -1,-1,-1,
-      info.pr_pagesize; // system page size, in bytes
-    };
-
-  copy_struct(data.signals_pending, status.pr_sigpend);
-  copy_struct(data.signals_blocked, status.pr_sighold);
-//  copy_struct(data.signals_ignored, ); // TODO: determine if these exist
-//  copy_struct(data.signals_caught , );
-
-  copy_struct(data.start_time , usage.pu_starttime);
-  copy_struct(data.user_time  , usage.pu_utime);
-  copy_struct(data.system_time, usage.pu_stime);
-
-  switch(info.pr_sname) // TODO: lookup values
-  {
-    case 'R': data.state = Running; break; // Running
-    case 'S': data.state = WaitingInterruptable; break; // Sleeping in an interruptible wait
-    case 'D': data.state = WaitingUninterruptable; break; // Waiting in uninterruptible disk sleep
-    case 'Z': data.state = Zombie; break; // Zombie
-    case 'T': data.state = Stopped; break; // Stopped (on a signal) or (before Linux 2.6.33) trace stopped
-  }
-
-  if(info.pr_zomb)
-    data.state = Zombie;
-
-  return true;
-}
-
 # endif
 
 inline void clear_state(process_state_t& data) noexcept
@@ -712,8 +758,10 @@ inline void clear_state(process_state_t& data) noexcept
   data.executable.clear();
   data.arguments.clear();
   data.state              = Invalid;
-  data.user_id            = uid_t(-1);
-  data.group_id           = gid_t(-1);
+  data.real_user_id       = uid_t(-1);
+  data.real_group_id      = gid_t(-1);
+  data.effective_user_id  = uid_t(-1);
+  data.effective_group_id = gid_t(-1);
   data.process_id         = 0;
   data.parent_process_id  = 0;
   data.process_group_id   = 0;
