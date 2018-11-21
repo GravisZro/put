@@ -55,11 +55,15 @@ bool proclist(std::set<pid_t>& list) noexcept
     return false;
 
   for(const kinfo_proc& proc_info : proc_list)
+  {
 #if defined(__darwin__)
-    list.emplace(proc_info.kp_proc.p_pid);
+    if(proc_info.kp_proc.p_pid > 0)
+      list.emplace(proc_info.kp_proc.p_pid);
 #else
-    list.emplace(proc_info.ki_pid);
+    if(proc_info.ki_pid > 0)
+      list.emplace(proc_info.ki_pid);
 #endif
+  }
 
   return true;
 }
