@@ -185,6 +185,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   // kinfo_proc : https://github.com/freebsd/freebsd/blob/master/sys/sys/user.h#L121
   // pargs      : https://github.com/freebsd/freebsd/blob/master/sys/sys/proc.h#L118
   // rusage     : https://github.com/freebsd/freebsd/blob/master/sys/sys/resource.h#L73
+  // priority   : https://github.com/freebsd/freebsd/blob/master/sys/sys/priority.h#L128
 
   if(!split_arguments(data.arguments, info.ki_args->ar_args)) // pargs
     return false;
