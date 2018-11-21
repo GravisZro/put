@@ -189,14 +189,16 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   if(!split_arguments(data.arguments, info.ki_args->ar_args)) // pargs
     return false;
 
-  data.user_id            = info.ki_ruid;
-  data.group_id           = info.ki_rgid;
+  data.effective_user_id  = info.ki_uid;
+  data.effective_group_id = info.ki_gid;
+  data.real_user_id       = info.ki_ruid;
+  data.real_group_id      = info.ki_rgid;
   data.process_id         = info.ki_pid;
   data.parent_process_id  = info.ki_ppid;
   data.process_group_id   = info.ki_pgid;
   data.session_id         = info.ki_sid;
   data.tty_device         = info.ki_tdev;
-
+  data.percent_cpu        = info.ki_pctcpu;
   data.name               = info.ki_comm;
   data.nice_value         = info.ki_nice;
 

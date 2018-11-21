@@ -24,7 +24,8 @@ enum ExecutionState : char
   Stopped = 'T',                // stopped/tracing execution
 };
 
-typedef int32_t segsz_t; // memory segment size
+typedef long segsz_t;	// memory segment size
+typedef u_long	fixpt_t; // fixed point number
 
 struct process_state_t
 {
@@ -51,7 +52,7 @@ struct process_state_t
   int priority_value;
   int8_t nice_value;        // nice value
 
-  uint16_t percent_cpu;     // percent of cpu in use
+  fixpt_t percent_cpu;      // percent of cpu in use
 
   timeval start_time;       // process start time
   timeval user_time;        // process user time spent
