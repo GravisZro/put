@@ -146,12 +146,15 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   // pstats       : https://opensource.apple.com/source/xnu/xnu-123.5/bsd/sys/resourcevar.h.auto.html
   // sigacts      : https://opensource.apple.com/source/xnu/xnu-123.5/bsd/sys/signalvar.h.auto.html
   // pgrp/session : https://opensource.apple.com/source/xnu/xnu-792/bsd/sys/proc_internal.h.auto.html
+  // ucred        : https://opensource.apple.com/source/xnu/xnu-123.5/bsd/sys/ucred.h.auto.html
 
 //  if(!split_arguments(data.arguments, info.ki_args->ar_args))
 //    return false;
 
-  data.user_id            = info.kp_eproc.e_pcred.p_ruid;
-  data.group_id           = info.kp_eproc.e_pcred.p_rgid;
+  data.effective_user_id  = info.kp_eproc.e_ucred.cr_uid;
+  data.effective_group_id = info.kp_eproc.e_ucred.cr_gid;
+  data.real_user_id       = info.kp_eproc.e_pcred.p_ruid;
+  data.real_group_id      = info.kp_eproc.e_pcred.p_rgid;
   data.process_id         = info.kp_proc.p_pid;
   data.parent_process_id  = info.kp_eproc.e_ppid;
   data.process_group_id   = info.kp_eproc.e_pgid;
@@ -179,6 +182,15 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   copy_struct(data.user_time  , info.kp_proc.p_ru.ru_utime);
   copy_struct(data.system_time, info.kp_proc.p_ru.ru_stime);
 #  endif
+
+  // TODO: fix memory stuff
+  data.memory_size =
+    {
+      -1,
+      -1,
+      -1,-1,-1,
+      sysconf(_SC_PAGESIZE)
+    };
 
 # else
   // BSD structure documentation
