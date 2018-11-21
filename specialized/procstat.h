@@ -24,8 +24,10 @@ enum ExecutionState : char
   Stopped = 'T',                // stopped/tracing execution
 };
 
-typedef long segsz_t;	// memory segment size
-typedef u_long	fixpt_t; // fixed point number
+#if !defined(BSD)
+typedef  int32_t segsz_t; // memory segment size
+typedef uint32_t fixpt_t; // fixed point number
+#endif
 
 struct process_state_t
 {
