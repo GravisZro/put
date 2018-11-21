@@ -24,7 +24,7 @@ enum ExecutionState : char
   Stopped = 'T',                // stopped/tracing execution
 };
 
-typedef intptr_t segsz_t; // memory segment size
+typedef int32_t segsz_t; // memory segment size
 
 struct process_state_t
 {
