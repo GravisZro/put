@@ -19,7 +19,6 @@
 #include <cxxutils/posix_helpers.h>
 #include <cxxutils/socket_helpers.h>
 #include <cxxutils/vterm.h>
-#include <specialized/procstat.h>
 
 enum {
   Read = 0,
