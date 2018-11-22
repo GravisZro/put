@@ -182,7 +182,7 @@ int main(int argc, char* argv[])
 
   char* line_buffer  = static_cast<char*>(::malloc(BUF_SIZE));
   char* field_buffer = static_cast<char*>(::malloc(BUF_SIZE));
-  process_state_t ps_state;
+  process_state_t ps_state, procstat_state;
   ssize_t count = 0;
   ssize_t remaining = 0;
   errno = 0;
@@ -281,6 +281,53 @@ int main(int argc, char* argv[])
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       copy_field(field_buffer, pos, nextline);
       proc_test_split_arguments(ps_state.arguments, field_buffer);
+
+
+      flaw(!procstat(ps_state.process_id, procstat_state),
+           terminal::critical,,EXIT_FAILURE,
+           "procstat failed to get pid: %d", ps_state.process_id)
+
+      flaw(ps_state.parent_process_id != procstat_state.parent_process_id,
+           terminal::critical,,EXIT_FAILURE,
+           "parent_process_id does not match.\nps value: %d\nprocstat value: %d",
+           ps_state.parent_process_id, procstat_state.parent_process_id)
+
+      flaw(ps_state.process_group_id != procstat_state.process_group_id,
+           terminal::critical,,EXIT_FAILURE,
+           "process_id does not match.\nps value: %d\nprocstat value: %d",
+           ps_state.process_group_id, procstat_state.process_group_id)
+
+      flaw(ps_state.process_id != procstat_state.process_id,
+           terminal::critical,,EXIT_FAILURE,
+           "process_id does not match.\nps value: %d\nprocstat value: %d",
+           ps_state.process_id, procstat_state.process_id)
+
+      flaw(ps_state.effective_user_id != procstat_state.effective_user_id,
+           terminal::critical,,EXIT_FAILURE,
+           "effective_user_id does not match.\nps value: %d\nprocstat value: %d",
+           ps_state.effective_user_id, procstat_state.effective_user_id)
+
+      flaw(ps_state.effective_group_id != procstat_state.effective_group_id,
+           terminal::critical,,EXIT_FAILURE,
+           "effective_group_id does not match.\nps value: %d\nprocstat value: %d",
+           ps_state.effective_group_id, procstat_state.effective_group_id)
+
+      flaw(ps_state.real_user_id != procstat_state.real_user_id,
+           terminal::critical,,EXIT_FAILURE,
+           "real_user_id does not match.\nps value: %d\nprocstat value: %d",
+           ps_state.real_user_id, procstat_state.real_user_id)
+
+      flaw(ps_state.real_group_id != procstat_state.real_group_id,
+           terminal::critical,,EXIT_FAILURE,
+           "real_group_id does not match.\nps value: %d\nprocstat value: %d",
+           ps_state.real_group_id, procstat_state.real_group_id)
+
+      flaw(ps_state.nice_value != procstat_state.nice_value,
+           terminal::critical,,EXIT_FAILURE,
+           "nice_value does not match.\nps value: %d\nprocstat value: %d",
+           ps_state.nice_value, procstat_state.nice_value)
+
+
 
       pos = nextline + 1;
     }
