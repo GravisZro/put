@@ -32,10 +32,11 @@ namespace posix
   typedef int error_t;
   constexpr error_t success_response = 0;
   constexpr error_t error_response = -1;
-  static inline error_t check_errno(void) { return errno == success_response ? success_response : error_response; }
-  static inline error_t success(void) noexcept { return errno = success_response; }
-  static inline error_t error(error_t err) noexcept { errno = err; return check_errno(); }
-  static inline error_t error(std::errc err) noexcept { return error(error_t(err)); }
+  static inline bool check_errno(void) { return errno == success_response; }
+  static inline bool success(void) noexcept { return errno = success_response; }
+  static inline bool error(error_t err) noexcept { errno = err; return check_errno(); }
+  static inline bool error(std::errc err) noexcept { return error(error_t(err)); }
+  template<typename T> static inline error_t errorval(T err) noexcept { return error(err) ? posix::success_response : posix::error_response; }
 }
 
 #endif // ERROR_HELPERS_H
