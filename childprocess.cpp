@@ -119,9 +119,8 @@ bool ChildProcess::invoke(void) noexcept
   posix::success();
 
   flaw(m_state != State::Initializing,
-       terminal::severe,
+       terminal::severe,,
        posix::error(std::errc::device_or_resource_busy),
-       false,
        "Called Process::invoke() on an active process!");
 
   EventBackend::add(getStdOut(), EventBackend::SimplePollReadFlags,

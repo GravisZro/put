@@ -166,9 +166,8 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
        "Socket disconnected.")
 
   flaw(!m_buffer.resize(byte_count),
-       terminal::severe,
+       terminal::severe,,
        posix::error(std::errc::not_enough_memory),
-       false,
        "Failed to resize buffer to %li bytes", byte_count)
 
   posix::fd_t passfd = posix::invalid_descriptor;

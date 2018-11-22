@@ -105,7 +105,7 @@ bool load_module(const std::string& filename, const std::string& module_argument
           rval = init_module22(name, image);
         }
         else
-          rval = posix::error(EOPNOTSUPP); // not implemented!
+          rval = posix::errorval(EOPNOTSUPP); // not implemented!
         ::munmap(mem, state.st_size);
       }
     }
