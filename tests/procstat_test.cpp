@@ -151,14 +151,14 @@ int main(int argc, char* argv[])
                          NULL };
 */
   const char* args[33] ={ "ps", "-A",
-                           "-o", "pid=",
-                           "-o", "ppid=",
-                           "-o", "pgid=",
-                           "-o", "user=",
-                           "-o", "group=",
-                           "-o", "ruser=",
-                           "-o", "rgroup=",
-                           "-o", "tty=",
+                           "-o", "pid=PID",
+                           "-o", "ppid=PPID",
+                           "-o", "pgid=PGID",
+                           "-o", "user=--------------------------------",
+                           "-o", "group=--------------------------------",
+                           "-o", "ruser=--------------------------------",
+                           "-o", "rgroup=--------------------------------",
+                           "-o", "tty=TTYNAME",
                            "-o", "pcpu=",
                            "-o", "vsz=",
                            "-o", "nice=",
@@ -215,6 +215,8 @@ int main(int argc, char* argv[])
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
       ps_state.process_id = decode<pid_t, 10>(pos, next);
+      if(!ps_state.process_id)
+        continue;
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
@@ -228,23 +230,31 @@ int main(int argc, char* argv[])
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.effective_user_id = posix::getuserid(field_buffer);
+      if(ps_state.effective_user_id == uid_t(posix::error_response))
+        std::printf("failed (PID: %i) to find user id for: %s\n", ps_state.process_id, field_buffer);
 
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.effective_group_id = posix::getgroupid(field_buffer);
+      if(ps_state.effective_group_id == uid_t(posix::error_response))
+        std::printf("failed (PID: %i) to find group id for: %s\n", ps_state.process_id, field_buffer);
 
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.real_user_id = posix::getuserid(field_buffer);
+      if(ps_state.effective_user_id == uid_t(posix::error_response))
+        std::printf("failed (PID: %i) to find user id for: %s\n", ps_state.process_id, field_buffer);
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.real_group_id = posix::getgroupid(field_buffer);
+      if(ps_state.effective_group_id == uid_t(posix::error_response))
+        std::printf("failed (PID: %i) to find group id for: %s\n", ps_state.process_id, field_buffer);
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
@@ -340,5 +350,6 @@ int main(int argc, char* argv[])
   if(field_buffer != NULL)
     ::free(field_buffer);
 
+  std::printf("TEST PASSED!\n");
   return EXIT_SUCCESS;
 }
