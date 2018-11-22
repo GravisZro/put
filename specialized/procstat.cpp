@@ -272,7 +272,7 @@ bool proc_decode(pid_t pid, const char* subfile, decode_func func, process_state
 
   FILE* file = std::fopen(filename, "r");
   if(file == NULL)
-    return posix::error_response;
+    return false;
 
   if(!func(file, data))
     return false;
@@ -797,7 +797,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   clear_state(data);
   if(procfs_path == nullptr &&
     initialize_paths())
-    return posix::error_response;
+    return false;
 
 # if defined(__linux__) // Linux
   if(!proc_decode(pid, "stat"    , proc_stat_decoder   , data) ||
