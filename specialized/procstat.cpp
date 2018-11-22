@@ -76,20 +76,20 @@ bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
 
 #if defined(__darwin__) /* Darwin XNU 792+ */
 struct session {
-   int s_count;  /* Ref cnt; pgrps in session. */
-   struct proc *s_leader;  /* Session leader. */
-   struct vnode *s_ttyvp;  /* Vnode of controlling terminal. */
-   struct tty *s_ttyp;  /* Controlling terminal. */
-   pid_t s_sid;  /* Session ID */
-   char s_login[MAXLOGNAME]; /* Setlogin() name. */
+   int s_count;  // Ref cnt; pgrps in session.
+   struct proc *s_leader;  // Session leader.
+   struct vnode *s_ttyvp;  // Vnode of controlling terminal.
+   struct tty *s_ttyp;  // Controlling terminal.
+   pid_t s_sid;  // Session ID
+   char s_login[MAXLOGNAME]; // Setlogin() name.
 };
 
 struct pgrp {
-   LIST_ENTRY(pgrp) pg_hash; /* Hash chain. */
-   LIST_HEAD(, proc) pg_members; /* Pointer to pgrp members. */
-   struct session *pg_session; /* Pointer to session. */
-   pid_t pg_id;   /* Pgrp id. */
-   int pg_jobc; /* # procs qualifying pgrp for job control */
+   LIST_ENTRY(pgrp) pg_hash; // Hash chain.
+   LIST_HEAD(, proc) pg_members; // Pointer to pgrp members.
+   struct session *pg_session; // Pointer to session.
+   pid_t pg_id;   // Pgrp id.
+   int pg_jobc; // # procs qualifying pgrp for job control
 };
 
 #elif (defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(8,0,0)) || \
@@ -98,27 +98,27 @@ struct pgrp {
 #  define OLD_BSD
 
 struct kinfo_proc {
-   struct proc kp_proc;   /* proc structure */
+   struct proc kp_proc;       // proc structure
    struct eproc {
-      struct proc *e_paddr;  /* address of proc */
-      struct session *e_sess; /* session pointer */
-      struct pcred e_pcred;  /* process credentials */
-      struct ucred e_ucred;  /* current credentials */
-      struct vmspace e_vm;  /* address space */
-      pid_t e_ppid;   /* parent process id */
-      pid_t e_pgid;   /* process group id */
-      short e_jobc;   /* job control counter */
-      dev_t e_tdev;   /* controlling tty dev */
-      pid_t e_tpgid;  /* tty process group id */
-      struct session *e_tsess; /* tty session pointer */
+      struct proc *e_paddr;   // address of proc
+      struct session *e_sess; // session pointer
+      struct pcred e_pcred;   // process credentials
+      struct ucred e_ucred;   // current credentials
+      struct vmspace e_vm;    // address space
+      pid_t e_ppid;           // parent process id
+      pid_t e_pgid;           // process group id
+      short e_jobc;           // job control counter
+      dev_t e_tdev;           // controlling tty dev
+      pid_t e_tpgid;          // tty process group id
+      struct session *e_tsess; // tty session pointer
 #define WMESGLEN 7
-      char e_wmesg[WMESGLEN+1]; /* wchan message */
-      segsz_t e_xsize;  /* text size */
-      short e_xrssize;  /* text rss */
-      short e_xccount;  /* text references */
+      char e_wmesg[WMESGLEN+1]; // wchan message
+      segsz_t e_xsize;        // text size
+      short e_xrssize;        // text rss
+      short e_xccount;        // text references
       short e_xswrss;
       long e_flag;
-      char e_login[MAXLOGNAME]; /* setlogin() name */
+      char e_login[MAXLOGNAME]; // setlogin() name
       long e_spare[4];
    } kp_eproc;
 };
@@ -705,7 +705,7 @@ bool proc_pid_decoder(FILE* file, process_state_t& data) noexcept
   return true;
 }
 
-# elif defined(__hpux__)  /* HP-UX    */
+# elif defined(__hpux__) /* HP-UX      */
 
 // HP-UX
 #include <sys/param.h>
@@ -818,7 +818,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   if(!proc_decode(pid, nullptr, proc_pid_decoder, data))
     return false;
 
-# elif defined(__hpux__) /* HP-UX */
+# elif defined(__hpux__) /* HP-UX      */
   if(!proc_hpux_decode(pid, data))
     return false;
 
