@@ -274,10 +274,10 @@ bool proc_decode(pid_t pid, const char* subfile, decode_func func, process_state
   if(file == NULL)
     return false;
 
-  if(!func(file, data))
-    return false;
-
-  return std::fclose(file) == posix::error_response;
+  bool rval = true;
+  rval &= func(file, data);
+  rval &= std::fclose(file) == posix::error_response;
+  return rval;
 }
 
 bool proc_exe_symlink(pid_t pid, const char* subfile, process_state_t& data) noexcept
