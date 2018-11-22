@@ -553,7 +553,7 @@ bool proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
     data.arguments.emplace_back(argbuffer);
   if(argbuffer != NULL)
     ::free(argbuffer);
-  return !data.arguments.empty();
+  return ::feof(file); // if read to the end of the file
 }
 
 # elif defined(__solaris__) /* Solaris  */ || \
