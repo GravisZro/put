@@ -3,6 +3,7 @@
 // POSIX++
 # include <cstring>
 # include <climits>
+# include <cstdio>
 
 // PUT
 #include <specialized/osdetect.h>
@@ -276,7 +277,7 @@ bool proc_decode(pid_t pid, const char* subfile, decode_func func, process_state
 
   bool rval = true;
   rval &= func(file, data);
-  rval &= std::fclose(file) == posix::error_response;
+  rval &= std::fclose(file) == posix::success_response;
   return rval;
 }
 
@@ -286,7 +287,7 @@ bool proc_exe_symlink(pid_t pid, const char* subfile, process_state_t& data) noe
   char filename[PATH_MAX] = { 0 };
   std::snprintf(linkname, PATH_MAX, "%s/%d/%s", procfs_path, pid, subfile); // fill buffer
 
-  posix::ssize_t length = ::readlink(linkname, filename, arg_max); // result may contain " (deleted)" (which we don't want)
+  posix::ssize_t length = ::readlink(linkname, filename, PATH_MAX); // result may contain " (deleted)" (which we don't want)
   if(length == posix::error_response)
     return false;
 
@@ -310,7 +311,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
   struct //procinfo_t
   {
 //    pid_t         pid;                      // The process id.
-    char          name[PATH_MAX];           // The filename of the executable
+    char          name[PATH_MAX];           // process name
     char          state;                    // R is running, S is sleeping, D is sleeping in an uninterruptible wait, Z is zombie, T is traced or stopped
 //    pid_t         ppid;                     // The pid of the parent.
 //    pid_t         pgrp;                     // The pgrp of the process.
@@ -455,7 +456,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
   data.start_time.tv_sec  = process.starttime / ticks;
   data.user_time.tv_sec   = process.utime / ticks;
   data.system_time.tv_sec = process.stime / ticks;
-  data.name               = process.name;
+  //data.name               = process.name;
   //data.priority_value // TODO: fixup based on kernel version
 
   // TODO: add better memory info
@@ -495,49 +496,64 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
 
 bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
 {
-  // TODO: verify conversions or is this is even the right thing :(
-  uint64_t shdpnd;
-  uid_t saved_uid, fs_uid;
-  gid_t saved_gid, fs_gid;
+  char* line = static_cast<char*>(::malloc(PATH_MAX));
 
-  std::fscanf(file,
-              "\nUid:\t%" SCNi32 "\t%" SCNi32 "\t%" SCNi32 "\t%" SCNi32
-              "\nGid:\t%" SCNi32 "\t%" SCNi32 "\t%" SCNi32 "\t%" SCNi32,
+  if(line == NULL)
+    return false;
+
+  size_t line_sz = 0;
+
+  char name[PATH_MAX] = { 0 };
+  while(::getline(&line, &line_sz, file) > 0 &&
+        std::memcmp(line, "Name:\t", sizeof("Name:\t") - 1));
+  std::sscanf(line, "Name:\t%s\n", name);
+  data.name = name;
+
+  while(::getline(&line, &line_sz, file) > 0 &&
+        std::memcmp(line, "Uid:\t", sizeof("Uid:\t") - 1));
+  std::sscanf(line, "Uid:\t%" SCNi32 "\t%" SCNi32 "\t",
               &data.effective_user_id,
-              &data.real_user_id,
-              &saved_uid,
-              &fs_uid,
-              &data.effective_group_id,
-              &data.real_group_id,
-              &saved_gid,
-              &fs_gid);
+              &data.real_user_id);
 
-  std::fscanf(file,
-              "\nSigPnd: %" SCNx64
-              "\nShdPnd: %" SCNx64
-              "\nSigBlk: %" SCNx64
-              "\nSigIgn: %" SCNx64
-              "\nSigCgt: %" SCNx64,
-              reinterpret_cast<uint64_t*>(&data.signals_pending),
-              &shdpnd,
-              reinterpret_cast<uint64_t*>(&data.signals_blocked),
-              reinterpret_cast<uint64_t*>(&data.signals_ignored),
+  while(::getline(&line, &line_sz, file) > 0 &&
+        std::memcmp(line, "Gid:\t", sizeof("Gid:\t") - 1));
+  std::sscanf(line, "Gid:\t%" SCNi32 "\t%" SCNi32 "\t",
+              &data.effective_group_id,
+              &data.real_group_id);
+
+  while(::getline(&line, &line_sz, file) > 0 &&
+        std::memcmp(line, "SigPnd:\t", sizeof("SigBlk:\t") - 1));
+  std::sscanf(line, "SigPnd:\t%" SCNx64 "\n",
+              reinterpret_cast<uint64_t*>(&data.signals_pending));
+
+  while(::getline(&line, &line_sz, file) > 0 &&
+        std::memcmp(line, "SigBlk:\t", sizeof("SigBlk:\t") - 1));
+  std::sscanf(line, "SigBlk:\t%" SCNx64 "\n",
+              reinterpret_cast<uint64_t*>(&data.signals_blocked));
+
+  while(::getline(&line, &line_sz, file) > 0 &&
+        std::memcmp(line, "SigIgn:\t", sizeof("SigIgn:\t") - 1));
+  std::sscanf(line, "SigIgn:\t%" SCNx64 "\n",
+              reinterpret_cast<uint64_t*>(&data.signals_ignored));
+
+  while(::getline(&line, &line_sz, file) > 0 &&
+        std::memcmp(line, "SigCgt:\t", sizeof("SigCgt:\t") - 1));
+  std::sscanf(line, "SigCgt:\t%" SCNx64 "\n",
               reinterpret_cast<uint64_t*>(&data.signals_caught));
+
+  ::free(line);
   return true;
 }
 
 bool proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
 {
-  char* cmdbuffer = static_cast<char*>(::malloc(arg_max));
-  bool rval = true;
-  if(cmdbuffer == NULL ||
-     fread(cmdbuffer, arg_max, 1, file) <= 0 ||
-     !split_arguments(data.arguments, cmdbuffer))
-    rval = false;
-  if(cmdbuffer)
-    ::free(cmdbuffer);
-  cmdbuffer = nullptr;
-  return rval;
+  char* argbuffer = NULL;
+  size_t argsz = 0;
+  while(::getdelim(&argbuffer, &argsz, '\0', file) != posix::error_response)
+    data.arguments.emplace_back(argbuffer);
+  if(argbuffer != NULL)
+    ::free(argbuffer);
+  return !data.arguments.empty();
 }
 
 # elif defined(__solaris__) /* Solaris  */ || \
@@ -802,16 +818,18 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 # if defined(__linux__) // Linux
   if(!proc_decode(pid, "stat"    , proc_stat_decoder   , data) ||
      !proc_decode(pid, "status"  , proc_status_decoder , data) ||
-     !proc_decode(pid, "cmdline" , proc_cmdline_decoder, data) ||
-     !proc_exe_symlink(pid, "exe", data))
+     !proc_decode(pid, "cmdline" , proc_cmdline_decoder, data))
     return false;
+
+  proc_exe_symlink(pid, "exe", data); // allowed to fail
 
 # elif defined(__solaris__) /* Solaris  */ || \
        defined(__aix__)     /* AIX      */
   if(!proc_decode(pid, "psinfo", proc_psinfo_decoder, data) ||
-     !proc_decode(pid, "status", proc_status_decoder, data) ||
-     !proc_exe_symlink(pid, "path/a.out", data))
+     !proc_decode(pid, "status", proc_status_decoder, data))
     return false;
+
+  proc_exe_symlink(pid, "path/a.out", data); // allowed to fail
 
 # elif defined(__tru64__) /* Tru64      */ || \
        defined(__irix__)  /* IRIX       */
