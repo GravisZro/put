@@ -226,6 +226,7 @@ int main(int argc, char* argv[])
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      copy_field(field_buffer, pos, next);
       ps_state.effective_user_id = posix::getuserid(field_buffer);
 
 
@@ -285,7 +286,7 @@ int main(int argc, char* argv[])
 
       flaw(!procstat(ps_state.process_id, procstat_state),
            terminal::critical,,EXIT_FAILURE,
-           "procstat failed to get pid: %d", ps_state.process_id)
+           "procstat failed to get pid: %d : err: %s", ps_state.process_id, std::strerror(errno))
 
       flaw(ps_state.parent_process_id != procstat_state.parent_process_id,
            terminal::critical,,EXIT_FAILURE,
