@@ -57,7 +57,8 @@ SOURCES       = application.cpp \
 #		integration/sdl.cpp
 
 TESTSOURCES   = tests/build_test.cpp \
-		tests/proclist_test.cpp
+		tests/proclist_test.cpp \
+		tests/procstat_test.cpp
 OBJS := $(SOURCES:.s=.o)
 OBJS := $(OBJS:.c=.o)
 OBJS := $(OBJS:.cpp=.o)
