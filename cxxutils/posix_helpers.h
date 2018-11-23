@@ -325,12 +325,24 @@ namespace posix
   }
 #endif
 
+  enum class seek
+  {
+    relative = SEEK_CUR,
+    from_end = SEEK_END,
+    absolute = SEEK_SET,
+  };
   // POSIX wrappers
   static inline std::FILE* fopen(const char* filename, const char* mode) noexcept
     { return ignore_interruption<std::FILE, const char*, const char*>(std::fopen, filename, mode); }
 
   static inline bool fclose(std::FILE* stream) noexcept
     { return ignore_interruption(std::fclose, stream) != error_response; }
+
+  static inline bool feof(std::FILE* stream) noexcept
+    { return ::feof(stream); }
+
+  static inline bool fseek(std::FILE* stream, off_t offset, posix::seek whence) noexcept
+    { return ::fseeko(stream, offset, int(whence)) == success_response; }
 
   static inline bool fgets(char* s, int n, std::FILE* stream) noexcept
     { return ignore_interruption<char, char*, int, std::FILE*>(std::fgets, s, n, stream) != nullptr; }
