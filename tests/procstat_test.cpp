@@ -129,29 +129,32 @@ int main(int argc, char* argv[])
                             "-o comm " \
                             "-o args > psoutput";
 
-#define CAPTURE "\\(\\S\\{1,\\}\\)"
-#define SKIP    "\\s\\{1,\\}"
-  const char* sed_command = "sed -e 's/" \
-                            "^\\s*" CAPTURE \
+#define CAPTURE "\\(\\S*\\)"
+#define SKIP    "\\s*"
+  const char* sed_command = "sed -e 's/^" \
                             SKIP CAPTURE \
                             SKIP CAPTURE \
                             SKIP CAPTURE \
+                            SKIP CAPTURE \
+                            SKIP CAPTURE \
+                            SKIP CAPTURE \
+                            SKIP CAPTURE \
+                            SKIP CAPTURE \
+                            SKIP CAPTURE \
+                            SKIP \
+                            "/\\1|\\2|\\3|\\4|\\5|\\6|\\7|\\8|\\9|/g'" \
+                            " -e 's/^" \
                             SKIP CAPTURE \
                             SKIP CAPTURE \
                             SKIP CAPTURE \
                             SKIP CAPTURE \
                             SKIP CAPTURE \
                             SKIP \
-                            "/\\1|\\2|\\3|\\4|\\5|\\6|\\7|\\8|\\9|/'" \
-                            " -e 's/" \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP \
-                            "/\\t\\1\\t\\2\\t\\3\\t\\4\\t/'" \
-                            " -e 's/|/\\t/g'"
+                            "/\\1\\t\\2\\t\\3\\t\\4\\t\\5\\t/g'" \
+                            " -e 's/|/\\t/'"
                             " psoutput > sedoutput";
+
+  std::printf("\n%s\n%s\n", ps_command, sed_command);
 
   system("rm psoutput sedoutput");
   assert(!system(ps_command));
