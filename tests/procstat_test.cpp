@@ -281,7 +281,7 @@ int main(int argc, char* argv[])
     if(!procstat(ps_state.process_id, procstat_state) &&
        ps_state.process_id)
     {
-      flaw(skip_count > 1,
+      flaw(skip_count > 10,
            terminal::critical,,EXIT_FAILURE,
            "too many processes missing!")
       ++skip_count;
