@@ -167,7 +167,7 @@ int main(int argc, char* argv[])
                             " -e 's/|/\t/g'" \
                             " < sedoutput.2 > sedoutput.3";
 
-  std::printf("\n%s\n%s\n%s\n%s\n", ps_command, sed_command1, sed_command2, sed_command3);
+  //std::printf("\n%s\n%s\n%s\n%s\n", ps_command, sed_command1, sed_command2, sed_command3);
 
   assert(!system(ps_command));
   assert(!system(sed_command1));
@@ -207,25 +207,41 @@ int main(int argc, char* argv[])
     {
       ps_state.effective_user_id = posix::getuserid(field_buffer);
       if(ps_state.effective_user_id == uid_t(posix::error_response))
-        std::printf("failed (PID: %i) to find effective user id for: '%s'\n", ps_state.process_id, field_buffer);
+      {
+        ps_state.effective_user_id = decode<uid_t, 10>(field_buffer);
+        if(!ps_state.effective_user_id && not_zero(field_buffer))
+          std::printf("failed (PID: %i) to find effective user id for: '%s'\n", ps_state.process_id, field_buffer);
+      }
     }
     if(getfield(field_buffer, '\t', fptr)) // group
     {
       ps_state.effective_group_id = posix::getgroupid(field_buffer);
-      if(ps_state.effective_group_id == uid_t(posix::error_response))
-        std::printf("failed (PID: %i) to find effective group id for: '%s'\n", ps_state.process_id, field_buffer);
+      if(ps_state.effective_group_id == gid_t(posix::error_response))
+      {
+        ps_state.effective_group_id = decode<gid_t, 10>(field_buffer);
+        if(!ps_state.effective_group_id && not_zero(field_buffer))
+          std::printf("failed (PID: %i) to find effective group id for: '%s'\n", ps_state.process_id, field_buffer);
+      }
     }
     if(getfield(field_buffer, '\t', fptr)) // rname
     {
       ps_state.real_user_id = posix::getuserid(field_buffer);
       if(ps_state.real_user_id == uid_t(posix::error_response))
-        std::printf("failed (PID: %i) to find real user id for: '%s'\n", ps_state.process_id, field_buffer);
+      {
+        ps_state.real_user_id = decode<uid_t, 10>(field_buffer);
+        if(!ps_state.real_user_id && not_zero(field_buffer))
+          std::printf("failed (PID: %i) to find real user id for: '%s'\n", ps_state.process_id, field_buffer);
+      }
     }
     if(getfield(field_buffer, '\t', fptr)) // rgroup
     {
       ps_state.real_group_id = posix::getgroupid(field_buffer);
-      if(ps_state.real_group_id == uid_t(posix::error_response))
-        std::printf("failed (PID: %i) to find real group id for: '%s'\n", ps_state.process_id, field_buffer);
+      if(ps_state.real_group_id == gid_t(posix::error_response))
+      {
+        ps_state.real_group_id = decode<gid_t, 10>(field_buffer);
+        if(!ps_state.real_group_id && not_zero(field_buffer))
+          std::printf("failed (PID: %i) to find real group id for: '%s'\n", ps_state.process_id, field_buffer);
+      }
     }
     if(getfield(field_buffer, '\t', fptr)) // tty
     {
