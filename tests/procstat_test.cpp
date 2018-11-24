@@ -139,8 +139,8 @@ int main(int argc, char* argv[])
                             "-o comm " \
                             "-o args > psoutput";
 
-#define CAPTURE "\\(\\S\\S*\\)"
-#define SKIP    "\\s\\s*"
+#define CAPTURE "\\([[:graph:]]\\{1,\\}\\)"
+#define SKIP    "[[:blank:]]\\{1,\\}"
   const char* sed_command1 = "sed -e 's/^\\s*" \
                              CAPTURE SKIP \
                              CAPTURE SKIP \
