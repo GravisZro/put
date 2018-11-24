@@ -26,8 +26,18 @@ ifndef BUILD_PATH
   BUILD_PATH=$(SOURCE_PATH)/bin
 endif
 
+UNAME_RELEASE = $(uname -r)
+UNAME_VERSION = $(uname -v)
+UNAME_MACHINE = $(uname -m)
+UNAME_SYSNAME = $(uname -s)
+
+UNAME_FLAGS   = -DUNAME_RELEASE="$(UNAME_RELEASE)" \
+		-DUNAME_VERSION="$(UNAME_VERSION)" \
+		-DUNAME_MACHINE="$(UNAME_MACHINE)" \
+		-DUNAME_SYSNAME="$(UNAME_SYSNAME)" \
+		$(echo $(UNAME_RELEASE) | sed -e "s/^\([0-9]\+\)\.\?\([0-9]*\)\.\?\([0-9]*\)\(.*\)$/-DUNAME_KERNEL_MAJOR=\1 -DUNAME_KERNEL_MINOR=\2 -DUNAME_KERNEL_RELEASE=\3/"))
 INCPATH       = -I.
-CFLAGS        = -pipe -g -Os -Wall -W -fPIC $(DEFINES) $(INCPATH)
+CFLAGS        = -pipe -g -Os -Wall -W -fPIC $(DEFINES) $(INCPATH) $(UNAME_FLAGS)
 CXXFLAGS      = $(CFLAGS) -fno-exceptions -fno-rtti
 LDFLAGS       = 
 
