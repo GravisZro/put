@@ -169,7 +169,7 @@ int main(int argc, char* argv[])
                             " -e 's/|/\t/g'" \
                             " sedoutput.2 > sedoutput.3";
 
-  //std::printf("\n%s\n%s\n", ps_command, sed_command);
+  std::printf("\n%s\n%s\n%s\n%s\n", ps_command, sed_command1, sed_command2, sed_command3);
 
   assert(!system(ps_command));
   assert(!system(sed_command1));
