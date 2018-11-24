@@ -115,7 +115,7 @@ void file_cleanup(void)
 {
 /*
   if(posix::is_success())
-    assert(!system("rm psoutput sedoutput"));
+    assert(!system("rm psoutput sedoutput.*"));
 */
 }
 
@@ -163,7 +163,6 @@ int main(int argc, char* argv[])
                             SKIP CAPTURE \
                             SKIP \
                             "/\\1\t\\2\t\\3\t\\4\t\\5\t/g'" \
-                            " -e 's/|/\t/g'" \
                             " sedoutput.1 > sedoutput.2";
 
   const char* sed_command3 = "sed" \
