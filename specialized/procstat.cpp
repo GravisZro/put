@@ -134,8 +134,6 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response || !length)
     return false;
 
-  return true;
-
 # if defined(OLD_BSD) || defined(__darwin__)
   // Darwin structure documentation
   // kinfo_proc   : https://opensource.apple.com/source/xnu/xnu-123.5/bsd/sys/sysctl.h.auto.html
@@ -158,6 +156,8 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   data.process_group_id   = info.kp_eproc.e_pgid;
   data.session_id         = info.kp_eproc.e_sess->s_sid;
   data.tty_device         = info.kp_eproc.e_tdev;
+
+  return true;
 
   data.name               = info.kp_proc.p_comm;
   data.nice_value         = info.kp_proc.p_nice;
