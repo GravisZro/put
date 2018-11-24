@@ -119,6 +119,8 @@ void file_cleanup(void)
 */
 }
 
+#include <specialized/osdetect.h>
+
 int main(int argc, char* argv[])
 {
   std::atexit(file_cleanup);
@@ -188,6 +190,9 @@ int main(int argc, char* argv[])
   {
     if(getfield(field_buffer, '\t', fptr)) // pid
     {
+#if defined(__darwin__)
+      std::printf("pid: '%s'\n", field_buffer);
+#endif
       ps_state.process_id = decode<pid_t, 10>(field_buffer);
       if(!ps_state.process_id)
         std::printf("failed to read PID! '%s'\n", field_buffer);
