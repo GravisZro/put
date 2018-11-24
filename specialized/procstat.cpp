@@ -134,6 +134,8 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response || !length)
     return false;
 
+  return true;
+
 # if defined(OLD_BSD) || defined(__darwin__)
   // Darwin structure documentation
   // kinfo_proc   : https://opensource.apple.com/source/xnu/xnu-123.5/bsd/sys/sysctl.h.auto.html
@@ -161,7 +163,6 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   data.nice_value         = info.kp_proc.p_nice;
 
 #  if defined(__darwin__)
-  /*
   copy_struct(data.signals_pending, info.kp_proc.p_sigmask  );
   copy_struct(data.signals_ignored, info.kp_proc.p_sigignore);
   copy_struct(data.signals_caught , info.kp_proc.p_sigcatch );
@@ -169,7 +170,6 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   //copy_struct(data.start_time , info.kp_proc.p_stats->p_start);
   copy_struct(data.user_time  , info.kp_proc.p_ru->ru_utime);
   copy_struct(data.system_time, info.kp_proc.p_ru->ru_stime);
-  */
 #  else
   copy_struct(data.signals_pending, info.kp_proc.p_sigacts->ps_sigonstack);
 //copy_struct(data.signals_blocked, info.kp_proc.p_sigacts->ps_catchmask[???]); // TODO: Figure this part out!
