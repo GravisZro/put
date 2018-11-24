@@ -113,7 +113,10 @@ constexpr bool not_zero(const char* data)
 
 void file_cleanup(void)
 {
-  assert(!system("rm psoutput sedoutput"));
+/*
+  if(posix::is_success())
+    assert(!system("rm psoutput sedoutput"));
+*/
 }
 
 int main(int argc, char* argv[])
