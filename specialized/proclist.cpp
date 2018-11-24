@@ -51,7 +51,7 @@ bool proclist(std::set<pid_t>& list) noexcept
   }
 
   length *= sizeof(kinfo_proc); // length is now bytes
-  if(::sysctl(request, arraylength(request), proc_list.data(), &length, NULL, 0) != posix::success_response)
+  if(::sysctl(request, arraylength(request), proc_list.data(), &length, NULL, 0) != posix::success_response || !length)
     return false;
 
   for(const kinfo_proc& proc_info : proc_list)

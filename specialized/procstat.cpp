@@ -128,15 +128,10 @@ struct kinfo_proc {
 bool procstat(pid_t pid, process_state_t& data) noexcept
 {
   struct kinfo_proc info;
-  posix::size_t length;
-  int request[6] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid, sizeof(struct kinfo_proc), 0 };
+  posix::size_t length = sizeof(struct kinfo_proc);
+  int request[5] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid, 0 };
 
-  if(sysctl(request, arraylength(request), NULL, &length, NULL, 0) != posix::success_response)
-    return false;
-
-  request[5] = (length / sizeof(struct kinfo_proc));
-
-  if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response)
+  if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response || !length)
     return false;
 
 # if defined(OLD_BSD) || defined(__darwin__)
