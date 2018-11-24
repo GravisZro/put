@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
 
 #define CAPTURE "\\([[:graph:]]\\{1,\\}\\)"
 #define SKIP    "[[:blank:]]\\{1,\\}"
-  const char* sed_command1 = "sed -e 's/^\\s*" \
+  const char* sed_command1 = "sed -e 's/^[[:blank:]]*" \
                              CAPTURE SKIP \
                              CAPTURE SKIP \
                              CAPTURE SKIP \
