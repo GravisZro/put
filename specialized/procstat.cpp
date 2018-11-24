@@ -129,6 +129,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 {
   struct kinfo_proc info;
   posix::size_t length = sizeof(struct kinfo_proc);
+  std::memset(&info, 0, length); // zero out struct
   int request[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid };
 
   if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response || !length)
@@ -148,7 +149,6 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 //    return false;
 
   data.process_id         = info.kp_proc.p_pid;
-  return true;
   data.effective_user_id  = info.kp_eproc.e_ucred.cr_uid;
   data.effective_group_id = info.kp_eproc.e_ucred.cr_gid;
   data.real_user_id       = info.kp_eproc.e_pcred.p_ruid;
@@ -156,10 +156,12 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   data.process_id         = info.kp_proc.p_pid;
   data.parent_process_id  = info.kp_eproc.e_ppid;
   data.process_group_id   = info.kp_eproc.e_pgid;
-  data.session_id         = info.kp_eproc.e_sess->s_sid;
+  if(info.kp_eproc.e_sess != NULL)
+    data.session_id       = info.kp_eproc.e_sess->s_sid;
   data.tty_device         = info.kp_eproc.e_tdev;
-
-  data.name               = info.kp_proc.p_comm;
+  return true;
+  if(info.kp_proc.p_comm != NULL)
+    data.name             = info.kp_proc.p_comm;
   data.nice_value         = info.kp_proc.p_nice;
 
 #  if defined(__darwin__)
@@ -168,15 +170,22 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   copy_struct(data.signals_caught , info.kp_proc.p_sigcatch );
 
   //copy_struct(data.start_time , info.kp_proc.p_stats->p_start);
-  copy_struct(data.user_time  , info.kp_proc.p_ru->ru_utime);
-  copy_struct(data.system_time, info.kp_proc.p_ru->ru_stime);
+  if(info.kp_proc.p_ru != NULL)
+  {
+    copy_struct(data.user_time  , info.kp_proc.p_ru->ru_utime);
+    copy_struct(data.system_time, info.kp_proc.p_ru->ru_stime);
+  }
 #  else
-  copy_struct(data.signals_pending, info.kp_proc.p_sigacts->ps_sigonstack);
-//copy_struct(data.signals_blocked, info.kp_proc.p_sigacts->ps_catchmask[???]); // TODO: Figure this part out!
-  copy_struct(data.signals_ignored, info.kp_proc.p_sigacts->ps_sigignore );
-  copy_struct(data.signals_caught , info.kp_proc.p_sigacts->ps_sigcatch  );
+  if(info.kp_proc.p_sigacts != NULL)
+  {
+    copy_struct(data.signals_pending, info.kp_proc.p_sigacts->ps_sigonstack);
+//  copy_struct(data.signals_blocked, info.kp_proc.p_sigacts->ps_catchmask[???]); // TODO: Figure this part out!
+    copy_struct(data.signals_ignored, info.kp_proc.p_sigacts->ps_sigignore );
+    copy_struct(data.signals_caught , info.kp_proc.p_sigacts->ps_sigcatch  );
+  }
 
-  copy_struct(data.start_time , info.kp_proc.p_stats->p_start);
+  if(info.kp_proc.p_stats != NULL)
+    copy_struct(data.start_time , info.kp_proc.p_stats->p_start);
   copy_struct(data.user_time  , info.kp_proc.p_ru.ru_utime);
   copy_struct(data.system_time, info.kp_proc.p_ru.ru_stime);
 #  endif
