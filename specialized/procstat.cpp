@@ -129,7 +129,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 {
   struct kinfo_proc info;
   posix::size_t length = sizeof(struct kinfo_proc);
-  int request[5] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid, 0 };
+  int request[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid };
 
   if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response || !length)
     return false;
