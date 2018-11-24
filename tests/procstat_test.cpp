@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
                              CAPTURE SKIP \
                              CAPTURE SKIP \
                             "/\\1|\\2|\\3|\\4|\\5|\\6|\\7|\\8|\\9|/'" \
-                            " psoutput > sedoutput.1";
+                            " < psoutput > sedoutput.1";
 
   const char* sed_command2 = "sed -e 's/^" \
                              CAPTURE SKIP \
@@ -161,13 +161,13 @@ int main(int argc, char* argv[])
                              CAPTURE SKIP \
                              CAPTURE SKIP \
                             "/\\1\t\\2\t\\3\t\\4\t\\5\t/'" \
-                            " sedoutput.1 > sedoutput.2";
+                            " < sedoutput.1 > sedoutput.2";
 
   const char* sed_command3 = "sed" \
                             " -e 's/|/\t/g'" \
-                            " sedoutput.2 > sedoutput.3";
+                            " < sedoutput.2 > sedoutput.3";
 
-  //std::printf("\n%s\n%s\n%s\n%s\n", ps_command, sed_command1, sed_command2, sed_command3);
+  std::printf("\n%s\n%s\n%s\n%s\n", ps_command, sed_command1, sed_command2, sed_command3);
 
   assert(!system(ps_command));
   assert(!system(sed_command1));
