@@ -81,4 +81,6 @@ script:
   - ./bin/tests/proclist_test
   - ./bin/tests/procstat_test
   - head -n 6 psoutput
-  - head -n 6 sedoutput
+  - head -n 6 sedoutput.1
+  - head -n 6 sedoutput.2
+  - head -n 6 sedoutput.3

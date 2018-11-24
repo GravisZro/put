@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
 
 #define CAPTURE "\\(\\S*\\)"
 #define SKIP    "\\s*"
-  const char* sed_command = "sed -e 's/^" \
+  const char* sed_command1 = "sed -e 's/^" \
                             SKIP CAPTURE \
                             SKIP CAPTURE \
                             SKIP CAPTURE \
@@ -153,7 +153,9 @@ int main(int argc, char* argv[])
                             SKIP CAPTURE \
                             SKIP \
                             "/\\1|\\2|\\3|\\4|\\5|\\6|\\7|\\8|\\9|/g'" \
-                            " -e 's/^" \
+                            " psoutput > sedoutput.1";
+
+  const char* sed_command2 = "sed -e 's/^" \
                             SKIP CAPTURE \
                             SKIP CAPTURE \
                             SKIP CAPTURE \
@@ -161,20 +163,26 @@ int main(int argc, char* argv[])
                             SKIP CAPTURE \
                             SKIP \
                             "/\\1\t\\2\t\\3\t\\4\t\\5\t/g'" \
-                            " -e 's/|/\t/g'"
-                            " psoutput > sedoutput";
+                            " -e 's/|/\t/g'" \
+                            " sedoutput.1 > sedoutput.2";
 
-//  std::printf("\n%s\n%s\n", ps_command, sed_command);
+  const char* sed_command3 = "sed" \
+                            " -e 's/|/\t/g'" \
+                            " sedoutput.2 > sedoutput.3";
+
+  //std::printf("\n%s\n%s\n", ps_command, sed_command);
 
   assert(!system(ps_command));
-  assert(!system(sed_command));
+  assert(!system(sed_command1));
+  assert(!system(sed_command2));
+  assert(!system(sed_command3));
 
   process_state_t ps_state, procstat_state;
 
   char* field_buffer = NULL;
   size_t skip_count = 0;
 
-  FILE* fptr = posix::fopen("sedoutput", "r");
+  FILE* fptr = posix::fopen("sedoutput.3", "r");
 
   getfield(field_buffer, '\n', fptr); // skip header line
 
