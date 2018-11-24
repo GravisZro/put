@@ -110,8 +110,15 @@ bool getfield(char*& lineptr,
 constexpr bool not_zero(const char* data)
   { return (data[0] != '0' && data[0] != '-') || data[1] != '\0'; }
 
+
+void file_cleanup(void)
+{
+  assert(!system("rm psoutput sedoutput"));
+}
+
 int main(int argc, char* argv[])
 {
+  std::atexit(file_cleanup);
   const char* ps_command  = "ps -A " \
                             "-o pid " \
                             "-o ppid " \
@@ -150,13 +157,12 @@ int main(int argc, char* argv[])
                             SKIP CAPTURE \
                             SKIP CAPTURE \
                             SKIP \
-                            "/\\1\\t\\2\\t\\3\\t\\4\\t\\5\\t/g'" \
+                            "/\\1\t\\2\t\\3\t\\4\t\\5\t/g'" \
                             " -e 's/|/\\t/g'"
                             " psoutput > sedoutput";
 
 //  std::printf("\n%s\n%s\n", ps_command, sed_command);
 
-  system("rm psoutput sedoutput");
   assert(!system(ps_command));
   assert(!system(sed_command));
 
