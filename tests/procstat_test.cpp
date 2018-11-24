@@ -139,29 +139,27 @@ int main(int argc, char* argv[])
                             "-o comm " \
                             "-o args > psoutput";
 
-#define CAPTURE "\\(\\S*\\)"
-#define SKIP    "\\s*"
-  const char* sed_command1 = "sed -e 's/^" \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP \
+#define CAPTURE "\\(\\S\\S*\\)"
+#define SKIP    "\\s\\s*"
+  const char* sed_command1 = "sed -e 's/^\\s*" \
+                             CAPTURE SKIP \
+                             CAPTURE SKIP \
+                             CAPTURE SKIP \
+                             CAPTURE SKIP \
+                             CAPTURE SKIP \
+                             CAPTURE SKIP \
+                             CAPTURE SKIP \
+                             CAPTURE SKIP \
+                             CAPTURE SKIP \
                             "/\\1|\\2|\\3|\\4|\\5|\\6|\\7|\\8|\\9|/'" \
                             " psoutput > sedoutput.1";
 
   const char* sed_command2 = "sed -e 's/^" \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP CAPTURE \
-                            SKIP \
+                             CAPTURE SKIP \
+                             CAPTURE SKIP \
+                             CAPTURE SKIP \
+                             CAPTURE SKIP \
+                             CAPTURE SKIP \
                             "/\\1\t\\2\t\\3\t\\4\t\\5\t/'" \
                             " sedoutput.1 > sedoutput.2";
 
@@ -169,7 +167,7 @@ int main(int argc, char* argv[])
                             " -e 's/|/\t/g'" \
                             " sedoutput.2 > sedoutput.3";
 
-  std::printf("\n%s\n%s\n%s\n%s\n", ps_command, sed_command1, sed_command2, sed_command3);
+  //std::printf("\n%s\n%s\n%s\n%s\n", ps_command, sed_command1, sed_command2, sed_command3);
 
   assert(!system(ps_command));
   assert(!system(sed_command1));
