@@ -158,7 +158,7 @@ int main(int argc, char* argv[])
                             SKIP CAPTURE \
                             SKIP \
                             "/\\1\t\\2\t\\3\t\\4\t\\5\t/g'" \
-                            " -e 's/|/\\t/g'"
+                            " -e 's/|/\t/g'"
                             " psoutput > sedoutput";
 
 //  std::printf("\n%s\n%s\n", ps_command, sed_command);
