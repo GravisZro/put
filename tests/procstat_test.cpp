@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
                             SKIP CAPTURE \
                             SKIP CAPTURE \
                             SKIP \
-                            "/\\1|\\2|\\3|\\4|\\5|\\6|\\7|\\8|\\9|/g'" \
+                            "/\\1|\\2|\\3|\\4|\\5|\\6|\\7|\\8|\\9|/'" \
                             " psoutput > sedoutput.1";
 
   const char* sed_command2 = "sed -e 's/^" \
@@ -162,7 +162,7 @@ int main(int argc, char* argv[])
                             SKIP CAPTURE \
                             SKIP CAPTURE \
                             SKIP \
-                            "/\\1\t\\2\t\\3\t\\4\t\\5\t/g'" \
+                            "/\\1\t\\2\t\\3\t\\4\t\\5\t/'" \
                             " sedoutput.1 > sedoutput.2";
 
   const char* sed_command3 = "sed" \
