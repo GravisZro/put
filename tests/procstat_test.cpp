@@ -177,7 +177,8 @@ int main(int argc, char* argv[])
   process_state_t ps_state, procstat_state;
 
   char* field_buffer = NULL;
-  size_t skip_count = 0;
+  pid_t skip_count = 0;
+  pid_t processed_count = 0;
 
   FILE* fptr = posix::fopen("sedoutput.3", "r");
 
@@ -281,12 +282,14 @@ int main(int argc, char* argv[])
     if(!procstat(ps_state.process_id, procstat_state) &&
        ps_state.process_id)
     {
-      flaw(skip_count > 10,
+      flaw(skip_count > 100,
            terminal::critical,,EXIT_FAILURE,
-           "too many processes missing!")
+           "too many processes missing!  processed: %i", processed_count)
       ++skip_count;
       continue;
     }
+    else
+      ++processed_count;
 
     flaw(ps_state.process_id != procstat_state.process_id,
          terminal::critical,,EXIT_FAILURE,
