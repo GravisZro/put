@@ -279,9 +279,12 @@ int main(int argc, char* argv[])
     if(getfield(field_buffer, '\n', fptr)) // args
       proc_test_split_arguments(ps_state.arguments, field_buffer);
 
+    posix::success();
     if(!procstat(ps_state.process_id, procstat_state) &&
        ps_state.process_id)
     {
+      if(!posix::is_success())
+        std::printf("procstat error: %s\n", std::strerror(errno));
       flaw(skip_count > 100,
            terminal::critical,,EXIT_FAILURE,
            "too many processes missing!  processed: %i", processed_count)
