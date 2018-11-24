@@ -75,7 +75,7 @@ bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
 // PUT
 # include <cxxutils/misc_helpers.h>
 
-#if defined(__darwin__) /* Darwin XNU 792+ */
+# if defined(__darwin__) /* Darwin XNU 792+ */
 struct session {
    int s_count;  // Ref cnt; pgrps in session.
    struct proc *s_leader;  // Session leader.
@@ -93,9 +93,9 @@ struct pgrp {
    int pg_jobc; // # procs qualifying pgrp for job control
 };
 
-#elif (defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(8,0,0)) || \
-     (defined(__NetBSD__)  && KERNEL_VERSION_CODE < KERNEL_VERSION(1,5,0)) || \
-     (defined(__OpenBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,7,0))
+# elif (defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(8,0,0)) || \
+       (defined(__NetBSD__)  && KERNEL_VERSION_CODE < KERNEL_VERSION(1,5,0)) || \
+       (defined(__OpenBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(3,7,0))
 #  define OLD_BSD
 
 struct kinfo_proc {
@@ -132,17 +132,16 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   std::memset(&info, 0, length); // zero out struct
   int request[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid };
 
-#if defined(__darwin__) || defined(OLD_BSD)
+# if defined(__darwin__) || defined(OLD_BSD)
   struct session e_sess;
   struct pstats p_sigacts;
   info.kp_eproc.e_sess = &e_sess;
   info.kp_proc.p_sigacts = &p_sigacts;
-# if defined(__darwin__)
+#  if defined(__darwin__)
   struct rusage p_ru;
   info.kp_proc.p_ru = &p_ru;
+#  endif
 # endif
-#else
-#endif
 
   if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response || !length)
     return false;
