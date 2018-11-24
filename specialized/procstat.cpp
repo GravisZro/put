@@ -132,6 +132,18 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   std::memset(&info, 0, length); // zero out struct
   int request[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid };
 
+#if defined(__darwin__) || defined(OLD_BSD)
+  struct session e_sess;
+  struct pstats p_sigacts;
+  info.kp_eproc.e_sess = &e_sess;
+  info.kp_proc.p_sigacts = &p_sigacts;
+# if defined(__darwin__)
+  struct rusage p_ru;
+  info.kp_proc.p_ru = &p_ru;
+# endif
+#else
+#endif
+
   if(sysctl(request, arraylength(request), &info, &length, NULL, 0) != posix::success_response || !length)
     return false;
 
@@ -159,9 +171,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   if(info.kp_eproc.e_sess != NULL)
     data.session_id       = info.kp_eproc.e_sess->s_sid;
   data.tty_device         = info.kp_eproc.e_tdev;
-  return true;
-  if(info.kp_proc.p_comm != NULL)
-    data.name             = info.kp_proc.p_comm;
+  data.name               = info.kp_proc.p_comm;
   data.nice_value         = info.kp_proc.p_nice;
 
 #  if defined(__darwin__)
