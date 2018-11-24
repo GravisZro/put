@@ -147,6 +147,8 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 //  if(!split_arguments(data.arguments, info.ki_args->ar_args))
 //    return false;
 
+  data.process_id         = info.kp_proc.p_pid;
+  return true;
   data.effective_user_id  = info.kp_eproc.e_ucred.cr_uid;
   data.effective_group_id = info.kp_eproc.e_ucred.cr_gid;
   data.real_user_id       = info.kp_eproc.e_pcred.p_ruid;
@@ -156,8 +158,6 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
   data.process_group_id   = info.kp_eproc.e_pgid;
   data.session_id         = info.kp_eproc.e_sess->s_sid;
   data.tty_device         = info.kp_eproc.e_tdev;
-
-  return true;
 
   data.name               = info.kp_proc.p_comm;
   data.nice_value         = info.kp_proc.p_nice;
