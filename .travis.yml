@@ -80,5 +80,5 @@ script:
   - make -e CXX=$COMPILER -e VERBOSE=true -f Makefile.travis
   - ./bin/tests/proclist_test
   - ./bin/tests/procstat_test
-  - ps -p 1352 -o pid -o ppid -o pgid -o user=abcdefghijkl -o group=abcdefghijkl -o ruser=abcdefghijkl -o rgroup=abcdefghijkl -o tty=abcdefghijkl -o pcpu -o vsz -o nice -o -o pid -o ppid -o pgid -o user=abcdefghijkl -o group=abcdefghijkl -o ruser=abcdefghijkl -o rgroup=abcdefghijkl -o tty=abcdefghijkl -o pcpu -o vsz -o nice -o time=abcdefghijkl -o etime=abcdefghijkl -o comm -o args
-  - cat /proc/1352/stat
+  - ps -p 1383 -o pid -o ppid -o pgid -o user=abcdefghijkl -o group=abcdefghijkl -o ruser=abcdefghijkl -o rgroup=abcdefghijkl -o tty=abcdefghijkl -o pcpu -o vsz -o nice -o -o pid -o ppid -o pgid -o user=abcdefghijkl -o group=abcdefghijkl -o ruser=abcdefghijkl -o rgroup=abcdefghijkl -o tty=abcdefghijkl -o pcpu -o vsz -o nice -o time=abcdefghijkl -o etime=abcdefghijkl -o comm -o args
+  - cat /proc/1383/stat
