@@ -818,10 +818,12 @@ inline void clear_state(process_state_t& data) noexcept
   data.tty_device         = 0;
   data.priority_value     = 0;
   data.nice_value         = 0;
+  data.percent_cpu        = 0;
   std::memset(&data.signals_pending, 0, sizeof(sigset_t));
   std::memset(&data.signals_blocked, 0, sizeof(sigset_t));
   std::memset(&data.signals_ignored, 0, sizeof(sigset_t));
   std::memset(&data.signals_caught , 0, sizeof(sigset_t));
+  std::memset(&data.start_time     , 0, sizeof(timeval ));
   std::memset(&data.user_time      , 0, sizeof(timeval ));
   std::memset(&data.system_time    , 0, sizeof(timeval ));
 }
