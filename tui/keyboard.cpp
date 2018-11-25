@@ -23,7 +23,7 @@ uint64_t read_key_sequence(posix::fd_t fd) noexcept
       uint8_t* end = reinterpret_cast<uint8_t*>(&key) + sizeof(key);
       do {
         posix::read(fd, ++keyptr, 1);
-      } while(errno == posix::success_response &&
+      } while(posix::is_success() &&
               keyptr != end && // safety first!
               (*keyptr == EXTEND_BYTE ||
                (*keyptr >= '0' && *keyptr <= '9')));

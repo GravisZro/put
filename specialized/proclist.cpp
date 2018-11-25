@@ -105,7 +105,7 @@ bool proclist(std::set<pid_t>& list) noexcept
     if(entry->d_type == DT_DIR && std::atoi(entry->d_name))
       ++length;
 
-  if(errno == posix::success_response)
+  if(posix::is_success())
   {
     ::rewinddir(dirp);
 
@@ -117,7 +117,7 @@ bool proclist(std::set<pid_t>& list) noexcept
   if(::closedir(dirp) == posix::error_response)
     return false;
 
-  return errno == posix::success_response;
+  return posix::is_success();
 }
 
 #elif defined(__unix__) /* Generic UNIX */

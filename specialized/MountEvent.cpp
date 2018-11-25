@@ -50,8 +50,9 @@ MountEvent::MountEvent(void) noexcept
 
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
     char proc_mounts[PATH_MAX] = { 0 };
-    if(procfs_path == nullptr)
-      initialize_paths();
+    if(procfs_path == nullptr &&
+      !reinitialize_paths())
+      return;
     std::sscanf(proc_mounts, "%s/mounts", procfs_path);
 
     m_fd = posix::open(proc_mounts, O_RDONLY | O_NONBLOCK);

@@ -86,12 +86,14 @@ bool parse_table(std::list<struct fsentry_t>& table, const char* filename) noexc
 {
   table.clear();
   FILE* file = ::setmntent(filename, "r");
+  if(file == nullptr && posix::is_success())
+    return posix::error(std::errc::no_such_file_or_directory);
   if(file == nullptr)
-    return posix::error_response;
+    return false;
 
   struct mntent* entry = NULL;
   while((entry = ::getmntent(file)) != NULL &&
-        errno == posix::success_response)
+        posix::is_success())
   {
     table.emplace_back(entry->mnt_fsname,
                        entry->mnt_dir,
@@ -101,7 +103,7 @@ bool parse_table(std::list<struct fsentry_t>& table, const char* filename) noexc
                        entry->mnt_passno);
   }
   ::endmntent(file);
-  return errno == posix::success_response;
+  return posix::is_success();
 }
 
 #elif defined(__solaris__)  /* Solaris  */
@@ -134,7 +136,7 @@ bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
                        decode_pass(entry.vfs_fsckpass));
   }
   ::close(file);
-  return errno == posix::success_response;
+  return posix::is_success();
 }
 #endif
 
@@ -163,14 +165,14 @@ bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
 {
   struct fstab* entry = NULL;
   while((entry = ::getfsent()) != NULL &&
-        errno == posix::success_response)
+        posix::is_success())
     table.emplace_back(entry->fs_spec,
                        entry->fs_file,
                        entry->fs_vfstype,
                        entry->fs_mntops,
                        entry->fs_freq,
                        entry->fs_passno);
-  return errno == posix::success_response;
+  return posix::is_success();
 }
 
 #elif defined(__unix__)   /* Generic UNIX */
@@ -251,7 +253,7 @@ bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
   ::free(field);
   field = nullptr;
 */
-  return errno == posix::success_response;
+  return posix::is_success();
 }
 #endif
 

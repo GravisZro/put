@@ -140,7 +140,7 @@ bool ChildProcess::invoke(void) noexcept
   if(state() == State::Running)
     Object::enqueue_copy(started, processId());
 
-  return errno == posix::success_response;
+  return posix::is_success();
 }
 
 ChildProcess::State ChildProcess::state(void) noexcept
