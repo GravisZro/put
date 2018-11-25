@@ -22,7 +22,7 @@ inline void assign_data(char*& target, const char* str) noexcept
   std::strncpy(target, str, length);
 }
 
-bool initialize_paths(void) noexcept
+bool reinitialize_paths(void) noexcept
 {
   std::list<fsentry_t> table;
   if(!mount_table(table))
@@ -51,4 +51,4 @@ bool initialize_paths(void) noexcept
   return true;
 }
 
-static bool onstart = initialize_paths();
+static bool onstart = reinitialize_paths();

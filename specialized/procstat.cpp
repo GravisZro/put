@@ -831,8 +831,8 @@ inline void clear_state(process_state_t& data) noexcept
 bool procstat(pid_t pid, process_state_t& data) noexcept
 {
   clear_state(data);
-  if(procfs_path == nullptr &&
-    initialize_paths())
+  if(procfs_path == nullptr && // safety check
+    !reinitialize_paths())
     return false;
 
 # if defined(__linux__) // Linux

@@ -90,8 +90,8 @@ bool proclist(std::set<pid_t>& list) noexcept
   errno = posix::success_response; // clear errno since it's required in this function
   list.clear();
 
-  if(procfs_path == nullptr &&
-    initialize_paths())
+  if(procfs_path == nullptr && // safety check
+    !reinitialize_paths())
     return false;
 
 

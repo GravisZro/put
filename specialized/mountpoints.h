@@ -6,6 +6,6 @@ extern char* sysfs_path;
 extern char* devfs_path;
 extern char* scfs_path;
 
-bool initialize_paths(void) noexcept;
+bool reinitialize_paths(void) noexcept; // automaticlly called at program start
 
 #endif // MOUNTPOINT_HELPERS_H
