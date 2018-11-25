@@ -20,7 +20,13 @@
 #include <cxxutils/vterm.h>
 #include <specialized/procstat.h>
 
-#define BUF_SIZE 0x8000
+#if defined(__linux__)
+# define PROCFS_DEBUG 1
+#endif
+
+#if defined(PROCFS_DEBUG)
+#include <specialized/mountpoints.h>
+#endif
 
 template<typename T, int base>
 T decode(const char* start, const char* end)
@@ -39,15 +45,9 @@ T decode(const char* start, const char* end)
     value *= T(-1);
   return value;
 }
-template<typename T, int base>
-T decode(const char* str)
-{ return decode<T,base>(str, str + std::strlen(str)); }
 
-void copy_field(char* output, const char* start, const char* end)
-{
-  std::memset(output, 0, BUF_SIZE);
-  std::memcpy(output, start, size_t(end - start));
-}
+template<typename T, int base> T decode(const char* str)
+{ return decode<T,base>(str, str + std::strlen(str)); }
 
 void proc_test_split_arguments(std::vector<std::string>& argvector, const char* argstr)
 {
@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
 {
   std::atexit(file_cleanup);
 
-  char ps_buffer[PATH_MAX] = { 0 };
+  char tmp_buffer[PATH_MAX] = { 0 };
   const char* psdump_command  = "ps -p %i " \
                             "-o pid " \
                             "-o ppid " \
@@ -305,46 +305,52 @@ int main(int argc, char* argv[])
     else
       ++processed_count;
 
-    std::snprintf(ps_buffer, sizeof(ps_buffer), psdump_command, ps_state.process_id);
+#if defined(PROCFS_DEBUG)
+    std::snprintf(tmp_buffer, sizeof(tmp_buffer), "%s/%i", procfs_path, ps_state.process_id);
+    if(::access(tmp_buffer, R_OK) == posix::error_response && errno == ENOENT) // if no longer exists
+      continue;
+#endif
+
+    std::snprintf(tmp_buffer, sizeof(tmp_buffer), psdump_command, ps_state.process_id);
 
     flaw(ps_state.process_id != procstat_state.process_id,
-         terminal::critical,system(ps_buffer),EXIT_FAILURE,
+         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
          "'process_id' does not match.\nps value: %d\nprocstat value: %d",
          ps_state.process_id, procstat_state.process_id)
 
     flaw(ps_state.parent_process_id != procstat_state.parent_process_id,
-         terminal::critical,system(ps_buffer),EXIT_FAILURE,
+         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
          "'parent_process_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.parent_process_id, procstat_state.parent_process_id)
 
     flaw(ps_state.process_group_id != procstat_state.process_group_id,
-         terminal::critical,system(ps_buffer),EXIT_FAILURE,
+         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
          "'process_group_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.process_group_id, procstat_state.process_group_id)
 
 
     flaw(ps_state.effective_user_id != procstat_state.effective_user_id,
-         terminal::critical,system(ps_buffer),EXIT_FAILURE,
+         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
          "'effective_user_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.effective_user_id, procstat_state.effective_user_id)
 
     flaw(ps_state.effective_group_id != procstat_state.effective_group_id,
-         terminal::critical,system(ps_buffer),EXIT_FAILURE,
+         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
          "'effective_group_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.effective_group_id, procstat_state.effective_group_id)
 
     flaw(ps_state.real_user_id != procstat_state.real_user_id,
-         terminal::critical,system(ps_buffer),EXIT_FAILURE,
+         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
          "'real_user_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.real_user_id, procstat_state.real_user_id)
 
     flaw(ps_state.real_group_id != procstat_state.real_group_id,
-         terminal::critical,system(ps_buffer),EXIT_FAILURE,
+         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
          "'real_group_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.real_group_id, procstat_state.real_group_id)
 
     flaw(ps_state.nice_value != procstat_state.nice_value,
-         terminal::critical,system(ps_buffer),EXIT_FAILURE,
+         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
          "'nice_value' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.nice_value, procstat_state.nice_value)
 
@@ -359,7 +365,7 @@ int main(int argc, char* argv[])
     }
 
     flaw(bad_args,
-         terminal::critical,system(ps_buffer),EXIT_FAILURE,
+         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
          "'arguments' does not match.\nPID: %d\nps arg count: %ld\nprocstat arg count: %ld",
          ps_state.process_id, ps_state.arguments.size(), procstat_state.arguments.size());
   }
@@ -373,6 +379,15 @@ int main(int argc, char* argv[])
 }
 
 #if 0
+
+#define BUF_SIZE 0x8000
+
+void copy_field(char* output, const char* start, const char* end)
+{
+  std::memset(output, 0, BUF_SIZE);
+  std::memcpy(output, start, size_t(end - start));
+}
+
 
 int main(int argc, char* argv[])
 {
