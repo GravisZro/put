@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
                             " -e 's/|/\t/g'" \
                             " < psoutput > sedoutput";
 
-  //std::printf("\n%s\n%s\n%s\n%s\n", ps_command, sed_command);
+  std::printf("\n%s\n%s\n%s\n%s\n", ps_command, sed_command);
 
   assert(!system(ps_command));
   assert(!system(sed_command));
