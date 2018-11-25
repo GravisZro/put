@@ -113,10 +113,8 @@ constexpr bool not_zero(const char* data)
 
 void file_cleanup(void)
 {
-/*
   if(posix::is_success())
-    assert(!system("rm psoutput sedoutput.*"));
-*/
+    assert(!system("rm psoutput sedoutput"));
 }
 
 int main(int argc, char* argv[])
@@ -141,7 +139,8 @@ int main(int argc, char* argv[])
 
 #define CAPTURE "\\([[:graph:]]\\{1,\\}\\)"
 #define SKIP    "[[:blank:]]\\{1,\\}"
-  const char* sed_command1 = "sed -e 's/^[[:blank:]]*" \
+  const char* sed_command = "sed"
+                             "-e 's/^[[:blank:]]*" \
                              CAPTURE SKIP \
                              CAPTURE SKIP \
                              CAPTURE SKIP \
@@ -152,27 +151,20 @@ int main(int argc, char* argv[])
                              CAPTURE SKIP \
                              CAPTURE SKIP \
                             "/\\1|\\2|\\3|\\4|\\5|\\6|\\7|\\8|\\9|/'" \
-                            " < psoutput > sedoutput.1";
-
-  const char* sed_command2 = "sed -e 's/^" \
+                            " -e 's/^" \
                              CAPTURE SKIP \
                              CAPTURE SKIP \
                              CAPTURE SKIP \
                              CAPTURE SKIP \
                              CAPTURE SKIP \
                             "/\\1\t\\2\t\\3\t\\4\t\\5\t/'" \
-                            " < sedoutput.1 > sedoutput.2";
-
-  const char* sed_command3 = "sed" \
                             " -e 's/|/\t/g'" \
-                            " < sedoutput.2 > sedoutput.3";
+                            " < psoutput > sedoutput";
 
-  //std::printf("\n%s\n%s\n%s\n%s\n", ps_command, sed_command1, sed_command2, sed_command3);
+  //std::printf("\n%s\n%s\n%s\n%s\n", ps_command, sed_command);
 
   assert(!system(ps_command));
-  assert(!system(sed_command1));
-  assert(!system(sed_command2));
-  assert(!system(sed_command3));
+  assert(!system(sed_command));
 
   process_state_t ps_state, procstat_state;
 
@@ -180,7 +172,7 @@ int main(int argc, char* argv[])
   pid_t skip_count = 0;
   pid_t processed_count = 0;
 
-  FILE* fptr = posix::fopen("sedoutput.3", "r");
+  FILE* fptr = posix::fopen("sedoutput", "r");
 
   getfield(field_buffer, '\n', fptr); // skip header line
 
