@@ -315,7 +315,7 @@ int main(int argc, char* argv[])
     if(::access(tmp_buffer1, R_OK) == posix::error_response) // if no longer exists
       continue;
 
-    std::snprintf(tmp_buffer2, sizeof(tmp_buffer2), "%s || %s", tmp_buffer1, psdump_command);
+    std::snprintf(tmp_buffer2, sizeof(tmp_buffer2), "cat %s || %s", tmp_buffer1, psdump_command);
     std::snprintf(tmp_buffer1, sizeof(tmp_buffer1), tmp_buffer2, ps_state.process_id);
 #else
     std::snprintf(tmp_buffer1, sizeof(tmp_buffer1), psdump_command, ps_state.process_id);
