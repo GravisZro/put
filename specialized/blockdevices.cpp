@@ -75,8 +75,9 @@ namespace blockdevices
   void fill_device_list(void) noexcept
   {
     char filename[PATH_MAX] = { 0 };
-    if(procfs_path == nullptr)
-      initialize_paths();
+    if(procfs_path == nullptr &&
+      !reinitialize_paths())
+      return;
     std::snprintf(filename, PATH_MAX, "%s/partitions", procfs_path);
 
     std::FILE* file = posix::fopen(filename, "r");
