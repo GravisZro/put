@@ -119,6 +119,10 @@ void file_cleanup(void)
 
 int main(int argc, char* argv[])
 {
+#if defined(PROCFS_DEBUG)
+  std::printf("procfs checking enabled\n");
+#endif
+
   std::atexit(file_cleanup);
 
   char tmp_buffer[PATH_MAX] = { 0 };
@@ -307,50 +311,50 @@ int main(int argc, char* argv[])
 
 #if defined(PROCFS_DEBUG)
     std::snprintf(tmp_buffer, sizeof(tmp_buffer), "%s/%i", procfs_path, ps_state.process_id);
-    if(::access(tmp_buffer, R_OK) == posix::error_response && errno == ENOENT) // if no longer exists
+    if(::access(tmp_buffer, R_OK) == posix::error_response) // if no longer exists
       continue;
 #endif
 
     std::snprintf(tmp_buffer, sizeof(tmp_buffer), psdump_command, ps_state.process_id);
 
     flaw(ps_state.process_id != procstat_state.process_id,
-         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
          "'process_id' does not match.\nps value: %d\nprocstat value: %d",
          ps_state.process_id, procstat_state.process_id)
 
     flaw(ps_state.parent_process_id != procstat_state.parent_process_id,
-         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
          "'parent_process_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.parent_process_id, procstat_state.parent_process_id)
 
     flaw(ps_state.process_group_id != procstat_state.process_group_id,
-         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
          "'process_group_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.process_group_id, procstat_state.process_group_id)
 
 
     flaw(ps_state.effective_user_id != procstat_state.effective_user_id,
-         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
          "'effective_user_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.effective_user_id, procstat_state.effective_user_id)
 
     flaw(ps_state.effective_group_id != procstat_state.effective_group_id,
-         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
          "'effective_group_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.effective_group_id, procstat_state.effective_group_id)
 
     flaw(ps_state.real_user_id != procstat_state.real_user_id,
-         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
          "'real_user_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.real_user_id, procstat_state.real_user_id)
 
     flaw(ps_state.real_group_id != procstat_state.real_group_id,
-         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
          "'real_group_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.real_group_id, procstat_state.real_group_id)
 
     flaw(ps_state.nice_value != procstat_state.nice_value,
-         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
          "'nice_value' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.nice_value, procstat_state.nice_value)
 
@@ -365,7 +369,7 @@ int main(int argc, char* argv[])
     }
 
     flaw(bad_args,
-         terminal::critical,assert(system(tmp_buffer)),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
          "'arguments' does not match.\nPID: %d\nps arg count: %ld\nprocstat arg count: %ld",
          ps_state.process_id, ps_state.arguments.size(), procstat_state.arguments.size());
   }
