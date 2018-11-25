@@ -75,6 +75,7 @@ void Application::read(posix::fd_t fd, native_flags_t) noexcept
 
 int Application::exec(void) noexcept // non-static function to ensure an instance of Application exists
 {
+  s_run = true;
   while(s_run) // while not quitting
   {
     EventBackend::poll(); // get event queue results
