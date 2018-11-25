@@ -10,7 +10,6 @@
 // See also: https://www.systutorials.com/docs/linux/man/2-query_module/
 
 // Linux
-# include <linux/module.h>
 # include <sys/mman.h>
 # include <sys/syscall.h>
 # include <sys/stat.h>
