@@ -310,12 +310,15 @@ int main(int argc, char* argv[])
       ++processed_count;
 
 #if defined(PROCFS_DEBUG)
-    std::snprintf(tmp_buffer, sizeof(tmp_buffer), "%s/%i", procfs_path, ps_state.process_id);
+    std::snprintf(tmp_buffer, sizeof(tmp_buffer), "%s/%i/status", procfs_path, ps_state.process_id);
     if(::access(tmp_buffer, R_OK) == posix::error_response) // if no longer exists
       continue;
-#endif
 
+    std::snprintf(tmp_buffer, sizeof(tmp_buffer), "%s && %s", tmp_buffer, psdump_command);
+    std::snprintf(tmp_buffer, sizeof(tmp_buffer), tmp_buffer, ps_state.process_id);
+#else
     std::snprintf(tmp_buffer, sizeof(tmp_buffer), psdump_command, ps_state.process_id);
+#endif
 
     flaw(ps_state.process_id != procstat_state.process_id,
          terminal::critical,system(tmp_buffer),EXIT_FAILURE,
