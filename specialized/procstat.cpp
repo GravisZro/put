@@ -135,13 +135,14 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 # if defined(__darwin__) || defined(OLD_BSD)
   struct session e_sess;
   struct sigacts p_sigacts;
-  struct pstats p_stats;
   info.kp_eproc.e_sess = &e_sess;
   info.kp_proc.p_sigacts = &p_sigacts;
-  info.kp_proc.p_stats = &p_stats;
 #  if defined(__darwin__)
   struct rusage p_ru;
   info.kp_proc.p_ru = &p_ru;
+#  else
+  struct pstats p_stats;
+  info.kp_proc.p_stats = &p_stats;
 #  endif
 # endif
 
