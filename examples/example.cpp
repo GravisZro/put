@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 /*
 
 ==== BUILD COMMAND ==== 
-g++ example.cpp ../application.cpp ../specialized/mutex.cpp ../specialized/eventbackend.cpp -I../ -std=c++14 -Os -fno-exceptions -fno-rtti -o example
+g++ examples/example.cpp application.cpp specialized/mutex.cpp specialized/eventbackend.cpp -I. -std=c++14 -Os -fno-exceptions -fno-rtti -o example
 
 ==== OUTPUT ====
 before trigger
