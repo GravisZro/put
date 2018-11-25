@@ -12,8 +12,8 @@
 #include <cxxutils/vterm.h>
 
 // atomic vars are to avoid race conditions
-static std::atomic_int  s_return_value;
-static std::atomic_bool s_run; // quit signal
+static std::atomic_int  s_return_value(0);
+static std::atomic_bool s_run(true); // quit signal
 
 posix::lockable<std::queue<vfunc>> Application::ms_signal_queue;
 
@@ -75,8 +75,6 @@ void Application::read(posix::fd_t fd, native_flags_t) noexcept
 
 int Application::exec(void) noexcept // non-static function to ensure an instance of Application exists
 {
-  s_return_value = 0; // reinit return value
-  s_run = true; // reinit execution status
   while(s_run) // while not quitting
   {
     EventBackend::poll(); // get event queue results
