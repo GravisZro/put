@@ -184,7 +184,7 @@ int main(int argc, char* argv[])
                             " -e 's/|/\t/g'" \
                             " < psoutput > sedoutput";
 
-  std::printf("\n%s\n%s\n", ps_command, sed_command);
+  //std::printf("\n%s\n%s\n", ps_command, sed_command);
 
   assert(!system(ps_command));
   assert(!system(sed_command));
@@ -298,9 +298,9 @@ int main(int argc, char* argv[])
     if(!procstat(ps_state.process_id, procstat_state) &&
        ps_state.process_id)
     {
-      if(!posix::is_success())
-        std::printf("procstat error: %s\n", std::strerror(errno));
-      flaw(skip_count > 100,
+//      if(!posix::is_success())
+//        std::printf("procstat error: %s\n", std::strerror(errno));
+      flaw(skip_count > 2,
            terminal::critical,,EXIT_FAILURE,
            "too many processes missing!  processed: %i", processed_count)
       ++skip_count;
