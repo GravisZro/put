@@ -125,7 +125,8 @@ int main(int argc, char* argv[])
 
   std::atexit(file_cleanup);
 
-  char tmp_buffer[PATH_MAX] = { 0 };
+  char tmp_buffer1[PATH_MAX] = { 0 };
+  char tmp_buffer2[PATH_MAX] = { 0 };
   const char* psdump_command  = "ps -p %i " \
                             "-o pid " \
                             "-o ppid " \
@@ -310,54 +311,54 @@ int main(int argc, char* argv[])
       ++processed_count;
 
 #if defined(PROCFS_DEBUG)
-    std::snprintf(tmp_buffer, sizeof(tmp_buffer), "%s/%i/status", procfs_path, ps_state.process_id);
-    if(::access(tmp_buffer, R_OK) == posix::error_response) // if no longer exists
+    std::snprintf(tmp_buffer1, sizeof(tmp_buffer1), "%s/%i/status", procfs_path, ps_state.process_id);
+    if(::access(tmp_buffer1, R_OK) == posix::error_response) // if no longer exists
       continue;
 
-    std::snprintf(tmp_buffer, sizeof(tmp_buffer), "%s && %s", tmp_buffer, psdump_command);
-    std::snprintf(tmp_buffer, sizeof(tmp_buffer), tmp_buffer, ps_state.process_id);
+    std::snprintf(tmp_buffer2, sizeof(tmp_buffer2), "%s && %s", tmp_buffer1, psdump_command);
+    std::snprintf(tmp_buffer1, sizeof(tmp_buffer1), tmp_buffer2, ps_state.process_id);
 #else
-    std::snprintf(tmp_buffer, sizeof(tmp_buffer), psdump_command, ps_state.process_id);
+    std::snprintf(tmp_buffer1, sizeof(tmp_buffer1), psdump_command, ps_state.process_id);
 #endif
 
     flaw(ps_state.process_id != procstat_state.process_id,
-         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer1),EXIT_FAILURE,
          "'process_id' does not match.\nps value: %d\nprocstat value: %d",
          ps_state.process_id, procstat_state.process_id)
 
     flaw(ps_state.parent_process_id != procstat_state.parent_process_id,
-         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer1),EXIT_FAILURE,
          "'parent_process_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.parent_process_id, procstat_state.parent_process_id)
 
     flaw(ps_state.process_group_id != procstat_state.process_group_id,
-         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer1),EXIT_FAILURE,
          "'process_group_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.process_group_id, procstat_state.process_group_id)
 
 
     flaw(ps_state.effective_user_id != procstat_state.effective_user_id,
-         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer1),EXIT_FAILURE,
          "'effective_user_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.effective_user_id, procstat_state.effective_user_id)
 
     flaw(ps_state.effective_group_id != procstat_state.effective_group_id,
-         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer1),EXIT_FAILURE,
          "'effective_group_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.effective_group_id, procstat_state.effective_group_id)
 
     flaw(ps_state.real_user_id != procstat_state.real_user_id,
-         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer1),EXIT_FAILURE,
          "'real_user_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.real_user_id, procstat_state.real_user_id)
 
     flaw(ps_state.real_group_id != procstat_state.real_group_id,
-         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer1),EXIT_FAILURE,
          "'real_group_id' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.real_group_id, procstat_state.real_group_id)
 
     flaw(ps_state.nice_value != procstat_state.nice_value,
-         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer1),EXIT_FAILURE,
          "'nice_value' does not match.\nPID: %d\nps value: %d\nprocstat value: %d",
          ps_state.process_id, ps_state.nice_value, procstat_state.nice_value)
 
@@ -372,7 +373,7 @@ int main(int argc, char* argv[])
     }
 
     flaw(bad_args,
-         terminal::critical,system(tmp_buffer),EXIT_FAILURE,
+         terminal::critical,system(tmp_buffer1),EXIT_FAILURE,
          "'arguments' does not match.\nPID: %d\nps arg count: %ld\nprocstat arg count: %ld",
          ps_state.process_id, ps_state.arguments.size(), procstat_state.arguments.size());
   }
