@@ -26,8 +26,8 @@ ifndef BUILD_PATH
   BUILD_PATH=$(SOURCE_PATH)/bin
 endif
 
-ifneq ($(wildcard /usr/src/linux-headers-4.4.0-101-common),)
-  INCPATH       = -I. -I/usr/src/linux-headers-4.4.0-101-common/include
+ifneq ($(wildcard /usr/src/linux-headers-4.4.0-101),)
+  INCPATH       = -I. -I/usr/src/linux-headers-4.4.0-101/include
 else
   INCPATH       = -I.
 endif
