@@ -530,14 +530,14 @@ bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
   while(::getline(&line, &line_sz, file) > 0 &&
         std::memcmp(line, "Uid:\t", sizeof("Uid:\t") - 1));
   std::sscanf(line, "Uid:\t%" SCNi32 "\t%" SCNi32 "\t",
-              &data.effective_user_id,
-              &data.real_user_id);
+              &data.real_user_id,
+              &data.effective_user_id);
 
   while(::getline(&line, &line_sz, file) > 0 &&
         std::memcmp(line, "Gid:\t", sizeof("Gid:\t") - 1));
   std::sscanf(line, "Gid:\t%" SCNi32 "\t%" SCNi32 "\t",
-              &data.effective_group_id,
-              &data.real_group_id);
+              &data.real_group_id,
+              &data.effective_group_id);
 
   while(::getline(&line, &line_sz, file) > 0 &&
         std::memcmp(line, "SigPnd:\t", sizeof("SigBlk:\t") - 1));
