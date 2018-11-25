@@ -25,13 +25,19 @@ endif
 ifndef BUILD_PATH
   BUILD_PATH=$(SOURCE_PATH)/bin
 endif
+
+ifneq ($(wildcard /usr/src/linux-headers-4.4.0-101-common),)
+  INCPATH       = -I. -I/usr/src/linux-headers-4.4.0-101-common/include
+else
+  INCPATH       = -I.
+endif
+
 UNAME_FLAGS   = -DUNAME_RELEASE="$(shell uname -r)" \
 		-DUNAME_VERSION="$(shell uname -v)" \
 		-DUNAME_MACHINE="$(shell uname -m)" \
 		-DUNAME_SYSNAME="$(shell uname -s)" \
 		$(shell uname -r | sed -e "s/^\([0-9]*\)\.*\([0-9]*\)\.*\([0-9]*\)\(.*\)$$/-DUNAME_KERNEL_MAJOR=\1 -DUNAME_KERNEL_MINOR=\2 -DUNAME_KERNEL_RELEASE=\3/")
 
-INCPATH       = -I.
 CFLAGS        = -pipe -g -Os -Wall -W -fPIC $(DEFINES) $(INCPATH) $(UNAME_FLAGS)
 CXXFLAGS      = $(CFLAGS) -fno-exceptions -fno-rtti
 LDFLAGS       = 
