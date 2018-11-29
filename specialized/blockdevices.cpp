@@ -131,6 +131,97 @@ namespace blockdevices
 
     posix::fclose(file);
   }
+#elif defined(__FreeBSD__) && KERNEL_VERION_CODE >= KERNEL_VERSION(5,1,0)
+
+  // POSIX++
+  #include <cstdlib>
+  #include <cstring>
+
+  // STL
+  #include <vector>
+
+  // FreeBSD
+  #include <geom/geom.h>
+  #include <geom/geom_ctl.h>
+
+  struct request_argument : gctl_req_arg
+  {
+    template<typename T>
+    request_argument(const char* _name, T& _value)
+    {
+      name  = ::strdup(_name);
+      nlen  = std::strlen(name) + 1;
+      value = &_value;
+      flag  = GCTL_PARAM_RD;
+      len   = sizeof(T);
+    }
+
+    request_argument(const char* _name, const char* _value)
+    {
+      name  = ::strdup(_name);
+      nlen  = std::strlen(name) + 1;
+      value = _value;
+      flag  = GCTL_PARAM_RD | GCTL_PARAM_ASCII;
+      len   = std::strlen(value) + 1;
+    }
+
+    ~request_argument(void) noexcept
+    {
+      if(valid_memory())
+        ::free(name);
+      name = NULL;
+    }
+
+    constexpr bool valid_memory(void) noexcept
+      { return name != NULL; }
+  };
+
+  struct control_request : gctl_req
+  {
+    control_request(void)
+    {
+      version = GCTL_VERSION;
+      lerror = BUFSIZ;		// XXX: arbitrary number
+      error = calloc(1, lerror + 1);
+    }
+    ~control_request(void)
+    {
+      if(valid_memory())
+        ::free(error);
+      error = NULL;
+    }
+
+    constexpr bool valid_memory(void) noexcept
+      { return error != NULL; }
+  };
+
+  bool fill_device_list(void) noexcept
+  {
+    control_request req;
+    std::vector<request_argument> args;
+    args.reserve(32);
+    req.arg = args.data();
+
+    args.emplace_back("class", "PART");
+    args.emplace_back("verb", "show");
+//    args.emplace_back("arg0", pp->lg_geom->lg_name);
+
+    args.emplace_back("cmd", "list");
+
+    char filename[PATH_MAX] = { 0 };
+    if(devfs_path == nullptr &&
+      !reinitialize_paths())
+      return false;
+    std::snprintf(filename, PATH_MAX, "%s/%s", devfs_path, PATH_GEOM_CTL);
+
+    posix::fd_t fd = posix::open(filename, O_RDONLY);
+    if(fd == posix::invalid_descriptor)
+      return false;
+
+    bool rval = posix::ioctl(fd, GEOM_CTL, &req) == posix::success_response;
+    posix::close(fd);
+    return rval;
+  }
 #endif
 
 
