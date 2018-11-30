@@ -2,13 +2,12 @@
 
 // PUT
 #include <specialized/osdetect.h>
-#include <cxxutils/posix_helpers.h>
 #include <cxxutils/socket_helpers.h>
 
 #if defined(__solaris__) /* Solaris */
 # include <ucred.h>
 
-bool recv_cred(int socket, proccred_t& cred) noexcept
+bool recv_cred(posix::fd_t socket, proccred_t& cred) noexcept
 {
   uproccred_t* data = nullptr;
 
@@ -28,13 +27,13 @@ bool recv_cred(int socket, proccred_t& cred) noexcept
   return rval == posix::success_response;
 }
 
-bool send_cred(int) noexcept
+bool send_cred(posix::fd_t) noexcept
 { return true; }
 
 #elif defined(__darwin__)  /* Darwin */
 # include <sys/ucred.h>
 
-bool recv_cred(int socket, proccred_t& cred) noexcept
+bool recv_cred(posix::fd_t socket, proccred_t& cred) noexcept
 {
   xucred data;
   socklen_t len = sizeof(data);
@@ -58,7 +57,7 @@ bool recv_cred(int socket, proccred_t& cred) noexcept
   return rval == posix::success_response;
 }
 
-bool send_cred(int) noexcept
+bool send_cred(posix::fd_t) noexcept
 { return true; }
 
 #elif defined (SO_PEERCRED) || defined (LOCAL_PEEREID) /* Linux/OpenBSD/legacy NetBSD */
@@ -92,7 +91,7 @@ constexpr gid_t peer_gid(const cred_t& data) { return data.unp_egid; }
 #  error LOCAL_PEEREID macro detected but platform is unrecognized.  Please submit a patch!
 # endif
 
-bool recv_cred(int socket, proccred_t& cred) noexcept
+bool recv_cred(posix::fd_t socket, proccred_t& cred) noexcept
 {
   cred_t data;
   socklen_t len = sizeof(data);
@@ -111,7 +110,7 @@ bool recv_cred(int socket, proccred_t& cred) noexcept
   return rval == posix::success_response;
 }
 
-bool send_cred(int) noexcept
+bool send_cred(posix::fd_t) noexcept
 { return true; }
 
 #elif defined(SCM_CREDENTIALS) || defined(SCM_CREDS) || defined(LOCAL_CREDS)
@@ -154,7 +153,7 @@ constexpr gid_t peer_gid(const cred_t& data) { return data.sc_egid; }
 #  error SCM_CREDS macro detected but platform is unrecognized.  Please submit a patch!
 # endif
 
-bool recv_cred(int socket, proccred_t& cred) noexcept
+bool recv_cred(posix::fd_t socket, proccred_t& cred) noexcept
 {
   struct msghdr message;
   union
@@ -193,7 +192,7 @@ bool recv_cred(int socket, proccred_t& cred) noexcept
   return false;
 }
 
-bool send_cred(int socket) noexcept
+bool send_cred(posix::fd_t socket) noexcept
 {
   struct msghdr message;
   union
@@ -223,9 +222,9 @@ bool send_cred(int socket) noexcept
 
 #else
 
-#pragma message("Socket credentials are not supported on this platform.")
+# pragma message("Socket credentials are not supported on this platform.")
 
-bool recv_cred(int socket, proccred_t& cred) noexcept
+bool recv_cred(posix::fd_t socket, proccred_t& cred) noexcept
 {
   cred.pid = -1;
   cred.uid = -1;
@@ -234,7 +233,7 @@ bool recv_cred(int socket, proccred_t& cred) noexcept
   return false;
 }
 
-int send_cred(int) noexcept
+int send_cred(posix::fd_t) noexcept
 {
   errno = EOPNOTSUPP;
   return false;

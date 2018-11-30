@@ -1,8 +1,8 @@
 #ifndef GETPEERID_H
 #define GETPEERID_H
 
-// POSIX
-#include <sys/types.h>
+// PUT
+#include <cxxutils/posix_helpers.h>
 
 struct proccred_t
 {
@@ -11,8 +11,8 @@ struct proccred_t
   gid_t gid;
 };
 
-bool recv_cred(int socket, proccred_t& cred) noexcept;
-bool send_cred(int socket) noexcept;
+bool recv_cred(posix::fd_t socket, proccred_t& cred) noexcept;
+bool send_cred(posix::fd_t socket) noexcept;
 
 #endif // GETPEERID_H
 
