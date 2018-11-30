@@ -55,6 +55,8 @@ SOURCES       = application.cpp \
 		specialized/mount.cpp \
 		specialized/mountpoints.cpp \
 		specialized/module.cpp \
+		specialized/blockinfo.cpp \
+		specialized/blockdevices.cpp \
 		specialized/MountEvent.cpp \
 		specialized/FileEvent.cpp \
 		specialized/PollEvent.cpp \
