@@ -351,7 +351,7 @@ namespace blockdevices
 #else
       dev->size = ::lseek(fd, 0, SEEK_END); // behavior not defined in POSIX for devices but try as a last resort
 
-#pragma message("No block device interface defined for this platform! Please submit a patch.")
+#pragma message("Falling back on lseek() SEEK_END to get device size.  This is undefined behavior in POSIX.")
 #endif
     }
 
