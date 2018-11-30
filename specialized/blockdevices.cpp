@@ -23,7 +23,7 @@
 #endif
 
 
-uint64_t read(posix::fd_t fd, off_t offset, uint8_t* buffer, uint64_t length)
+uint64_t device_read(posix::fd_t fd, posix::off_t offset, uint8_t* buffer, uint64_t length)
 {
   if(::lseek(fd, offset, SEEK_SET) != offset)
     return 0;
@@ -323,19 +323,30 @@ namespace blockdevices
 
   void detect_filesystem(blockdevice_t* dev) noexcept
   {
-    uint8_t superblock[BLOCK_SIZE];
+    uint32_t blocksize = 0;
+
     posix::fd_t fd = posix::open(dev->path, O_RDONLY);
     dev->size = 0;
 
     if(fd != posix::error_response)
     {
+      // get block size (if needed)
+#if defined(BLKSSZGET) // Linux
+      posix::ioctl(fd, BLKSSZGET, &blocksize);
+#elif defined(DKIOCGETBLOCKCOUNT) // Darwin
+      posix::ioctl(fd, DKIOCGETBLOCKCOUNT, &blocksize);
+#elif defined(DIOCGSECTORSIZE) // BSD
+      posix::ioctl(fd, DIOCGSECTORSIZE, &blocksize);
+#elif defined(BLOCK_SIZE) // Linux (hardcoded)
+      blocksize = BLOCK_SIZE;
+#else
+      blocksize = 512; // default size
+#endif
+
       // try to get the raw size of the partition (might be larger than the usable size)
 #if defined(DKIOCGETBLOCKCOUNT) // Darwin
-      uint32_t blocksize = 0;
-      uint64_t blockcount = 0;
-      if(posix::ioctl(fd, DKIOCGETBLOCKSIZE , &blocksize ) > posix::error_response &&
-         posix::ioctl(fd, DKIOCGETBLOCKCOUNT, &blockcount) > posix::error_response)
-        dev->size = blockcount * blocksize;
+      if(posix::ioctl(fd, DKIOCGETBLOCKCOUNT, &dev->size) > posix::error_response)
+        dev->size *= blocksize;
 
 #elif defined(DIOCGMEDIASIZE) // current BSD
       posix::ioctl(fd, DIOCGMEDIASIZE, &dev->size);
@@ -343,16 +354,20 @@ namespace blockdevices
 #elif defined(DIOCGDINFO) // old BSD
       struct disklabel info;
       if(posix::ioctl(fd, DIOCGDINFO, &info) > posix::error_response)
-        dev->size = info.d_ncylinders * info.d_secpercyl * info.d_secsize;
+      {
+        if(blocksize == 512)
+          blocksize = info.d_secsize;
+        dev->size = info.d_ncylinders * info.d_secpercyl * blocksize;
+      }
 
 #elif defined(BLKGETSIZE64) // Linux 2.6+
       posix::ioctl(fd, BLKGETSIZE64, &dev->size);
 
 #elif defined(BLKGETSIZE) // old Linux
-      long block_count = 0;
-      posix::ioctl(fd, BLKGETSIZE, &block_count);
-      dev->size = block_count;
-      dev->size *= 512;
+      long blockcount = 0;
+      posix::ioctl(fd, BLKGETSIZE, &blockcount);
+      dev->size = blockcount;
+      dev->size *= 512; // due to previously hardcoded sector size
 
 #else
 # pragma message("Falling back on lseek(fd, 0, SEEK_END) to get device size.  This is undefined behavior in POSIX.")
@@ -360,15 +375,20 @@ namespace blockdevices
 #endif
     }
 
-    std::memset(superblock, 0, BLOCK_SIZE);
-    if(read(fd, BLOCK_SIZE, superblock, BLOCK_SIZE) == BLOCK_SIZE) // if read filesystem superblock
+    uint8_t* superblock = static_cast<uint8_t*>(::malloc(blocksize));
+    if(superblock != NULL)
     {
-      auto detectpos = detectors.begin();
-      while(detectpos != detectors.end() &&
-            !(*detectpos)(superblock, dev)) // run filesystem detection functions until you find one
-        ++detectpos;
+      std::memset(superblock, 0, blocksize);
+      if(device_read(fd, posix::off_t(blocksize), superblock, blocksize) == uint64_t(blocksize)) // if read filesystem superblock
+      {
+        auto detectpos = detectors.begin();
+        while(detectpos != detectors.end() &&
+              !(*detectpos)(superblock, dev)) // run filesystem detection functions until you find one
+          ++detectpos;
 
-      std::printf("device: %s - label: %s - fs: %s - size: %lu\n", dev->path, dev->label, dev->fstype, dev->size);
+        std::printf("device: %s - label: %s - fs: %s - size: %lu\n", dev->path, dev->label, dev->fstype, dev->size);
+      }
+      ::free(superblock);
     }
   } // end detect()
 
@@ -383,6 +403,7 @@ namespace blockdevices
   };
 # pragma pack(pop)
   static_assert(sizeof(uintle16_t) == sizeof(uint16_t), "naughty compiler!");
+
 # pragma pack(push, 1)
   struct uintle32_t
   {
