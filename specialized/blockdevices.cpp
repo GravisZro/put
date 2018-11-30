@@ -396,21 +396,15 @@ namespace blockdevices
 # pragma pack(pop)
   static_assert(sizeof(uintle32_t) == sizeof(uint32_t), "naughty compiler!");
 
-#if defined(htons) || defined(htonl) || defined(ntohs) || defined(ntohl)
-  template<typename T> static inline uint16_t getBE16(T* x) noexcept { return htons(*reinterpret_cast<uint16_t*>(x)); }
-  template<typename T> static inline uint32_t getBE32(T* x) noexcept { return htonl(*reinterpret_cast<uint32_t*>(x)); }
-  template<typename T> static inline uint16_t getLE16(T* x) noexcept { return ntohs(*reinterpret_cast<uint16_t*>(x)); }
-  template<typename T> static inline uint32_t getLE32(T* x) noexcept { return ntohl(*reinterpret_cast<uint32_t*>(x)); }
-#else
-  template<typename T> constexpr uint16_t getBE16(T* x) noexcept { return htons(*reinterpret_cast<uint16_t*>(x)); }
-  template<typename T> constexpr uint32_t getBE32(T* x) noexcept { return htonl(*reinterpret_cast<uint32_t*>(x)); }
-  template<typename T> constexpr uint16_t getLE16(T* x) noexcept { return ntohs(*reinterpret_cast<uint16_t*>(x)); }
-  template<typename T> constexpr uint32_t getLE32(T* x) noexcept { return ntohl(*reinterpret_cast<uint32_t*>(x)); }
-#endif
+  static inline uint16_t getBE16(uint8_t* x, uintptr_t offset) noexcept { return htons(*reinterpret_cast<uint16_t*>(x + offset)); }
+  static inline uint32_t getBE32(uint8_t* x, uintptr_t offset) noexcept { return htonl(*reinterpret_cast<uint32_t*>(x + offset)); }
+  static inline uint16_t getLE16(uint8_t* x, uintptr_t offset) noexcept { return ntohs(*reinterpret_cast<uint16_t*>(x + offset)); }
+  static inline uint32_t getLE32(uint8_t* x, uintptr_t offset) noexcept { return ntohl(*reinterpret_cast<uint32_t*>(x + offset)); }
 
-  template<typename T> constexpr uint32_t getFlags(T addr, uint32_t flags) noexcept { return getLE32(addr) & flags; }
-  template<typename T> constexpr bool flagsAreSet(T addr, uint32_t flags) noexcept { return getFlags(addr, flags) == flags; }
-  template<typename T> constexpr bool flagsNotSet(T addr, uint32_t flags) noexcept { return !getFlags(addr, flags); }
+  static inline uint32_t getFlags(uint8_t* data, uintptr_t offset, uint32_t flags) noexcept { return getLE32(data, offset) & flags; }
+  static inline bool allFlagsSet (uint8_t* data, uintptr_t offset, uint32_t flags) noexcept { return  getFlags(data, offset, flags) == flags; }
+  static inline bool noFlagsSet  (uint8_t* data, uintptr_t offset, uint32_t flags) noexcept { return !getFlags(data, offset, flags); }
+  static inline bool anyFlagsSet (uint8_t* data, uintptr_t offset, uint32_t flags) noexcept { return  getFlags(data, offset, flags); }
 
 
 // FILESYSTEM DETECTION FUNCTIONS BELOW!
@@ -469,38 +463,39 @@ namespace blockdevices
       misc_flags           = 0x0160, // s_flags
     };
 
-    if(getLE16(data + offsets::magic_number) != ext_magic_number ) // test not Ext2/3/4/4dev or JDB
+
+    if(getLE16(data, offsets::magic_number) != ext_magic_number ) // test not Ext2/3/4/4dev or JDB
       return false;
 
-    uint32_t blocksize  = uint32_t(BLOCK_SIZE) << getLE32(data + offsets::block_size); // filesystem block size
-    uint64_t blockcount = getLE32(data + offsets::block_count); // filesystem block count
-    dev->size = blockcount * blocksize; // store partitions usable size
-
-    if(flagsAreSet(data + offsets::incompat_flags  , incompat_flags::journal_dev))
+    else if(allFlagsSet (data, offsets::incompat_flags , incompat_flags::journal_dev))
       std::strncpy(dev->fstype, "jbd", sizeof(blockdevice_t::fstype));
 
-    else if(flagsNotSet(data + offsets::incompat_flags  , incompat_flags::journal_dev) &&
-            flagsAreSet(data + offsets::misc_flags      , misc_flags::dev_filesystem))
+    else if(noFlagsSet  (data, offsets::incompat_flags , incompat_flags::journal_dev) &&
+            allFlagsSet (data, offsets::misc_flags     , misc_flags::dev_filesystem))
       std::strncpy(dev->fstype, "ext4dev", sizeof(blockdevice_t::fstype));
 
-    else if(flagsNotSet(data + offsets::incompat_flags  , incompat_flags::journal_dev) &&
-            (flagsAreSet(data + offsets::ro_compat_flags, EXT2_RO_compat_flags) ||
-             flagsAreSet(data + offsets::incompat_flags , EXT3_incompat_flags)) &&
-            flagsNotSet(data + offsets::misc_flags      , misc_flags::dev_filesystem))
+    else if(noFlagsSet  (data, offsets::incompat_flags , incompat_flags::journal_dev) &&
+            (allFlagsSet(data, offsets::ro_compat_flags, EXT2_RO_compat_flags) ||
+             allFlagsSet(data, offsets::incompat_flags , EXT3_incompat_flags)) &&
+            noFlagsSet  (data, offsets::misc_flags     , misc_flags::dev_filesystem))
       std::strncpy(dev->fstype, "ext4", sizeof(blockdevice_t::fstype));
 
-    else if(flagsAreSet(data + offsets::compat_flags    , compat_flags::has_journal) &&
-            flagsNotSet(data + offsets::ro_compat_flags , EXT2_RO_compat_flags) &&
-            flagsNotSet(data + offsets::incompat_flags  , EXT3_incompat_flags))
+    else if(allFlagsSet (data, offsets::compat_flags   , compat_flags::has_journal) &&
+            noFlagsSet  (data, offsets::ro_compat_flags, EXT2_RO_compat_flags) &&
+            noFlagsSet  (data, offsets::incompat_flags , EXT3_incompat_flags))
       std::strncpy(dev->fstype, "ext3", sizeof(blockdevice_t::fstype));
 
-    else if(flagsNotSet(data + offsets::compat_flags    , compat_flags::has_journal) &&
-            flagsNotSet(data + offsets::ro_compat_flags , EXT2_RO_compat_flags) &&
-            flagsNotSet(data + offsets::incompat_flags  , EXT2_incompat_flags))
+    else if(noFlagsSet  (data, offsets::compat_flags   , compat_flags::has_journal) &&
+            noFlagsSet  (data, offsets::ro_compat_flags, EXT2_RO_compat_flags) &&
+            noFlagsSet  (data, offsets::incompat_flags , EXT2_incompat_flags))
       std::strncpy(dev->fstype, "ext2", sizeof(blockdevice_t::fstype));
 
     else
       return false;
+
+    uint32_t blocksize  = uint32_t(BLOCK_SIZE) << getLE32(data, offsets::block_size); // filesystem block size
+    uint64_t blockcount = getLE32(data, offsets::block_count); // filesystem block count
+    dev->size = blockcount * blocksize; // store partitions usable size
 
     std::memcpy(dev->uuid, data + offsets::uuid, 16);
     std::strncpy(dev->label, reinterpret_cast<char*>(data) + offsets::label, 16);
