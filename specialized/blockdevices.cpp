@@ -336,7 +336,7 @@ namespace blockdevices
           !(*detectpos)(info, dev, superblock)) // run filesystem detection functions until you find one
       ++detectpos;
 
-    std::printf("device: %s - label: %s - fs: %s - size: %lu\n", dev.path, dev.label, dev.fstype, dev.size);
+    std::printf("device: %s - label: %s - fs: %s - block size: %u - block count: %lu\n", dev.path, dev.label, dev.fstype, dev.block_size, dev.block_count);
     ::free(superblock);
 
     return posix::close(fd);
