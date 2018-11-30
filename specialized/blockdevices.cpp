@@ -123,7 +123,7 @@ namespace blockdevices
     ::free(line);
     line = nullptr;
 
-    posix::fclose(file);
+    return posix::fclose(file);
   }
 #elif (defined(__NetBSD__)  && KERNEL_VERION_CODE >= KERNEL_VERSION(1,6,0)) || \
       (defined(__OpenBSD__) && KERNEL_VERION_CODE >= KERNEL_VERSION(3,0,0))
