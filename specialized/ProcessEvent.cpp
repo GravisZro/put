@@ -25,18 +25,6 @@ enum {
   Write = 1,
 };
 
-# pragma pack(push, 1)
-struct message_t
-{
-  union {
-    ProcessEvent::Flags action;
-    uint32_t : 0;
-  };
-  pid_t pid;
-};
-# pragma pack(pop)
-static_assert(sizeof(message_t) == sizeof(uint64_t), "unexpected struct size");
-
 // process flags
 static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
 {
