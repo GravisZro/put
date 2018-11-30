@@ -330,10 +330,7 @@ namespace blockdevices
     if(fd != posix::error_response)
     {
       // try to get the raw size of the partition (might be larger than the usable size)
-#if defined(BLKGETSIZE64) // Linux 2.6+
-      posix::ioctl(fd, BLKGETSIZE64, &dev->size);
-
-#elif defined(DKIOCGETBLOCKCOUNT) // Darwin
+#if defined(DKIOCGETBLOCKCOUNT) // Darwin
       uint32_t blocksize = 0;
       uint64_t blockcount = 0;
       if(posix::ioctl(fd, DKIOCGETBLOCKSIZE , &blocksize ) > posix::error_response &&
@@ -347,6 +344,15 @@ namespace blockdevices
       struct disklabel info;
       if(posix::ioctl(fd, DIOCGDINFO, &info) > posix::error_response)
         dev->size = info.d_ncylinders * info.d_secpercyl * info.d_secsize;
+
+#elif defined(BLKGETSIZE64) // Linux 2.6+
+      posix::ioctl(fd, BLKGETSIZE64, &dev->size);
+
+#elif defined(BLKGETSIZE) // old Linux
+      long block_count = 0;
+      posix::ioctl(fd, BLKGETSIZE, &block_count);
+      dev->size = block_count;
+      dev->size *= 512;
 
 #else
 # pragma message("Falling back on lseek(fd, 0, SEEK_END) to get device size.  This is undefined behavior in POSIX.")
