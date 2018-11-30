@@ -35,9 +35,9 @@ static bool uuid_matches(const char* str, uint8_t* data)
   size_t length = std::strlen(str);
   for(uint8_t digit = 0; digit < 32; ++digit, ++str)
   {
-    if(!std::isxdigit(*str))
+    if(!::isxdigit(*str))
       { --length; ++str; }
-    if(digit >= length || std::toupper(*str) != uuid_digit(data, digit))
+    if(digit >= length || ::toupper(*str) != uuid_digit(data, digit))
       return false;
   }
   return true;
@@ -56,13 +56,12 @@ namespace blockdevices
 {
   typedef bool (*detector_t)(blockinfo_t&, blockdevice_t&, uint8_t*);
   bool detect_filesystem(blockdevice_t& dev) noexcept;
-
-  namespace ext { bool detect(blockinfo_t& info, blockdevice_t& dev, uint8_t* data) noexcept; }
+  bool detect_ext(blockinfo_t& info, blockdevice_t& dev, uint8_t* data) noexcept;
 
   bool detect_NULL(blockinfo_t&, blockdevice_t&, uint8_t*) noexcept { return false; } // detection failed!
 
   static std::list<blockdevice_t> devices;
-  static std::list<detector_t> detectors = { ext::detect, detect_NULL };
+  static std::list<detector_t> detectors = { detect_ext, detect_NULL };
 
 #if defined(__linux__)
 #define BLOCKDEV_SUPPORTED
@@ -124,9 +123,9 @@ namespace blockdevices
     ::free(line);
     line = nullptr;
 
-    return posix::fclose(file);
+    posix::fclose(file);
   }
-#elif (defined(__NetBSD__)  && KERNEL_VERION_CODE >= KERNEL_VERSION(1,6,0)) ||
+#elif (defined(__NetBSD__)  && KERNEL_VERION_CODE >= KERNEL_VERSION(1,6,0)) || \
       (defined(__OpenBSD__) && KERNEL_VERION_CODE >= KERNEL_VERSION(3,0,0))
 #define BLOCKDEV_SUPPORTED
 
@@ -389,15 +388,16 @@ namespace blockdevices
   // https://github.com/torvalds/linux/blob/master/fs/ext2/ext2.h
   // https://github.com/torvalds/linux/blob/master/fs/ext4/ext4.h
   // https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#The_Super_Block
-
-  namespace ext
+  bool detect_ext(blockinfo_t& info, blockdevice_t& dev, uint8_t* data) noexcept
   {
-    enum compat_flags : uint32_t // s_feature_compat flags
+    constexpr uint16_t ext_magic_number = 0xEF53; // s_magic
+
+    enum e_compat_flags : uint32_t // s_feature_compat flags
     {
       has_journal     = 0x00000004,
     };
 
-    enum incompat_flags : uint32_t // s_feature_incompat flags
+    enum e_incompat_flags : uint32_t // s_feature_incompat flags
     {
       filetype        = 0x00000002,
       recover         = 0x00000004,
@@ -405,23 +405,23 @@ namespace blockdevices
       meta_bg         = 0x00000010,
     };
 
-    enum ro_compat_flags : uint32_t // s_feature_ro_compat flags
+    enum e_ro_compat_flags : uint32_t // s_feature_ro_compat flags
     {
       sparse_super    = 0x00000001,
       large_file      = 0x00000002,
       btree_dir       = 0x00000004,
     };
 
-    enum misc_flags : uint32_t // s_flags flags
+    enum e_misc_flags : uint32_t // s_flags flags
     {
       dev_filesystem  = 0x00000004,
     };
 
-    enum composite_flags : uint32_t // composite flags
+    enum e_composite_flags : uint32_t // composite flags
     {
-      EXT2_RO_compat_flags = ro_compat_flags::sparse_super | ro_compat_flags::large_file | ro_compat_flags::btree_dir,
-      EXT2_incompat_flags  = incompat_flags::filetype | incompat_flags::meta_bg,
-      EXT3_incompat_flags  = incompat_flags::filetype | incompat_flags::meta_bg | incompat_flags::recover,
+      EXT2_RO_compat_flags = e_ro_compat_flags::sparse_super | e_ro_compat_flags::large_file | e_ro_compat_flags::btree_dir,
+      EXT2_incompat_flags  = e_incompat_flags::filetype | e_incompat_flags::meta_bg,
+      EXT3_incompat_flags  = e_incompat_flags::filetype | e_incompat_flags::meta_bg | e_incompat_flags::recover,
     };
 
     enum offsets : uintptr_t
@@ -439,46 +439,41 @@ namespace blockdevices
       misc_flags           = 0x0160, // s_flags
     };
 
-    bool detect(blockinfo_t& info, blockdevice_t& dev, uint8_t* data) noexcept
-    {
-      constexpr uint16_t ext_magic_number = 0xEF53; // s_magic
+    if(getLE16(data, offsets::magic_number) != ext_magic_number ) // test not Ext2/3/4/4dev or JDB
+      return false;
 
-      if(getLE16(data, offsets::magic_number) != ext_magic_number ) // test not Ext2/3/4/4dev or JDB
-        return false;
+    else if(allFlagsSet (data, offsets::incompat_flags , e_incompat_flags::journal_dev))
+      std::strncpy(dev.fstype, "jbd", sizeof(blockdevice_t::fstype));
 
-      else if(allFlagsSet (data, offsets::incompat_flags , incompat_flags::journal_dev))
-        std::strncpy(dev.fstype, "jbd", sizeof(blockdevice_t::fstype));
+    else if(noFlagsSet  (data, offsets::incompat_flags , e_incompat_flags::journal_dev) &&
+            allFlagsSet (data, offsets::misc_flags     , e_misc_flags::dev_filesystem))
+      std::strncpy(dev.fstype, "ext4dev", sizeof(blockdevice_t::fstype));
 
-      else if(noFlagsSet  (data, offsets::incompat_flags , incompat_flags::journal_dev) &&
-              allFlagsSet (data, offsets::misc_flags     , misc_flags::dev_filesystem))
-        std::strncpy(dev.fstype, "ext4dev", sizeof(blockdevice_t::fstype));
+    else if(noFlagsSet  (data, offsets::incompat_flags , e_incompat_flags::journal_dev) &&
+            (allFlagsSet(data, offsets::ro_compat_flags, EXT2_RO_compat_flags) ||
+             allFlagsSet(data, offsets::incompat_flags , EXT3_incompat_flags)) &&
+            noFlagsSet  (data, offsets::misc_flags     , e_misc_flags::dev_filesystem))
+      std::strncpy(dev.fstype, "ext4", sizeof(blockdevice_t::fstype));
 
-      else if(noFlagsSet  (data, offsets::incompat_flags , incompat_flags::journal_dev) &&
-              (allFlagsSet(data, offsets::ro_compat_flags, EXT2_RO_compat_flags) ||
-               allFlagsSet(data, offsets::incompat_flags , EXT3_incompat_flags)) &&
-              noFlagsSet  (data, offsets::misc_flags     , misc_flags::dev_filesystem))
-        std::strncpy(dev.fstype, "ext4", sizeof(blockdevice_t::fstype));
+    else if(allFlagsSet (data, offsets::compat_flags   , e_compat_flags::has_journal) &&
+            noFlagsSet  (data, offsets::ro_compat_flags, EXT2_RO_compat_flags) &&
+            noFlagsSet  (data, offsets::incompat_flags , EXT3_incompat_flags))
+      std::strncpy(dev.fstype, "ext3", sizeof(blockdevice_t::fstype));
 
-      else if(allFlagsSet (data, offsets::compat_flags   , compat_flags::has_journal) &&
-              noFlagsSet  (data, offsets::ro_compat_flags, EXT2_RO_compat_flags) &&
-              noFlagsSet  (data, offsets::incompat_flags , EXT3_incompat_flags))
-        std::strncpy(dev.fstype, "ext3", sizeof(blockdevice_t::fstype));
+    else if(noFlagsSet  (data, offsets::compat_flags   , e_compat_flags::has_journal) &&
+            noFlagsSet  (data, offsets::ro_compat_flags, EXT2_RO_compat_flags) &&
+            noFlagsSet  (data, offsets::incompat_flags , EXT2_incompat_flags))
+      std::strncpy(dev.fstype, "ext2", sizeof(blockdevice_t::fstype));
 
-      else if(noFlagsSet  (data, offsets::compat_flags   , compat_flags::has_journal) &&
-              noFlagsSet  (data, offsets::ro_compat_flags, EXT2_RO_compat_flags) &&
-              noFlagsSet  (data, offsets::incompat_flags , EXT2_incompat_flags))
-        std::strncpy(dev.fstype, "ext2", sizeof(blockdevice_t::fstype));
+    else
+      return false;
 
-      else
-        return false;
+    dev.block_size  = info.block_size << getLE32(data, offsets::block_size); // filesystem block size
+    dev.block_count = getLE32(data, offsets::block_count); // filesystem block count
 
-      dev.block_size  = info.block_size << getLE32(data, offsets::block_size); // filesystem block size
-      dev.block_count = getLE32(data, offsets::block_count); // filesystem block count
-
-      std::memcpy(dev.uuid, data + offsets::uuid, 16);
-      std::strncpy(dev.label, reinterpret_cast<char*>(data) + offsets::label, 16);
-      return true;
-    }
+    std::memcpy(dev.uuid, data + offsets::uuid, 16);
+    std::strncpy(dev.label, reinterpret_cast<char*>(data) + offsets::label, 16);
+    return true;
   }
 
 } // end namespace
