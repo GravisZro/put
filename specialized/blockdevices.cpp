@@ -349,9 +349,8 @@ namespace blockdevices
         dev->size = info.d_ncylinders * info.d_secpercyl * info.d_secsize;
 
 #else
+# pragma message("Falling back on lseek(fd, 0, SEEK_END) to get device size.  This is undefined behavior in POSIX.")
       dev->size = ::lseek(fd, 0, SEEK_END); // behavior not defined in POSIX for devices but try as a last resort
-
-#pragma message("Falling back on lseek() SEEK_END to get device size.  This is undefined behavior in POSIX.")
 #endif
     }
 
