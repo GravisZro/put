@@ -20,7 +20,7 @@ struct blockdevice_t
 
 namespace blockdevices
 {
-  extern void init(void) noexcept;
+  extern bool init(void) noexcept;
   extern blockdevice_t* probe(const char* path) noexcept; // probe a device based on absolute path
 
   extern blockdevice_t* lookup(const char* id) noexcept; // finds device based on absolute path, uuid or label

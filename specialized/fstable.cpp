@@ -204,7 +204,7 @@ bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
 
   posix::ssize_t count = 0;
   posix::size_t size = 0;
-  char* line = NULL;
+  char* line = NULL; // getline will malloc
   while((count = ::getline(&line, &size, file)) != posix::error_response)
   {
     char* comment = std::strchr(line, '#');
@@ -247,7 +247,7 @@ bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
     if(std::isgraph(entry.pass))
       table.push_back(entry);
   }
-  ::free(line); // use C free() because we're using C getline()
+  ::free(line);
   line = nullptr;
 
   ::free(field);
@@ -315,4 +315,9 @@ bool mount_table(std::list<struct fsentry_t>& table) noexcept
 
 #else
 # pragma message("No mountpoint interrogation code for this platform! Please submit a patch.")
+bool mount_table(std::list<struct fsentry_t>& table) noexcept
+{
+  errno = EOPNOTSUPP;
+  return false;
+}
 #endif

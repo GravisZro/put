@@ -904,10 +904,6 @@ bool mount_bsd(const char* device,
     typedef unsigned long mnt_flag_t; // defined for mount()
     if(::mount(device, path, pos, mnt_flag_t(mountflags), optionlist.c_str()) == posix::success_response)
       return true;
-#elif defined(__minix__)
-# error mount for MINIX is not implemented: documentation missing.  Please submit a patch.
-#elif defined(__hpux__)
-# error mount for HP-UX is not implemented: information from sys/mount.h is required.
 #elif defined(BSD)
 # define CASE_CONCAT(a, b) a##b
 # define CASE_QUOTE(x) #x
@@ -1016,6 +1012,10 @@ bool mount_bsd(const char* device,
         return true;
 # endif
     }
+#else
+# pragma message("No mount() implemented for this platform.  Please submit a patch.")
+    errno = EOPNOTSUPP;
+    return false;
 #endif
     pos = next;
     next = tok.next(',');
@@ -1159,6 +1159,8 @@ bool unmount(const char* target, const char* options) noexcept
   return target_translator(target, translated_target) &&
          flagged_unmount(translated_target, flags) != posix::success_response;
 #else
-# error OS not added to unmount list.  Please submit a patch!
+# pragma message("No unmount() implemented for this platform.  Please submit a patch.")
+  errno = EOPNOTSUPP;
+  return false;
 #endif
 }

@@ -72,21 +72,23 @@ namespace blockdevices
   static std::list<detector_t> detectors = { detect_ext, detect_NULL };
 
 #if defined(__linux__)
-  void fill_device_list(void) noexcept
+#define BLOCKDEV_SUPPORTED
+
+  bool fill_device_list(void) noexcept
   {
     char filename[PATH_MAX] = { 0 };
     if(procfs_path == nullptr &&
       !reinitialize_paths())
-      return;
+      return false;
     std::snprintf(filename, PATH_MAX, "%s/partitions", procfs_path);
 
     std::FILE* file = posix::fopen(filename, "r");
     if(file == NULL)
-      return;
+      return false;
 
     posix::ssize_t count = 0;
     posix::size_t size = 0;
-    char* line = nullptr;
+    char* line = NULL; // getline will malloc
     while((count = ::getline(&line, &size, file)) != posix::error_response)
     {
       char* pos = line;
@@ -126,12 +128,40 @@ namespace blockdevices
         devices.emplace_back(dev);
       }
     }
-    ::free(line); // use C free() because we're using C getline()
+    ::free(line);
     line = nullptr;
 
     posix::fclose(file);
   }
+#elif (defined(__NetBSD__)  && KERNEL_VERION_CODE >= KERNEL_VERSION(1,6,0)) ||
+      (defined(__OpenBSD__) && KERNEL_VERION_CODE >= KERNEL_VERSION(3,0,0))
+#define BLOCKDEV_SUPPORTED
+
+#include <sys/sysctl.h>
+
+  bool fill_device_list(void) noexcept
+  {
+    int mib[2] = { CTL_HW, HW_DISKNAMES };
+    size_t len = 0;
+
+    // Determine how much space to allocate.
+    if(sysctl(mib, sizeof(mib), NULL, &len, NULL, 0) == posix::error_response)
+      return false;
+
+    char* p = (char *)::malloc(len);
+    if(p == NULL)
+      return false;
+
+    // Populate the allocated area with the string returned by sysctl.
+    if(sysctl(mib, 2, p, &len, NULL, 0) == posix::error_response)
+      return false;
+
+
+    return true;
+  }
+
 #elif defined(__FreeBSD__) && KERNEL_VERION_CODE >= KERNEL_VERSION(5,1,0)
+#define BLOCKDEV_SUPPORTED
 
   // POSIX++
   #include <cstdlib>
@@ -222,25 +252,26 @@ namespace blockdevices
     posix::close(fd);
     return rval;
   }
+#else
+# pragma message("No block device support implemented for this platform.  Please submit a patch.")
 #endif
 
-
-  void init(void) noexcept
+  bool init(void) noexcept
   {
+#if defined(BLOCKDEV_SUPPORTED)
     devices.clear();
 
-#if defined(__linux__)
-    fill_device_list();
-
-#elif defined(__unix__)
-#error Detection of block partitions is not implemented in PUT for this UNIX!  Please submit a patch!
-
-#else
-#error This platform is not supported.
-#endif
+    if(!fill_device_list())
+      return false;
 
     for(blockdevice_t& dev : devices)
       detect_filesystem(&dev);
+
+    return true;
+#else
+    errno = EOPNOTSUPP;
+    return false;
+#endif
   }
 
   blockdevice_t* lookupByPath(const char* path) noexcept // finds device based on absolute path
@@ -320,7 +351,7 @@ namespace blockdevices
 #else
       dev->size = ::lseek(fd, 0, SEEK_END); // behavior not defined in POSIX for devices but try as a last resort
 
-#pragma message("No device interface defined for this operating system.  Please add one to device.cpp!")
+#pragma message("No block device interface defined for this platform! Please submit a patch.")
 #endif
     }
 
