@@ -64,7 +64,6 @@ namespace blockdevices
   static std::list<detector_t> detectors = { detect_ext, detect_NULL };
 
 #if defined(__linux__)
-#define BLOCKDEV_SUPPORTED
 
   bool fill_device_list(void) noexcept
   {
@@ -127,7 +126,6 @@ namespace blockdevices
   }
 #elif (defined(__NetBSD__)  && KERNEL_VERION_CODE >= KERNEL_VERSION(1,6,0)) || \
       (defined(__OpenBSD__) && KERNEL_VERION_CODE >= KERNEL_VERSION(3,0,0))
-#define BLOCKDEV_SUPPORTED
 
 #include <sys/sysctl.h>
 
@@ -153,7 +151,6 @@ namespace blockdevices
   }
 
 #elif defined(__FreeBSD__) && KERNEL_VERION_CODE >= KERNEL_VERSION(5,1,0)
-#define BLOCKDEV_SUPPORTED
 
   // POSIX++
   #include <cstdlib>
@@ -245,12 +242,16 @@ namespace blockdevices
     return rval;
   }
 #else
+# define NO_BLOCKDEV_SUPPORTED
 # pragma message("No block device support implemented for this platform.  Please submit a patch.")
 #endif
 
   bool init(void) noexcept
   {
-#if defined(BLOCKDEV_SUPPORTED)
+#if defined(NO_BLOCKDEV_SUPPORTED)
+    errno = EOPNOTSUPP;
+    return false;
+#else
     devices.clear();
 
     if(!fill_device_list())
@@ -261,9 +262,6 @@ namespace blockdevices
       rvalue &= detect_filesystem(dev);
 
     return rvalue;
-#else
-    errno = EOPNOTSUPP;
-    return false;
 #endif
   }
 
