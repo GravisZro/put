@@ -16,15 +16,16 @@
 #include <linux/cn_proc.h>
 
 // PUT
-#include <cxxutils/posix_helpers.h>
-#include <cxxutils/socket_helpers.h>
-#include <cxxutils/vterm.h>
+# include <cxxutils/posix_helpers.h>
+# include <cxxutils/socket_helpers.h>
+# include <cxxutils/vterm.h>
 
 enum {
   Read = 0,
   Write = 1,
 };
 
+# pragma pack(push, 1)
 struct message_t
 {
   union {
@@ -33,6 +34,7 @@ struct message_t
   };
   pid_t pid;
 };
+# pragma pack(pop)
 static_assert(sizeof(message_t) == sizeof(uint64_t), "unexpected struct size");
 
 // process flags

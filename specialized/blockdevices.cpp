@@ -369,15 +369,16 @@ namespace blockdevices
 
 
 // DETECTION HELPER constexprs!
-
+# pragma pack(push, 1)
   struct uintle16_t
   {
     uint8_t low;
     uint8_t high;
     constexpr operator uint16_t(void) const noexcept { return uint16_t(low) | uint16_t(uint16_t(high) << 8); }
   };
+# pragma pack(pop)
   static_assert(sizeof(uintle16_t) == sizeof(uint16_t), "naughty compiler!");
-
+# pragma pack(push, 1)
   struct uintle32_t
   {
     uint8_t bottom;
@@ -392,6 +393,7 @@ namespace blockdevices
              (uint32_t(top   ) << 24) ;
     }
   };
+# pragma pack(pop)
   static_assert(sizeof(uintle32_t) == sizeof(uint32_t), "naughty compiler!");
 
 #if defined(htons) || defined(htonl) || defined(ntohs) || defined(ntohl)
@@ -482,19 +484,19 @@ namespace blockdevices
       std::strncpy(dev->fstype, "ext4dev", sizeof(blockdevice_t::fstype));
 
     else if(flagsNotSet(data + offsets::incompat_flags  , incompat_flags::journal_dev) &&
-            (getFlags(data + offsets::ro_compat_flags   , ~EXT2_RO_compat_flags) ||
-             getFlags(data + offsets::incompat_flags    , ~EXT3_incompat_flags)) &&
+            (flagsAreSet(data + offsets::ro_compat_flags, EXT2_RO_compat_flags) ||
+             flagsAreSet(data + offsets::incompat_flags , EXT3_incompat_flags)) &&
             flagsNotSet(data + offsets::misc_flags      , misc_flags::dev_filesystem))
       std::strncpy(dev->fstype, "ext4", sizeof(blockdevice_t::fstype));
 
     else if(flagsAreSet(data + offsets::compat_flags    , compat_flags::has_journal) &&
-            flagsNotSet(data + offsets::ro_compat_flags , ~EXT2_RO_compat_flags) &&
-            flagsNotSet(data + offsets::incompat_flags  , ~EXT3_incompat_flags))
+            flagsNotSet(data + offsets::ro_compat_flags , EXT2_RO_compat_flags) &&
+            flagsNotSet(data + offsets::incompat_flags  , EXT3_incompat_flags))
       std::strncpy(dev->fstype, "ext3", sizeof(blockdevice_t::fstype));
 
     else if(flagsNotSet(data + offsets::compat_flags    , compat_flags::has_journal) &&
-            flagsNotSet(data + offsets::ro_compat_flags , ~EXT2_RO_compat_flags) &&
-            flagsNotSet(data + offsets::incompat_flags  , ~EXT2_incompat_flags))
+            flagsNotSet(data + offsets::ro_compat_flags , EXT2_RO_compat_flags) &&
+            flagsNotSet(data + offsets::incompat_flags  , EXT2_incompat_flags))
       std::strncpy(dev->fstype, "ext2", sizeof(blockdevice_t::fstype));
 
     else
