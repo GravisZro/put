@@ -11,7 +11,8 @@ struct blockdevice_t
   uint8_t  uuid  [16];
   char     label [256];
   char     fstype[256];
-  uint64_t size;
+  uint32_t block_size;
+  uint64_t block_count;
   bool     clean;
 
   blockdevice_t(void) noexcept { std::memset(this, 0, sizeof(blockdevice_t)); }

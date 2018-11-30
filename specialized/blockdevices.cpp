@@ -1,26 +1,17 @@
 #include "blockdevices.h"
 
+// POSIX
+#include <unistd.h>
+#include <arpa/inet.h>
+
+// STL
 #include <list>
 
 // PUT
 #include <cxxutils/posix_helpers.h>
 #include <specialized/osdetect.h>
 #include <specialized/mountpoints.h>
-
-#include <unistd.h>
-
-#if defined(__linux__) /* Linux */
-#include <linux/fs.h>
-#elif defined(BSD) || defined(__darwin__) /* *BSD/Darwin */
-#include <sys/disklabel.h>
-#include <sys/disk.h>
-#endif
-
-#include <arpa/inet.h>
-
-#ifndef BLOCK_SIZE
-#define BLOCK_SIZE 0x00000400
-#endif
+#include <specialized/blockinfo.h>
 
 
 uint64_t device_read(posix::fd_t fd, posix::off_t offset, uint8_t* buffer, uint64_t length)
@@ -63,10 +54,11 @@ static void uuid_decode(uint8_t* data, std::string& uuid)
 
 namespace blockdevices
 {
-  typedef bool (*detector_t)(uint8_t*, blockdevice_t*);
-  void detect_filesystem(blockdevice_t* dev) noexcept;
-  bool detect_ext(uint8_t* data, blockdevice_t* dev) noexcept;
-  bool detect_NULL(uint8_t* data, blockdevice_t* dev) noexcept;
+  typedef bool (*detector_t)(blockinfo_t&, blockdevice_t&, uint8_t*);
+  bool detect_filesystem(blockdevice_t& dev) noexcept;
+  bool detect_ext(blockinfo_t& info, blockdevice_t& dev, uint8_t* data) noexcept;
+
+  bool detect_NULL(blockinfo_t&, blockdevice_t&, uint8_t*) noexcept { return false; } // detection failed!
 
   static std::list<blockdevice_t> devices;
   static std::list<detector_t> detectors = { detect_ext, detect_NULL };
@@ -264,10 +256,11 @@ namespace blockdevices
     if(!fill_device_list())
       return false;
 
+    bool rvalue = true;
     for(blockdevice_t& dev : devices)
-      detect_filesystem(&dev);
+      rvalue &= detect_filesystem(dev);
 
-    return true;
+    return rvalue;
 #else
     errno = EOPNOTSUPP;
     return false;
@@ -314,82 +307,39 @@ namespace blockdevices
   {
     blockdevice_t dev;
     std::strncpy(dev.path, path, sizeof(blockdevice_t::path));
-    detect_filesystem(&dev);
+    detect_filesystem(dev);
     if(!dev.fstype[0]) // if filesystem wasn't detected
       return nullptr;
     devices.emplace_back(dev);
     return &devices.back();
   }
 
-  void detect_filesystem(blockdevice_t* dev) noexcept
+  bool detect_filesystem(blockdevice_t& dev) noexcept
   {
-    uint32_t blocksize = 0;
+    blockinfo_t info;
+    posix::fd_t fd = posix::open(dev.path, O_RDONLY);
 
-    posix::fd_t fd = posix::open(dev->path, O_RDONLY);
-    dev->size = 0;
+    if(fd == posix::error_response ||
+       !block_info(fd, info))
+      return false;
 
-    if(fd != posix::error_response)
-    {
-      // get block size (if needed)
-#if defined(BLKSSZGET) // Linux
-      posix::ioctl(fd, BLKSSZGET, &blocksize);
-#elif defined(DKIOCGETBLOCKCOUNT) // Darwin
-      posix::ioctl(fd, DKIOCGETBLOCKCOUNT, &blocksize);
-#elif defined(DIOCGSECTORSIZE) // BSD
-      posix::ioctl(fd, DIOCGSECTORSIZE, &blocksize);
-#elif defined(BLOCK_SIZE) // Linux (hardcoded)
-      blocksize = BLOCK_SIZE;
-#else
-      blocksize = 512; // default size
-#endif
+    uint8_t* superblock = static_cast<uint8_t*>(::malloc(info.block_size));
+    if(superblock == NULL)
+      return false;
 
-      // try to get the raw size of the partition (might be larger than the usable size)
-#if defined(DKIOCGETBLOCKCOUNT) // Darwin
-      if(posix::ioctl(fd, DKIOCGETBLOCKCOUNT, &dev->size) > posix::error_response)
-        dev->size *= blocksize;
+    std::memset(superblock, 0, info.block_size);
+    if(device_read(fd, posix::off_t(info.block_size), superblock, info.block_size) != uint64_t(info.block_size)) // if read filesystem superblock
+      return false;
 
-#elif defined(DIOCGMEDIASIZE) // current BSD
-      posix::ioctl(fd, DIOCGMEDIASIZE, &dev->size);
+    auto detectpos = detectors.begin();
+    while(detectpos != detectors.end() &&
+          !(*detectpos)(info, dev, superblock)) // run filesystem detection functions until you find one
+      ++detectpos;
 
-#elif defined(DIOCGDINFO) // old BSD
-      struct disklabel info;
-      if(posix::ioctl(fd, DIOCGDINFO, &info) > posix::error_response)
-      {
-        if(blocksize == 512)
-          blocksize = info.d_secsize;
-        dev->size = info.d_ncylinders * info.d_secpercyl * blocksize;
-      }
+    std::printf("device: %s - label: %s - fs: %s - size: %lu\n", dev.path, dev.label, dev.fstype, dev.size);
+    ::free(superblock);
 
-#elif defined(BLKGETSIZE64) // Linux 2.6+
-      posix::ioctl(fd, BLKGETSIZE64, &dev->size);
-
-#elif defined(BLKGETSIZE) // old Linux
-      long blockcount = 0;
-      posix::ioctl(fd, BLKGETSIZE, &blockcount);
-      dev->size = blockcount;
-      dev->size *= 512; // due to previously hardcoded sector size
-
-#else
-# pragma message("Falling back on lseek(fd, 0, SEEK_END) to get device size.  This is undefined behavior in POSIX.")
-      dev->size = ::lseek(fd, 0, SEEK_END); // behavior not defined in POSIX for devices but try as a last resort
-#endif
-    }
-
-    uint8_t* superblock = static_cast<uint8_t*>(::malloc(blocksize));
-    if(superblock != NULL)
-    {
-      std::memset(superblock, 0, blocksize);
-      if(device_read(fd, posix::off_t(blocksize), superblock, blocksize) == uint64_t(blocksize)) // if read filesystem superblock
-      {
-        auto detectpos = detectors.begin();
-        while(detectpos != detectors.end() &&
-              !(*detectpos)(superblock, dev)) // run filesystem detection functions until you find one
-          ++detectpos;
-
-        std::printf("device: %s - label: %s - fs: %s - size: %lu\n", dev->path, dev->label, dev->fstype, dev->size);
-      }
-      ::free(superblock);
-    }
+    return posix::close(fd);
   } // end detect()
 
 
@@ -438,7 +388,7 @@ namespace blockdevices
   // https://github.com/torvalds/linux/blob/master/fs/ext2/ext2.h
   // https://github.com/torvalds/linux/blob/master/fs/ext4/ext4.h
   // https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#The_Super_Block
-  bool detect_ext(uint8_t* data, blockdevice_t* dev) noexcept
+  bool detect_ext(blockinfo_t& info, blockdevice_t& dev, uint8_t* data) noexcept
   {
     constexpr uint16_t ext_magic_number = 0xEF53; // s_magic
 
@@ -489,50 +439,41 @@ namespace blockdevices
       misc_flags           = 0x0160, // s_flags
     };
 
-
     if(getLE16(data, offsets::magic_number) != ext_magic_number ) // test not Ext2/3/4/4dev or JDB
       return false;
 
     else if(allFlagsSet (data, offsets::incompat_flags , incompat_flags::journal_dev))
-      std::strncpy(dev->fstype, "jbd", sizeof(blockdevice_t::fstype));
+      std::strncpy(dev.fstype, "jbd", sizeof(blockdevice_t::fstype));
 
     else if(noFlagsSet  (data, offsets::incompat_flags , incompat_flags::journal_dev) &&
             allFlagsSet (data, offsets::misc_flags     , misc_flags::dev_filesystem))
-      std::strncpy(dev->fstype, "ext4dev", sizeof(blockdevice_t::fstype));
+      std::strncpy(dev.fstype, "ext4dev", sizeof(blockdevice_t::fstype));
 
     else if(noFlagsSet  (data, offsets::incompat_flags , incompat_flags::journal_dev) &&
             (allFlagsSet(data, offsets::ro_compat_flags, EXT2_RO_compat_flags) ||
              allFlagsSet(data, offsets::incompat_flags , EXT3_incompat_flags)) &&
             noFlagsSet  (data, offsets::misc_flags     , misc_flags::dev_filesystem))
-      std::strncpy(dev->fstype, "ext4", sizeof(blockdevice_t::fstype));
+      std::strncpy(dev.fstype, "ext4", sizeof(blockdevice_t::fstype));
 
     else if(allFlagsSet (data, offsets::compat_flags   , compat_flags::has_journal) &&
             noFlagsSet  (data, offsets::ro_compat_flags, EXT2_RO_compat_flags) &&
             noFlagsSet  (data, offsets::incompat_flags , EXT3_incompat_flags))
-      std::strncpy(dev->fstype, "ext3", sizeof(blockdevice_t::fstype));
+      std::strncpy(dev.fstype, "ext3", sizeof(blockdevice_t::fstype));
 
     else if(noFlagsSet  (data, offsets::compat_flags   , compat_flags::has_journal) &&
             noFlagsSet  (data, offsets::ro_compat_flags, EXT2_RO_compat_flags) &&
             noFlagsSet  (data, offsets::incompat_flags , EXT2_incompat_flags))
-      std::strncpy(dev->fstype, "ext2", sizeof(blockdevice_t::fstype));
+      std::strncpy(dev.fstype, "ext2", sizeof(blockdevice_t::fstype));
 
     else
       return false;
 
-    uint32_t blocksize  = uint32_t(BLOCK_SIZE) << getLE32(data, offsets::block_size); // filesystem block size
-    uint64_t blockcount = getLE32(data, offsets::block_count); // filesystem block count
-    dev->size = blockcount * blocksize; // store partitions usable size
+    dev.block_size  = info.block_size << getLE32(data, offsets::block_size); // filesystem block size
+    dev.block_count = getLE32(data, offsets::block_count); // filesystem block count
 
-    std::memcpy(dev->uuid, data + offsets::uuid, 16);
-    std::strncpy(dev->label, reinterpret_cast<char*>(data) + offsets::label, 16);
+    std::memcpy(dev.uuid, data + offsets::uuid, 16);
+    std::strncpy(dev.label, reinterpret_cast<char*>(data) + offsets::label, 16);
     return true;
   }
-
-  bool detect_NULL(uint8_t* , blockdevice_t* ) noexcept
-  {
-    std::printf("NOT A RECOGNIZED FILESYSTEM!  ");
-    return true;
-  }
-
 
 } // end namespace
