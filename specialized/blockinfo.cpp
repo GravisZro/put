@@ -2,6 +2,7 @@
 
 #if defined(__linux__) /* Linux */
 #include <linux/fs.h>
+#include <linux/hdreg.h> // ancient Linux
 #elif defined(BSD) || defined(__darwin__) /* *BSD/Darwin */
 #include <sys/disklabel.h>
 #include <sys/disk.h>
@@ -19,7 +20,6 @@ bool block_info(const char* device, blockinfo_t& info) noexcept
 
 bool block_info(posix::fd_t fd, blockinfo_t& info) noexcept
 {
-
   // get block size (if needed)
 #if defined(BLKSSZGET) // Linux
   if(posix::ioctl(fd, BLKSSZGET, &info.block_size) <= posix::error_response)
@@ -64,6 +64,16 @@ bool block_info(posix::fd_t fd, blockinfo_t& info) noexcept
     return false;
   info.block_count = uint64_t(bc) * 512; // due to previously hardcoded sector size
   info.block_count /= info.block_size;
+
+#elif defined(HDIO_GETGEO) // ancient Linux
+  struct hd_geometry geom;
+  if(posix::ioctl(fd, HDIO_GETGEO, &geom) <= posix::error_response)
+    return false;
+# error Sorry but the HDIO_GETGEO code is non-functional. ;(
+  geom.heads; // number of heads
+  geom.sectors; // number of sectors/track
+  geom.cylinders; // number of cylinders, mod 65536
+  geom.start; // starting sector of this partition.
 
 #else
 # pragma message("Falling back on lseek(fd, 0, SEEK_END) to get device size.  This is undefined behavior in POSIX.")
