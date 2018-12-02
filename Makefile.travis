@@ -57,11 +57,11 @@ SOURCES       = application.cpp \
 		specialized/module.cpp \
 		specialized/blockinfo.cpp \
 		specialized/blockdevices.cpp \
-		specialized/MountEvent.cpp \
-		specialized/FileEvent.cpp \
-		specialized/PollEvent.cpp \
-		specialized/ProcessEvent.cpp \
-		specialized/TimerEvent.cpp \
+		specialized/Mountevent.cpp \
+		specialized/fileevent.cpp \
+		specialized/pollevent.cpp \
+		specialized/processevent.cpp \
+		specialized/timerevent.cpp \
 #		integration/sdl.cpp
 
 TESTSOURCES   = tests/build_test.cpp \
