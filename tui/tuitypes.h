@@ -68,8 +68,6 @@ namespace tui
     Baseline  = 0x0100, // Aligns with the baseline.
     Center    = VCenter | HCenter, // Centers in both dimensions.
 
-
-
     HorizontalMask = Left | Right  | HCenter | Justify | Absolute,
     VerticalMask   = Top  | Bottom | VCenter | Baseline,
   };
@@ -101,6 +99,15 @@ namespace tui
     Fixed     , // The main widget's size is set to sizeHint(); it cannot be resized at all.
     Maximum   , // The main widget's maximum size is set to maximumSize(); it cannot be larger.
     MinAndMax , // The main widget's minimum size is set to minimumSize() and its maximum size is set to maximumSize().
+  };
+
+  enum FocusPolicy
+  {
+    NoFocus     = 0x00,
+    TabFocus    = 0x01,
+    ClickFocus  = 0x02,
+    StrongFocus = 0x08 | TabFocus | ClickFocus,
+    WheelFocus  = 0x04 | StrongFocus,
   };
 }
 #endif // TUITYPES_H

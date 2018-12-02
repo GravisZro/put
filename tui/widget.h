@@ -30,6 +30,9 @@ namespace tui
     SizePolicy sizePolicy(void) const noexcept { return m_sizePolicy; }
     void setSizePolicy(SizePolicy policy) noexcept { m_sizePolicy = policy; }
 
+    FocusPolicy focusPolicy(void) const noexcept { return m_focusPolicy; }
+    void setFocusPolicy(FocusPolicy policy) noexcept { m_focusPolicy = policy; }
+
     virtual rect_t    geometry(void) const noexcept override { return m_geometry; }
     virtual size2d_t  size    (void) const noexcept          { return m_geometry.size; }
     void setMinimumSize(const size2d_t& minsz) noexcept { m_minimumSize = minsz; }
@@ -43,54 +46,56 @@ namespace tui
     virtual size2d_t  sizeHint       (void) const noexcept override;
             size2d_t  minimumSizeHint(void) const noexcept;
 
+    void repaint(void) noexcept;
+    void update(void) noexcept;
   protected:
 
 // === Events ===
     virtual bool event(Event* event);
 
 
-//            bool             focusNextChild()
-//            bool             focusPreviousChild()
-//    virtual bool             focusNextPrevChild(bool next);
+//            bool focusNextChild()
+//            bool focusPreviousChild()
+//    virtual bool focusNextPrevChild(bool next);
 
-    // Focus events
-    virtual void             focusInEvent     (FocusEvent *event);
-    virtual void             focusOutEvent    (FocusEvent *event);
+    // === Focus events ===
+    virtual void focusInEvent   (FocusEvent* event) noexcept;
+    virtual void focusOutEvent  (FocusEvent* event) noexcept;
 
-    // Keyboard events
-    virtual void             keyPressEvent    (KeyEvent *event);
-    virtual void             keyReleaseEvent  (KeyEvent *event);
+    // === Keyboard events ===
+    virtual void keyPressEvent  (KeyEvent* event) noexcept;
+    virtual void keyReleaseEvent(KeyEvent* event) noexcept;
 
-    // Mouse events
+    // === Mouse events ===
     // Mouse: drag and drop
-    virtual void             dragEnterEvent   (DragEnterEvent *event);
-    virtual void             dragLeaveEvent   (DragLeaveEvent *event);
-    virtual void             dragMoveEvent    (DragMoveEvent *event);
-    virtual void             dropEvent        (DropEvent *event);
+    virtual void dragEnterEvent (DragEnterEvent* event) noexcept;
+    virtual void dragLeaveEvent (DragLeaveEvent* event) noexcept;
+    virtual void dragMoveEvent  (DragMoveEvent*  event) noexcept;
+    virtual void dropEvent      (DropEvent*      event) noexcept;
 
     // Mouse: position
-    virtual void             enterEvent       (Event *event);
-    virtual void             leaveEvent       (Event *event);
+    virtual void enterEvent     (Event* event) noexcept;
+    virtual void leaveEvent     (Event* event) noexcept;
 
     // Mouse: buttons
-    virtual void             mouseDoubleClickEvent(MouseEvent *event);
-    virtual void             mouseMoveEvent       (MouseEvent *event);
-    virtual void             mousePressEvent      (MouseEvent *event);
-    virtual void             mouseReleaseEvent    (MouseEvent *event);
-    virtual void             wheelEvent           (WheelEvent *event);
+    virtual void mouseDoubleClickEvent(MouseEvent* event) noexcept;
+    virtual void mouseMoveEvent       (MouseEvent* event) noexcept;
+    virtual void mousePressEvent      (MouseEvent* event) noexcept;
+    virtual void mouseReleaseEvent    (MouseEvent* event) noexcept;
+    virtual void wheelEvent           (WheelEvent* event) noexcept;
 
     // Paint/Layout events
-    virtual void             hideEvent        (HideEvent *event);
-    virtual void             moveEvent        (MoveEvent *event);
-    virtual void             paintEvent       (PaintEvent *event);
-    virtual void             resizeEvent      (ResizeEvent *event);
-    virtual void             showEvent        (ShowEvent *event);
+    virtual void hideEvent  (HideEvent*   event) noexcept;
+    virtual void moveEvent  (MoveEvent*   event) noexcept;
+    virtual void paintEvent (PaintEvent*  event) noexcept;
+    virtual void resizeEvent(ResizeEvent* event) noexcept;
+    virtual void showEvent  (ShowEvent*   event) noexcept;
 
-    // Misc. events
-    virtual void             actionEvent      (ActionEvent *event);
-    virtual void             changeEvent      (Event *event);
-    virtual void             closeEvent       (CloseEvent *event);
-    virtual void             contextMenuEvent (ContextMenuEvent *event);
+    // === Misc. events ===
+    virtual void actionEvent      (ActionEvent*      event) noexcept;
+    virtual void changeEvent      (Event*            event) noexcept;
+    virtual void closeEvent       (CloseEvent*       event) noexcept;
+    virtual void contextMenuEvent (ContextMenuEvent* event) noexcept;
 
   private:
     virtual Layout* layout(void) noexcept override { assert(false); return nullptr; }
@@ -102,6 +107,7 @@ namespace tui
     size2d_t    m_minimumSize;
     size2d_t    m_maximumSize;
     size2d_t    m_sizeHint;
+    FocusPolicy m_focusPolicy;
   };
 }
 
