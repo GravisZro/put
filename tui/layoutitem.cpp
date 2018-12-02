@@ -45,8 +45,8 @@ namespace tui
                             const SizePolicy& sizePolicy,
                             Align alignment)
   {
-    if (alignment & Align::HorizontalMask &&
-        alignment & Align::VerticalMask)
+    if(alignment & Align::HorizontalMask &&
+       alignment & Align::VerticalMask)
       return size2d_t { UINT16_MAX, UINT16_MAX };
 
     size2d_t s = maxSize;
@@ -59,9 +59,9 @@ namespace tui
       if (!(sizePolicy.verticalPolicy() & SizePolicy::Flags::Grow))
         s.height = hint.height;
 
-    if (alignment & Align::HorizontalMask)
+    if(alignment & Align::HorizontalMask)
       s.width = UINT16_MAX;
-    if (alignment & Align::VerticalMask)
+    if(alignment & Align::VerticalMask)
       s.height = UINT16_MAX;
     return s;
   }
