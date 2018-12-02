@@ -202,7 +202,7 @@ FileEvent::~FileEvent(void) noexcept
 
 // PUT
 # include <cxxutils/vterm.h>
-# include <specialized/TimerEvent.h>
+# include <specialized/timerevent.h>
 
 enum {
   Read = 0,

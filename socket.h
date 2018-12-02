@@ -9,7 +9,7 @@
 #include <cxxutils/socket_helpers.h>
 #include <cxxutils/vfifo.h>
 #include <specialized/peercred.h>
-#include <specialized/PollEvent.h>
+#include <specialized/pollevent.h>
 
 class GenericSocket : public PollEvent
 {

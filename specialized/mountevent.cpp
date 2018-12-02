@@ -18,7 +18,7 @@ constexpr int const_polling_flags = EPOLLERR | EPOLLPRI;
 # endif
 #elif defined(__unix__)   /* Generic UNIX */
 // PUT
-# include <specialized/TimerEvent.h>
+# include <specialized/timerevent.h>
 #else
 # error Unsupported platform! >:(
 #endif

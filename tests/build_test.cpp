@@ -12,9 +12,9 @@
 #include <specialized/module.h>
 #include <specialized/mount.h>
 #include <specialized/capabilities.h>
-#include <specialized/FileEvent.h>
-#include <specialized/PollEvent.h>
-#include <specialized/ProcessEvent.h>
+#include <specialized/fileevent.h>
+#include <specialized/pollevent.h>
+#include <specialized/processevent.h>
 #include <cxxutils/pipedspawn.h>
 #include <cxxutils/vfifo.h>
 #include <cxxutils/pipedfork.h>
