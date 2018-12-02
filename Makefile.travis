@@ -57,7 +57,7 @@ SOURCES       = application.cpp \
 		specialized/module.cpp \
 		specialized/blockinfo.cpp \
 		specialized/blockdevices.cpp \
-		specialized/Mountevent.cpp \
+		specialized/mountevent.cpp \
 		specialized/fileevent.cpp \
 		specialized/pollevent.cpp \
 		specialized/processevent.cpp \
