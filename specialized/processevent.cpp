@@ -4,9 +4,9 @@
 #include <specialized/osdetect.h>
 #include <specialized/eventbackend.h>
 
-#if defined(FORCE_PROC_POLLING)
+#if defined(FORCE_PROCESS_POLLING)
 # pragma message("Forcing use of polling /proc to detect process events.")
-# define FALLBACK_ON_PROC_POLLING
+# define FALLBACK_ON_PROCESS_POLLING
 
 #elif defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,15) /* Linux 2.6.15+ */
 
@@ -257,18 +257,18 @@ ProcessEvent::~ProcessEvent(void) noexcept
 
 #elif defined(__solaris__) /* Solaris */
 # pragma message("No process event backend code exists in PUT for Solaris!  Please submit a patch!")
-# define FALLBACK_ON_PROC_POLLING
+# define FALLBACK_ON_PROCESS_POLLING
 
 #elif defined(__QNX__) // QNX
 // QNX docs: http://www.qnx.com/developers/docs/7.0.0/index.html#com.qnx.doc.neutrino.devctl/topic/about.html
 # pragma message("No process event backend code exists in PUT for QNX!  Please submit a patch!")
-# define FALLBACK_ON_PROC_POLLING
+# define FALLBACK_ON_PROCESS_POLLING
 
 #else
 # pragma message("No platform specific process event detection code! Falling back on polling /proc.")
-# define FALLBACK_ON_PROC_POLLING
+# define FALLBACK_ON_PROCESS_POLLING
 #endif
 
-#if defined(FALLBACK_ON_PROC_POLLING)
+#if defined(FALLBACK_ON_PROCESS_POLLING)
 #error TODO: implement process event detection code by polling /proc.
 #endif
