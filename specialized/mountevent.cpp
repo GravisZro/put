@@ -8,11 +8,13 @@
 #include <specialized/mountpoints.h>
 
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
-// Linux
+# define POLLABLE_PROC_MOUNTS
 # if defined(FORCE_POSIX_POLL)
+// POSIX
 #  include <poll.h>
 constexpr int const_polling_flags = POLLERR | POLLPRI;
 # else
+// Linux
 #  include <sys/epoll.h>
 constexpr int const_polling_flags = EPOLLERR | EPOLLPRI;
 # endif
@@ -48,7 +50,7 @@ MountEvent::MountEvent(void) noexcept
           }
         };
 
-#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
+#if defined(POLLABLE_PROC_MOUNTS) /* Linux 2.6.30+ */
     char proc_mounts[PATH_MAX] = { 0 };
     if(procfs_path == nullptr &&
       !reinitialize_paths())
@@ -66,7 +68,7 @@ MountEvent::MountEvent(void) noexcept
 
 MountEvent::~MountEvent(void) noexcept
 {
-#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
+#if defined(POLLABLE_PROC_MOUNTS) /* Linux 2.6.30+ */
   EventBackend::remove(m_fd, const_polling_flags); // disconnect FD with flags from signal
   posix::close(m_fd);
 #elif defined(__unix__)   /* Generic UNIX */
