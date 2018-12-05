@@ -40,6 +40,14 @@ public:
          terminal::critical, /*std::exit(errno)*/, ,
          "Unable to create a fork: %s", std::strerror(errno))
 
+    posix::fcntl(ipc_pico[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(ipc_pico[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(ipc_cipo[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(ipc_cipo[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(out[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(out[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(err[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(err[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
     if(m_pid) // if parent process
     {
       m_read = ipc_cipo[Read];
