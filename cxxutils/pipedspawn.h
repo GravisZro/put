@@ -37,6 +37,13 @@ public:
          terminal::critical,,,
          "Unable to create a pipe: %s", std::strerror(errno))
 
+    posix::fcntl(stdin_pipe[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(stdin_pipe[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(stdout_pipe[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(stdout_pipe[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(stderr_pipe[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(stderr_pipe[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
+
     posix_spawn_file_actions_init(&action);
 
     posix_spawn_file_actions_addclose(&action, stdin_pipe [Write]);
