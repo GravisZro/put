@@ -32,7 +32,9 @@ Application::Application(void) noexcept
          terminal::critical,
          std::exit(errno),,
          "Unable to create pipe for execution stepper: %s", std::strerror(errno))
-    posix::fcntl(s_pipeio[Read], F_SETFD, FD_CLOEXEC); // close on exec*()
+
+    posix::fcntl(s_pipeio[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(s_pipeio[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
     posix::donotblock(s_pipeio[Read]); // don't block
 
     flaw(!EventBackend::add(s_pipeio[Read], EventBackend::SimplePollReadFlags, read),
