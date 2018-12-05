@@ -131,13 +131,19 @@ bool TimerEvent::stop(void) noexcept
 // PUT
 # include <cxxutils/vterm.h>
 
-enum {
-  Read = 0,
-  Write = 1,
-};
+#if defined(SIGRTMAX)
+#define SIGTIMERQUEUE  (SIGRTMAX - 1)   /* Real-time signals queue */
+#else
+#define SIGTIMERQUEUE  SIGALRM
+#endif
 
 struct TimerEvent::platform_dependant // timer notification (POSIX)
 {
+  enum {
+    Read = 0,
+    Write = 1,
+  };
+
   struct eventinfo_t
   {
     posix::fd_t fd[2]; // two fds for pipe based communication
@@ -153,7 +159,7 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
     sigemptyset(&actions.sa_mask);
     actions.sa_flags = SA_SIGINFO | SA_RESTART;
 
-    flaw(::sigaction(SIGALRM, &actions, nullptr) == posix::error_response,
+    flaw(::sigaction(SIGTIMERQUEUE, &actions, nullptr) == posix::error_response,
          terminal::critical,
          std::exit(errno),,
          "Unable assign action to a signal: %s", std::strerror(errno))
@@ -174,13 +180,14 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
     if(!posix::pipe(data.fd))
       return posix::invalid_descriptor;
 
+    posix::fcntl(data.fd[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(data.fd[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
     posix::fd_t& readfd = data.fd[Read];
-    posix::fcntl(readfd, F_SETFD, FD_CLOEXEC); // close on exec*()
     posix::donotblock(readfd); // don't block
 
     struct sigevent timer_event;
     timer_event.sigev_notify = SIGEV_SIGNAL;
-    timer_event.sigev_signo = SIGALRM;
+    timer_event.sigev_signo = SIGTIMERQUEUE;
     timer_event.sigev_value.sival_int = data.fd[Write];
 
     if(::timer_create(CLOCK_MONOTONIC, &timer_event, &data.timer) == posix::error_response)
