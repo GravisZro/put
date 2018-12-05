@@ -20,11 +20,6 @@
 # include <cxxutils/socket_helpers.h>
 # include <cxxutils/vterm.h>
 
-enum {
-  Read = 0,
-  Write = 1,
-};
-
 // process flags
 static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
 {
@@ -45,11 +40,16 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 
 struct ProcessEvent::platform_dependant // process notification (process events connector)
 {
+  enum {
+    Read = 0,
+    Write = 1,
+  };
+
   posix::fd_t fd;
   struct eventinfo_t
   {
     posix::fd_t fd[2]; // two fds for pipe based communication
-    ProcessEvent::Flags_t flags;
+    Flags_t flags;
   };
 
   std::unordered_map<pid_t, eventinfo_t> events;
@@ -106,18 +106,21 @@ struct ProcessEvent::platform_dependant // process notification (process events 
     fd = posix::invalid_descriptor;
   }
 
-  posix::fd_t add(pid_t pid, ProcessEvent::Flags_t flags) noexcept
+  posix::fd_t add(pid_t pid, Flags_t flags) noexcept
   {
-    eventinfo_t event;
-    event.flags = flags;
-    if(!posix::pipe(event.fd))
+    eventinfo_t data;
+    data.flags = flags;
+    if(!posix::pipe(data.fd))
       return posix::invalid_descriptor;
 
-    auto iter = events.emplace(pid, event);
+    posix::fcntl(data.fd[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(data.fd[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
+
+    auto iter = events.emplace(pid, data);
 
     // add filter installation code here
 
-    return event.fd[Read];
+    return data.fd[Read];
   }
 
   bool remove(pid_t pid) noexcept
