@@ -3,17 +3,20 @@
 // PUT
 #include <specialized/osdetect.h>
 
-#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,13) /* Linux 2.6.13+ */
+#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,4,0) /* Linux 2.4.0+ */
 
 // POSIX++
 # include <cstring>
 # include <cassert>
 
-// Linux
-# include <sys/inotify.h>
-
 // PUT
 # include <cxxutils/vterm.h>
+
+
+# if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,13) /* Linux 2.6.13+ */
+
+// Linux
+#  include <sys/inotify.h>
 
 // file/directory flags
 static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
@@ -62,7 +65,7 @@ struct FileEvent::platform_dependant // file notification (inotify)
     fd = posix::invalid_descriptor;
   }
 
-  posix::fd_t add(const char* path, FileEvent::Flags_t flags) noexcept
+  posix::fd_t add(const char* path, Flags_t flags) noexcept
   {
     return ::inotify_add_watch(fd, path, to_native_flags(flags));
   }
@@ -75,7 +78,7 @@ struct FileEvent::platform_dependant // file notification (inotify)
   struct return_data
   {
     const char* name;
-    FileEvent::Flags_t flags;
+    Flags_t flags;
   };
 
 #define INOTIFY_EVENT_SIZE   (sizeof(inotify_event) + NAME_MAX + 1)
@@ -110,6 +113,175 @@ struct FileEvent::platform_dependant // file notification (inotify)
 
 } FileEvent::s_platform;
 
+# else
+
+// POSIX
+#  include <libgen.h>
+
+// STL
+#  include <set>
+
+#  define SIGFILEEVENTQUEUE  (SIGRTMAX - 2)   /* Real-time signals queue */
+
+// file/directory flags
+static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
+{
+  return
+      (flags & DN_ACCESS ? FileEvent::ReadEvent     : 0) |
+      (flags & DN_MODIFY ? FileEvent::WriteEvent    : 0) |
+      (flags & DN_ATTRIB ? FileEvent::AttributeMod  : 0) |
+      (flags & DN_RENAME ? FileEvent::Moved         : 0) |
+      (flags & DN_DELETE ? FileEvent::Deleted       : 0) ;
+}
+
+static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
+{
+  return
+      (flags & FileEvent::ReadEvent    ? native_flags_t(DN_ACCESS) : 0) | // File was accessed (read) (*).
+      (flags & FileEvent::WriteEvent   ? native_flags_t(DN_MODIFY) : 0) | // File was modified (*).
+      (flags & FileEvent::AttributeMod ? native_flags_t(DN_ATTRIB) : 0) | // Metadata changed, e.g., permissions, timestamps, extended attributes, link count (since Linux 2.6.25), UID, GID, etc. (*).
+      (flags & FileEvent::Moved        ? native_flags_t(DN_RENAME) : 0) | // Watched File was moved.
+      (flags & FileEvent::Deleted      ? native_flags_t(DN_DELETE) : 0);  // Watched File was deleted.
+}
+
+struct FileEvent::platform_dependant // file notification (inotify)
+{
+  enum {
+    Read = 0,
+    Write = 1,
+  };
+
+  struct eventinfo_t
+  {
+    posix::fd_t fd[2]; // two fds for pipe based communication
+    Flags_t flags;
+    struct stat status;
+  };
+
+  std::unordered_map<std::string, posix::fd_t> dir_lookup;
+  std::unordered_map<std::string, posix::fd_t> file_lookup;
+  std::unordered_map<posix::fd_t, std::set<std::string>> dirs;
+  std::unordered_map<posix::fd_t, eventinfo_t> files;
+
+  platform_dependant(void) noexcept
+  {
+    struct sigaction actions;
+    actions.sa_sigaction = &handler;
+    sigemptyset(&actions.sa_mask);
+    actions.sa_flags = SA_SIGINFO | SA_RESTART;
+
+    flaw(::sigaction(SIGFILEEVENTQUEUE, &actions, nullptr) == posix::error_response,
+         terminal::critical,
+         std::exit(errno),,
+         "Unable assign action to a signal: %s", std::strerror(errno))
+  }
+
+  ~platform_dependant(void) noexcept
+  {
+    for(auto dir_pair : dirs)
+      posix::close(dir_pair.first);
+    for(auto file_pair : files)
+      posix::close(file_pair.first);
+  }
+
+  static void handler(int, siginfo_t* info, void*) noexcept
+  {
+    static const uint8_t dummydata = 0; // dummy content
+    flaw(posix::write(info->si_fd, &dummydata, 1) != 1,
+         terminal::critical,
+         std::exit(errno),, // triggers execution stepper FD
+         "Unable to trigger TimerEvent: %s", std::strerror(errno))
+  }
+
+  posix::fd_t add(const char* path, Flags_t flags) noexcept
+  {
+    char* dname = ::dirname(const_cast<char*>(path));
+    posix::fd_t dir_fd = posix::invalid_descriptor;
+    posix::fd_t file_fd = posix::invalid_descriptor;
+
+    auto dlookup_iter = dir_lookup.find(dname);
+    if(dlookup_iter == dir_lookup.end())
+    {
+      dir_fd = posix::open(dname, O_RDONLY);
+      if(dir_fd == posix::invalid_descriptor)
+        return posix::invalid_descriptor;
+
+      posix::fcntl(dir_fd, F_SETFD, FD_CLOEXEC); // close on exec*()
+      posix::fcntl(dir_fd, F_SETSIG, SIGFILEEVENTQUEUE);
+      auto rval = dir_lookup.emplace(dname, dir_fd);
+      if(!rval.second)
+      {
+        posix::close(dir_fd);
+        return posix::invalid_descriptor;
+      }
+    }
+    else
+      dir_fd = dlookup_iter->second;
+
+    auto flookup_iter = file_lookup.find(path);
+    if(flookup_iter == file_lookup.end())
+    {
+      eventinfo_t data;
+      if(!posix::stat(path, &data.status) ||
+         !posix::pipe(data.fd))
+        return posix::invalid_descriptor;
+
+      posix::fcntl(data.fd[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
+      posix::fcntl(data.fd[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
+      data.flags = flags;
+      file_fd = data.fd[Read];
+      auto rval1 = file_lookup.emplace(path, file_fd);
+      auto rval2 = files.emplace(file_fd, data);
+      if(!rval1.second || !rval2.second)
+      {
+        file_lookup.erase(path);
+        files.erase(file_fd);
+        posix::close(data.fd[Read ]);
+        posix::close(data.fd[Write]);
+        return posix::invalid_descriptor;
+      }
+    }
+    else
+      file_fd = flookup_iter->second;
+
+    Flags_t dir_flags;
+    for(auto filename : dirs[dir_fd]) // for each filename
+    {
+      auto fl_iter = file_lookup.find(filename); // lookup file
+      if(fl_iter != file_lookup.end())
+      {
+        auto f_iter = files.find(fl_iter->second); // lookup file eventinfo_t data
+        if(f_iter != files.end())
+          dir_flags = dir_flags | f_iter->second.flags; // accumulate flags for directory
+      }
+    }
+
+    if((dir_flags & flags) != flags) // if not all flags are set
+      posix::fcntl(dir_fd, F_NOTIFY, to_native_flags(dir_flags | flags)); // apply new flags
+    dirs[dir_fd].insert(path); // add file to directory
+
+
+    return file_fd;
+  }
+
+  bool remove(posix::fd_t wd) noexcept
+  {
+    return false;
+  }
+
+  struct return_data
+  {
+    const char* name;
+    Flags_t flags;
+  };
+
+  return_data read(posix::fd_t wd) const noexcept
+  {
+    return { nullptr, 0 }; // read the entire buffer and the event was never found!
+  }
+
+} FileEvent::s_platform;
+# endif
 
 FileEvent::FileEvent(const std::string& _file, Flags_t _flags) noexcept
   : m_file(_file),
@@ -204,17 +376,17 @@ FileEvent::~FileEvent(void) noexcept
 # include <cxxutils/vterm.h>
 # include <specialized/timerevent.h>
 
-enum {
-  Read = 0,
-  Write = 1,
-};
-
 template<typename T>
 static inline bool data_identical(T& a, T& b) noexcept
 { return std::memcmp(&a, &b, sizeof(T)) == 0; }
 
 struct FileEvent::platform_dependant // file notification (TimerEvent)
 {
+  enum {
+    Read = 0,
+    Write = 1,
+  };
+
   struct eventinfo_t
   {
     posix::fd_t fd[2]; // two fds for pipe based communication
@@ -234,12 +406,14 @@ struct FileEvent::platform_dependant // file notification (TimerEvent)
     data.flags = flags;
     data.test_count = 0;
 
-    if(::stat(file, &data.status) == posix::error_response ||
+    if(!posix::stat(file, &data.status) ||
        !posix::pipe(data.fd))
       return posix::invalid_descriptor;
 
+    posix::fcntl(data.fd[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
+    posix::fcntl(data.fd[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
+
     posix::fd_t& readfd = data.fd[Read];
-    posix::fcntl(readfd, F_SETFD, FD_CLOEXEC); // close on exec*()
     posix::donotblock(readfd); // don't block
 
     auto pair = events.emplace(readfd, data);
@@ -258,7 +432,7 @@ struct FileEvent::platform_dependant // file notification (TimerEvent)
   {
     Flags_t flags;
     struct stat status;
-    if(::stat(data.file, &status) == posix::success_response &&
+    if(posix::stat(data.file, &status) &&
        !data_identical(data.status, status))
     {
       flags.ReadEvent    = data_identical(data.status.st_atim, status.st_atim) ? 0 : 1;
