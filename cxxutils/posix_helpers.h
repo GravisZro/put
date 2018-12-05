@@ -274,7 +274,7 @@ namespace posix
     { return ignore_interruption(::dup2, a, b) != error_response; }
 
   static inline bool close(fd_t fd) noexcept
-    { return ignore_interruption(::close, fd) != error_response; }
+    { return ignore_interruption(::close, fd) == success_response; }
 
   static inline ssize_t write(fd_t fd, const void* buffer, size_t length) noexcept
     { return ignore_interruption(::write, fd, buffer, length); }
@@ -284,10 +284,13 @@ namespace posix
 
 // POSIX wrappers
   static inline bool chmod(const char* path, mode_t mode) noexcept
-    { return ignore_interruption(::chmod, path, mode) != error_response; }
+    { return ignore_interruption(::chmod, path, mode) == success_response; }
 
   static inline bool chown(const char* path, uid_t owner, gid_t group) noexcept
-    { return ignore_interruption(::chown, path, owner, group) != error_response; }
+    { return ignore_interruption(::chown, path, owner, group) == success_response; }
+
+  static inline bool stat(const char* path, struct stat* status) noexcept
+    { return ::stat(path, status) == success_response; }
 
 
 // variadic POSIX wrappers
