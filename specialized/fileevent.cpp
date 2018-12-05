@@ -136,13 +136,17 @@ static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept
 
 static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 {
-  return
+  return DN_MULTISHOT | // force reoccuring event
       (flags & FileEvent::ReadEvent    ? native_flags_t(DN_ACCESS) : 0) | // File was accessed (read) (*).
       (flags & FileEvent::WriteEvent   ? native_flags_t(DN_MODIFY) : 0) | // File was modified (*).
       (flags & FileEvent::AttributeMod ? native_flags_t(DN_ATTRIB) : 0) | // Metadata changed, e.g., permissions, timestamps, extended attributes, link count (since Linux 2.6.25), UID, GID, etc. (*).
       (flags & FileEvent::Moved        ? native_flags_t(DN_RENAME) : 0) | // Watched File was moved.
       (flags & FileEvent::Deleted      ? native_flags_t(DN_DELETE) : 0);  // Watched File was deleted.
 }
+
+template<typename T>
+static inline bool data_identical(T& a, T& b) noexcept
+{ return std::memcmp(&a, &b, sizeof(T)) == 0; }
 
 struct FileEvent::platform_dependant // file notification (inotify)
 {
@@ -153,15 +157,17 @@ struct FileEvent::platform_dependant // file notification (inotify)
 
   struct eventinfo_t
   {
+    posix::fd_t dir_fd; // for lookup
+    const char* filename; // for lookup
     posix::fd_t fd[2]; // two fds for pipe based communication
     Flags_t flags;
     struct stat status;
   };
 
-  std::unordered_map<std::string, posix::fd_t> dir_lookup;
-  std::unordered_map<std::string, posix::fd_t> file_lookup;
-  std::unordered_map<posix::fd_t, std::set<std::string>> dirs;
-  std::unordered_map<posix::fd_t, eventinfo_t> files;
+  static std::unordered_map<std::string, posix::fd_t> dir_lookup;
+  static std::unordered_map<std::string, posix::fd_t> file_lookup;
+  static std::unordered_map<posix::fd_t, std::set<std::string>> dirs;
+  static std::unordered_map<posix::fd_t, eventinfo_t> files;
 
   platform_dependant(void) noexcept
   {
@@ -186,11 +192,47 @@ struct FileEvent::platform_dependant // file notification (inotify)
 
   static void handler(int, siginfo_t* info, void*) noexcept
   {
-    static const uint8_t dummydata = 0; // dummy content
-    flaw(posix::write(info->si_fd, &dummydata, 1) != 1,
-         terminal::critical,
-         std::exit(errno),, // triggers execution stepper FD
-         "Unable to trigger TimerEvent: %s", std::strerror(errno))
+    auto d_iter = dirs.find(info->si_fd);
+    if(d_iter != dirs.end())
+    {
+      for(const std::string& filename : d_iter->second)
+      {
+        auto fl_iter = file_lookup.find(filename);
+        if(fl_iter != file_lookup.end())
+        {
+          auto f_iter = files.find(fl_iter->second);
+          if(f_iter != files.end())
+          {
+            eventinfo_t& data = f_iter->second;
+            struct stat status;
+            if(posix::stat(filename.c_str(), &status))
+            {
+              if(!data_identical(status, data.status))
+              {
+                Flags_t flags;
+                flags.ReadEvent    = data_identical(data.status.st_atim, status.st_atim) ? 0 : 1;
+                flags.WriteEvent   = data_identical(data.status.st_mtim, status.st_mtim) ? 0 : 1;
+                flags.AttributeMod = data.status.st_mode == status.st_mode &&
+                                     data.status.st_uid  == status.st_uid &&
+                                     data.status.st_gid  == status.st_gid &&
+                                     data.status.st_rdev == status.st_rdev ? 0 : 1;
+                flags.Moved        = data.status.st_dev  == status.st_dev &&
+                                     data.status.st_ino  == status.st_ino  ? 0 : 1;
+
+                if(data.flags & flags)
+                {
+                  uint8_t rdata = flags;
+                  flaw(posix::write(data.fd[Write], &rdata, 1) != 1,
+                       terminal::critical,
+                       std::exit(errno),, // triggers execution stepper FD
+                       "Unable to trigger FileEvent: %s", std::strerror(errno))
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   posix::fd_t add(const char* path, Flags_t flags) noexcept
@@ -231,6 +273,8 @@ struct FileEvent::platform_dependant // file notification (inotify)
       data.flags = flags;
       file_fd = data.fd[Read];
       auto rval1 = file_lookup.emplace(path, file_fd);
+      if(!rval1.second)
+         data.filename = rval1.first->first.data();
       auto rval2 = files.emplace(file_fd, data);
       if(!rval1.second || !rval2.second)
       {
@@ -258,15 +302,34 @@ struct FileEvent::platform_dependant // file notification (inotify)
 
     if((dir_flags & flags) != flags) // if not all flags are set
       posix::fcntl(dir_fd, F_NOTIFY, to_native_flags(dir_flags | flags)); // apply new flags
-    dirs[dir_fd].insert(path); // add file to directory
-
-
+    dirs[dir_fd].insert(path); // add file to directory (if doesn't exist)
     return file_fd;
   }
 
   bool remove(posix::fd_t wd) noexcept
   {
-    return false;
+    auto f_iter = files.find(wd);
+    if(f_iter == files.end())
+      return false;
+
+    eventinfo_t& data = f_iter->second;
+    posix::close(data.fd[Read ]);
+    posix::close(data.fd[Write]);
+
+    auto d_iter = dirs.find(data.dir_fd);
+    if(d_iter != dirs.end())
+    {
+      d_iter->second.erase(data.filename);
+      if(d_iter->second.empty())
+      {
+        dir_lookup.erase(::dirname(const_cast<char*>(data.filename)));
+        file_lookup.erase(data.filename);
+        dirs.erase(d_iter);
+      }
+    }
+    files.erase(f_iter);
+
+    return true;
   }
 
   struct return_data
@@ -277,10 +340,24 @@ struct FileEvent::platform_dependant // file notification (inotify)
 
   return_data read(posix::fd_t wd) const noexcept
   {
-    return { nullptr, 0 }; // read the entire buffer and the event was never found!
+    Flags_t flags;
+    uint8_t buffer = 0;
+    auto f_iter = files.find(wd);
+    if(f_iter == files.end())
+      return { nullptr, 0 };
+
+    while(posix::read(wd, &buffer, 1) == 1) // read all flag data
+      flags = flags | buffer; // add new flags
+
+    return { f_iter->second.filename, flags };
   }
 
 } FileEvent::s_platform;
+
+std::unordered_map<std::string, posix::fd_t> FileEvent::platform_dependant::dir_lookup;
+std::unordered_map<std::string, posix::fd_t> FileEvent::platform_dependant::file_lookup;
+std::unordered_map<posix::fd_t, std::set<std::string>> FileEvent::platform_dependant::dirs;
+std::unordered_map<posix::fd_t, FileEvent::platform_dependant::eventinfo_t> FileEvent::platform_dependant::files;
 # endif
 
 FileEvent::FileEvent(const std::string& _file, Flags_t _flags) noexcept
