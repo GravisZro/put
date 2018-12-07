@@ -97,7 +97,7 @@ bool proclist(std::set<pid_t>& list) noexcept
   size_t length = 0;
   struct dirent* entry;
   while((entry = ::readdir(dirp)) != NULL)
-    if(entry->d_type == DT_DIR && std::atoi(entry->d_name))
+    if(entry->d_type == DT_DIR && posix::atoi(entry->d_name))
       ++length;
 
   if(posix::is_success())
@@ -105,8 +105,8 @@ bool proclist(std::set<pid_t>& list) noexcept
     ::rewinddir(dirp);
 
     while((entry = ::readdir(dirp)) != NULL)
-      if(entry->d_type == DT_DIR && std::atoi(entry->d_name))
-        list.emplace(std::atoi(entry->d_name));
+      if(entry->d_type == DT_DIR && posix::atoi(entry->d_name))
+        list.emplace(posix::atoi(entry->d_name));
   }
 
   if(::closedir(dirp) == posix::error_response)

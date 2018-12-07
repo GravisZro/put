@@ -38,7 +38,7 @@ bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
       else
         str.push_back(*pos);
     }
-    else if(std::isspace(*pos))
+    else if(posix::isspace(*pos))
     {
       if(!str.empty())
       {
@@ -46,7 +46,7 @@ bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
         str.clear();
       }
     }
-    else if(std::isgraph(*pos))
+    else if(posix::isgraph(*pos))
       str.push_back(*pos);
   }
   if(!str.empty())
@@ -278,7 +278,7 @@ bool proc_decode(pid_t pid, const char* subfile, decode_func func, process_state
                 subfile == nullptr ? '\0' : '/',
                 subfile == nullptr ? "" : subfile);
 
-  FILE* file = std::fopen(filename, "r");
+  FILE* file = posix::fopen(filename, "r");
   if(file == NULL)
     return false;
 
@@ -362,7 +362,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
     unsigned int  policy;                   // Scheduling policy (see sched_setscheduler(2)). Decode using the SCHED_* constants in linux/sched.h.
   } process;
 
-  std::fscanf(file,
+  posix::fscanf(file,
               "%" SCNd32 " " // pid
               "%s " // comm
               "%c " // state
@@ -566,8 +566,7 @@ bool proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
 # elif defined(__solaris__) /* Solaris  */ || \
        defined(__aix__)     /* AIX      */
 
-// POSIX++
-#  include <ctype.h>
+// POSIX
 #  include <assert.h>
 
 #  if defined(__solaris__)

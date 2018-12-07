@@ -1,6 +1,6 @@
 #include "mount.h"
 
-// POSIX++
+// POSIX
 #include <assert.h>
 
 // POSIX
@@ -248,7 +248,7 @@ T decode(const char* start, const char* end)
   bool neg = *start == '-';
   if(neg)
     ++start;
-  for(const char* pos = start; pos != end && std::isdigit(*pos); ++pos)
+  for(const char* pos = start; pos != end && posix::isdigit(*pos); ++pos)
   {
     value *= base;
     value += *pos - '0';

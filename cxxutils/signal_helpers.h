@@ -1,7 +1,7 @@
 #ifndef SIGNAL_HELPERS_H
 #define SIGNAL_HELPERS_H
 
-// POSIX++
+// POSIX
 #include <signal.h>
 
 // PUT

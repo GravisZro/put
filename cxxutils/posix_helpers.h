@@ -14,6 +14,7 @@
 #include <stdint.h> // need standard types
 #include <stdlib.h> // exit functions
 #include <limits.h> // system limits
+#include <ctype.h>  // char type detection
 
 // POSIX-esque?
 #include <sys/ioctl.h>
@@ -39,6 +40,11 @@ namespace posix
   using ::atexit;
   using ::malloc;
   using ::free;
+
+  // ctype.h
+  using ::isspace;
+  using ::isdigit;
+  using ::isgraph;
 
   // string.h
   using ::memset;

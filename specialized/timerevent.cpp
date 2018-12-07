@@ -123,7 +123,7 @@ bool TimerEvent::stop(void) noexcept
 #endif
 
 #if defined(_POSIX_TIMERS) && defined(FALLBACK_ON_POSIX_TIMERS)
-// POSIX++
+// POSIX
 # include <time.h>
 # include <assert.h>
 

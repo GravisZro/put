@@ -3,16 +3,13 @@
 // STL
 #include <map>
 
-// POSIX++
-#include <ctype.h>
-
 // PUT
 #include "syslogstream.h"
 
 static inline std::string use_string(std::string& str) noexcept
 {
   std::string copy;
-  while(std::isspace(str.back())) // remove whitespace from end
+  while(posix::isspace(str.back())) // remove whitespace from end
     str.pop_back();
   copy = str;
   str.clear();
@@ -133,7 +130,7 @@ bool ConfigManip::importText(const std::string& data) noexcept
         switch(*pos)
         {
           default:
-            if(!std::isspace(*pos))
+            if(!posix::isspace(*pos))
             {
               node = section_node;
               state = state_e::name;
@@ -164,7 +161,7 @@ bool ConfigManip::importText(const std::string& data) noexcept
         switch(*pos)
         {
           default:
-            if(!std::isspace(*pos) || !str.empty())
+            if(!posix::isspace(*pos) || !str.empty())
               str.push_back(*pos);
             continue;
           case '\n':
@@ -224,7 +221,7 @@ bool ConfigManip::importText(const std::string& data) noexcept
         switch(*pos)
         {
           default:
-            if(!std::isspace(*pos))
+            if(!posix::isspace(*pos))
               str.push_back(*pos);
             continue;
 
@@ -260,9 +257,9 @@ bool ConfigManip::importText(const std::string& data) noexcept
         switch(*pos)
         {
           default:
-            if(!std::isspace(*pos) ||
+            if(!posix::isspace(*pos) ||
                (!str.empty() &&
-                !std::isspace(str.back()))) // if not a space or string doesnt end with a space
+                !posix::isspace(str.back()))) // if not a space or string doesnt end with a space
               str.push_back(*pos);
             continue;
 

@@ -30,7 +30,7 @@ ErrorMessageStream& ErrorMessageStream::operator << (const char* arg) noexcept
       ssize_t slice = pos - lastpos;
       buffer_remaining -= slice;
       if(buffer_remaining > 0)
-        posix::strncat(m_tmpbuf, lastpos, std::size_t(slice));
+        posix::strncat(m_tmpbuf, lastpos, posix::size_t(slice));
 
       buffer_remaining -= arglen;
       if(buffer_remaining > 0)

@@ -26,7 +26,7 @@ public:
 
   ~sharedmem_t(void)
   {
-    std::fclose(m_rofile);
+    posix::fclose(m_rofile);
     ::shmctl(m_shm_id, IPC_RMID, NULL);
   }
 

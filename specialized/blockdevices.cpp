@@ -82,25 +82,25 @@ namespace blockdevices
     while((count = posix::getline(&line, &size, file)) != posix::error_response)
     {
       char* pos = line;
-      if(!std::isspace(*pos)) // if line doesn't start with a space then it's not an entry!
+      if(!posix::isspace(*pos)) // if line doesn't start with a space then it's not an entry!
         continue;
 
-      while(*pos && std::isspace(*pos))
+      while(*pos && posix::isspace(*pos))
         ++pos;
-      while(*pos && std::isdigit(*pos))
-        ++pos;
-
-      while(*pos && std::isspace(*pos))
-        ++pos;
-      while(*pos && std::isdigit(*pos))
+      while(*pos && posix::isdigit(*pos))
         ++pos;
 
-      while(*pos && std::isspace(*pos))
+      while(*pos && posix::isspace(*pos))
         ++pos;
-      while(*pos && std::isdigit(*pos))
+      while(*pos && posix::isdigit(*pos))
         ++pos;
 
-      while(*pos && std::isspace(*pos))
+      while(*pos && posix::isspace(*pos))
+        ++pos;
+      while(*pos && posix::isdigit(*pos))
+        ++pos;
+
+      while(*pos && posix::isspace(*pos))
         ++pos;
 
       if(!*pos) // if at end of line, skip
@@ -111,7 +111,7 @@ namespace blockdevices
       posix::strncpy(dev.path, devfs_path, sizeof(blockdevice_t::path) - sizeof("/"));
       posix::strcat(dev.path, "/");
       for(char* field = dev.path + posix::strlen(dev.path);
-          *pos && pos < dev.path + sizeof(blockdevice_t::path) && std::isgraph(*pos);
+          *pos && pos < dev.path + sizeof(blockdevice_t::path) && posix::isgraph(*pos);
           ++pos, ++field)
         *field = *pos;
       {

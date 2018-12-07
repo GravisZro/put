@@ -1,8 +1,5 @@
 #include "fstable.h"
 
-// POSIX
-#include <ctype.h>
-
 // PUT
 #include <specialized/osdetect.h>
 #include <cxxutils/posix_helpers.h>
@@ -106,12 +103,11 @@ bool parse_table(std::list<struct fsentry_t>& table, const char* filename) noexc
 
 #elif defined(__solaris__)  /* Solaris  */
 # include <sys/vfstab.h>
-# include <ctype.h>
 
 int decode_pass(const char* pass)
 {
   if(pass[1] != '\0' || // too long OR
-     std::isdigit(pass[0]) == 0) // not a digit
+     posix::isdigit(pass[0]) == 0) // not a digit
     return 0;
   return pass[0] - '0'; // get value
 }
@@ -181,7 +177,7 @@ bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
 
 static char* skip_spaces(char* data) noexcept
 {
-  while(*data && std::isspace(*data))
+  while(*data && posix::isspace(*data))
     ++data;
   return data;
 }
@@ -235,14 +231,14 @@ bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
 
     entry.dump_frequency = *pos;
     ++pos;
-    if(!std::isspace(*pos))
+    if(!posix::isspace(*pos))
       continue;
 
     pos = skip_spaces(pos);
 
     entry.pass = *pos;
 
-    if(std::isgraph(entry.pass))
+    if(posix::isgraph(entry.pass))
       table.push_back(entry);
   }
   posix::free(line);
