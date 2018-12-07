@@ -9,7 +9,7 @@
 #include <cxxutils/vterm.h>
 #include <specialized/proclist.h>
 
-int main(int argc, char* argv[])
+int main(int, char* [])
 {
   std::set<pid_t> everypid;
 
@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
   size_t match_count = 0;
   while(posix::read(stdout_pipe[Read], pid_str, 6) > 0)
   {
-    pid = std::atoi(pid_str);
+    pid = posix::atoi(pid_str);
     if(pid != pspid) // ignore ps command PID
     {
       flaw(std::find(everypid.begin(), everypid.end(), pid) == everypid.end(),
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
   }
   flaw(!everypid.empty(),
        terminal::critical, for(pid_t onepid : everypid){ posix::fprintf(stderr,"extra pid: %d\n", onepid); },EXIT_FAILURE,
-       "PID count didn't match:\nextra pid count: %d\npids matched: %d", everypid.size(), match_count);
+       "PID count didn't match:\nextra pid count: %ld\npids matched: %ld", everypid.size(), match_count);
 
   posix::printf("Found %li PIDs\nTEST PASSED!\n", match_count);
   return EXIT_SUCCESS;

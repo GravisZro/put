@@ -16,7 +16,7 @@ T decode(const char* start, const char* end)
   bool neg = *start == '-';
   if(neg)
     ++start;
-  for(const char* pos = start; pos != end && std::isdigit(*pos); ++pos)
+  for(const char* pos = start; pos != end && posix::isdigit(*pos); ++pos)
   {
     value *= base;
     value += *pos - '0';
@@ -51,7 +51,7 @@ void file_cleanup(void)
 
 #include <linux/fs.h>
 
-int main(int argc, char* argv[])
+int main(int, char* [])
 {
   posix::atexit(file_cleanup);
   const char* lsblk_command  = "lsblk -b -n -l -o NAME,LOG-SEC,SIZE > lsblkoutput";

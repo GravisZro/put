@@ -1,11 +1,8 @@
-// POSIX++
-#include <assert.h>
-
 // Realtime POSIX
 #include <spawn.h>
 
 // POSIX
-#include <unistd.h>
+#include <assert.h>
 #include <inttypes.h> // for fscanf macros
 
 // STL
@@ -32,7 +29,7 @@ T decode(const char* start, const char* end)
   bool neg = *start == '-';
   if(neg)
     ++start;
-  for(const char* pos = start; pos != end && std::isdigit(*pos); ++pos)
+  for(const char* pos = start; pos != end && posix::isdigit(*pos); ++pos)
   {
     value *= base;
     value += *pos - '0';
@@ -76,7 +73,7 @@ void proc_test_split_arguments(std::vector<std::string>& argvector, const char* 
       else
         str.push_back(*pos);
     }
-    else if(std::isspace(*pos))
+    else if(posix::isspace(*pos))
     {
       if(!str.empty())
       {
@@ -84,7 +81,7 @@ void proc_test_split_arguments(std::vector<std::string>& argvector, const char* 
         str.clear();
       }
     }
-    else if(std::isgraph(*pos))
+    else if(posix::isgraph(*pos))
       str.push_back(*pos);
   }
   if(!str.empty())
@@ -112,7 +109,7 @@ void file_cleanup(void)
   assert(!system("rm psoutput sedoutput"));
 }
 
-int main(int argc, char* argv[])
+int main(int, char* [])
 {
 #if defined(PROCFS_DEBUG)
   posix::printf("procfs checking enabled\n");
@@ -538,8 +535,8 @@ int main(int argc, char* argv[])
 
       copy_field(line_buffer, pos, nextline);
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.process_id = decode<pid_t, 10>(pos, next);
 
@@ -555,91 +552,91 @@ int main(int argc, char* argv[])
       if(!ps_state.process_id)
         posix::printf("failed to read PID! '%s'\nline: '%s'\n", field_buffer, line_buffer);
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.parent_process_id = decode<pid_t, 10>(pos, next);
       if(!ps_state.parent_process_id && pos[0] != '0' && pos+1 != next)
         posix::printf("failed (PID: %i) to decode parent PID! '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.process_group_id = decode<pid_t, 10>(pos, next);
       if(!ps_state.process_group_id && pos[0] != '0' && pos+1 != next)
         posix::printf("failed (PID: %i) to decode process GID! '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.effective_user_id = posix::getuserid(field_buffer);
       if(ps_state.effective_user_id == uid_t(posix::error_response))
         posix::printf("failed (PID: %i) to find effective user id for: '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.effective_group_id = posix::getgroupid(field_buffer);
       if(ps_state.effective_group_id == uid_t(posix::error_response))
         posix::printf("failed (PID: %i) to find effective group id for: '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.real_user_id = posix::getuserid(field_buffer);
       if(ps_state.real_user_id == uid_t(posix::error_response))
         posix::printf("failed (PID: %i) to find real user id for: '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.real_group_id = posix::getgroupid(field_buffer);
       if(ps_state.real_group_id == uid_t(posix::error_response))
         posix::printf("failed (PID: %i) to find real group id for: '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
 //    tty_id,
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
 //    percent_cpu,
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.memory_size.rss = decode<segsz_t, 10>(pos, next);
       if(!ps_state.memory_size.rss && pos[0] != '0' && pos+1 != next)
         posix::printf("failed (PID: %i) to decode memory RSS! '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.nice_value = decode<int8_t, 10>(pos, next);
       if((!ps_state.nice_value && pos[0] != '0' && pos+1 != next) ||
          ps_state.nice_value > 20 || ps_state.nice_value < -20)
         posix::printf("failed (PID: %i) to decode nice value! '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
 //    time,
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
 //    etime,
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
-      for(next = pos;!std::isspace(*next) && next != nextline;++next);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
+      for(next = pos;!posix::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.name = field_buffer;
 
-      for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
+      for(pos = next; posix::isspace(*pos ) && pos  != nextline; ++pos);
       copy_field(field_buffer, pos, nextline);
       proc_test_split_arguments(ps_state.arguments, field_buffer);
 
