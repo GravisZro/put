@@ -70,7 +70,7 @@ struct ProcessEvent::platform_dependant // process notification (process events 
     permitted = posix::bind(fd, reinterpret_cast<struct sockaddr *>(&sa_nl), sizeof(sa_nl));
     if(!permitted)
     {
-      flaw(errno != std::errc::permission_denied,
+      flaw(errno != std::errc::operation_not_permitted,
            terminal::warning,,,
            "Unable to bind socket for Process Events Connector: %s", std::strerror(errno))
     }
