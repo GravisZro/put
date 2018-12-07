@@ -6,6 +6,11 @@
 #include <cxxutils/vterm.h>
 #include <cxxutils/misc_helpers.h>
 #include <specialized/blockinfo.h>
+#include <specialized/osdetect.h>
+
+#if defined(__linux__)
+#include <linux/fs.h>
+#endif
 
 
 template<typename T, int base>
@@ -49,10 +54,13 @@ void file_cleanup(void)
   assert(!system("rm lsblkoutput sedoutput"));
 }
 
-#include <linux/fs.h>
-
 int main(int, char* [])
 {
+#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,0) /* Linux 2.6.0+ */
+  posix::printf("TEST NOT SUPPORTED!\n");
+  return 0;
+#else
+
   posix::atexit(file_cleanup);
   const char* lsblk_command  = "lsblk -b -n -l -o NAME,LOG-SEC,SIZE > lsblkoutput";
 
@@ -116,4 +124,5 @@ int main(int, char* [])
   posix::printf("TEST PASSED!\n");
 
   return 0;
+#endif
 }
