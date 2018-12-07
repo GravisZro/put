@@ -24,8 +24,16 @@ constexpr bool operator ==(std::errc err, T err_num) noexcept
   { return *reinterpret_cast<T*>(&err) == err_num; }
 
 template<typename T>
+constexpr bool operator !=(std::errc err, T err_num) noexcept
+  { return *reinterpret_cast<T*>(&err) != err_num; }
+
+template<typename T>
 constexpr bool operator ==(T err_num, std::errc err) noexcept
   { return T(err) == err_num; }
+
+template<typename T>
+constexpr bool operator !=(T err_num, std::errc err) noexcept
+  { return T(err) != err_num; }
 
 namespace posix
 {
