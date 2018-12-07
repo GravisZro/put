@@ -6,7 +6,9 @@
 #if defined(__linux__) /* Linux */
 # include <linux/fs.h>
 # include <sys/sysmacros.h>
-#elif defined(BSD) || defined(__darwin__) /* *BSD/Darwin */
+#elif defined(__darwin__) /* Darwin */
+# include <sys/disk.h>
+#elif defined(BSD) /* *BSD/ */
 # include <sys/disklabel.h>
 # include <sys/disk.h>
 #endif
