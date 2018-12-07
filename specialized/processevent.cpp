@@ -45,6 +45,7 @@ struct ProcessEvent::platform_dependant // process notification (process events 
     Write = 1,
   };
 
+  bool permitted;
   posix::fd_t fd;
   struct eventinfo_t
   {
@@ -66,42 +67,49 @@ struct ProcessEvent::platform_dependant // process notification (process events 
     sa_nl.nl_groups = CN_IDX_PROC;
     sa_nl.nl_pid = uint32_t(getpid());
 
-    flaw(!posix::bind(fd, reinterpret_cast<struct sockaddr *>(&sa_nl), sizeof(sa_nl)),
-         terminal::warning,,,
-         "Process Events Connector requires root level access: %s", std::strerror(errno));
-
-#pragma pack(push, 1)
-    struct alignas(NLMSG_ALIGNTO) procconn_t // 32-bit alignment
+    permitted = posix::bind(fd, reinterpret_cast<struct sockaddr *>(&sa_nl), sizeof(sa_nl));
+    if(!permitted)
     {
-      nlmsghdr header; // 16 bytes
-      cn_msg message;
-      proc_cn_mcast_op operation;
-    } procconn;
+      flaw(errno != std::errc::permission_denied,
+           terminal::warning,,,
+           "Unable to bind socket for Process Events Connector: %s", std::strerror(errno))
+    }
+    else
+    {
+#pragma pack(push, 1)
+      struct alignas(NLMSG_ALIGNTO) procconn_t // 32-bit alignment
+      {
+        nlmsghdr header; // 16 bytes
+        cn_msg message;
+        proc_cn_mcast_op operation;
+      } procconn;
 #pragma pack(pop)
-    static_assert(sizeof(nlmsghdr) + sizeof(cn_msg) + sizeof(proc_cn_mcast_op) == sizeof(procconn_t), "compiler needs to pack struct");
+      static_assert(sizeof(nlmsghdr) + sizeof(cn_msg) + sizeof(proc_cn_mcast_op) == sizeof(procconn_t), "compiler needs to pack struct");
 
-    std::memset(&procconn, 0, sizeof(procconn));
-    procconn.header.nlmsg_len = sizeof(procconn);
-    procconn.header.nlmsg_pid = uint32_t(getpid());
-    procconn.header.nlmsg_type = NLMSG_DONE;
-    procconn.message.id.idx = CN_IDX_PROC;
-    procconn.message.id.val = CN_VAL_PROC;
-    procconn.message.len = sizeof(proc_cn_mcast_op);
-    procconn.operation = PROC_CN_MCAST_LISTEN;
+      std::memset(&procconn, 0, sizeof(procconn));
+      procconn.header.nlmsg_len = sizeof(procconn);
+      procconn.header.nlmsg_pid = uint32_t(getpid());
+      procconn.header.nlmsg_type = NLMSG_DONE;
+      procconn.message.id.idx = CN_IDX_PROC;
+      procconn.message.id.val = CN_VAL_PROC;
+      procconn.message.len = sizeof(proc_cn_mcast_op);
+      procconn.operation = PROC_CN_MCAST_LISTEN;
 
-    flaw(posix::send(fd, &procconn, sizeof(procconn)) == posix::error_response,
-         terminal::warning,,,
-         "Failed to enable Process Events Connector notifications: %s", std::strerror(errno));
+      flaw(posix::send(fd, &procconn, sizeof(procconn)) == posix::error_response,
+           terminal::warning,,,
+           "Failed to enable Process Events Connector notifications: %s", std::strerror(errno));
 
-    EventBackend::add(fd, EventBackend::SimplePollReadFlags,
-                      [this](posix::fd_t lambda_fd, native_flags_t) noexcept { read(lambda_fd); });
+      EventBackend::add(fd, EventBackend::SimplePollReadFlags,
+                        [this](posix::fd_t lambda_fd, native_flags_t) noexcept { read(lambda_fd); });
 
-    std::fprintf(stderr, "%s%s\n", terminal::information, "Process Events Connector active");
+      std::fprintf(stderr, "%s%s\n", terminal::information, "Process Events Connector active");
+    }
   }
 
   ~platform_dependant(void) noexcept
   {
-    EventBackend::remove(fd, EventBackend::SimplePollReadFlags);
+    if(permitted)
+      EventBackend::remove(fd, EventBackend::SimplePollReadFlags);
     posix::close(fd);
     fd = posix::invalid_descriptor;
   }
@@ -110,7 +118,7 @@ struct ProcessEvent::platform_dependant // process notification (process events 
   {
     eventinfo_t data;
     data.flags = flags;
-    if(!posix::pipe(data.fd))
+    if(!permitted || !posix::pipe(data.fd))
       return posix::invalid_descriptor;
 
     posix::fcntl(data.fd[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
@@ -118,7 +126,7 @@ struct ProcessEvent::platform_dependant // process notification (process events 
 
     auto iter = events.emplace(pid, data);
 
-    // add filter installation code here
+    // add Berkeley Packet Filter installation code here
 
     return data.fd[Read];
   }
@@ -126,10 +134,10 @@ struct ProcessEvent::platform_dependant // process notification (process events 
   bool remove(pid_t pid) noexcept
   {
     auto iter = events.find(pid);
-    if(iter == events.end())
+    if(!permitted || iter == events.end())
       return false;
 
-    // add filter removal code here
+    // add Berkeley Packet Filter removal code here
 
     posix::close(iter->second.fd[Read]);
     posix::close(iter->second.fd[Write]);
@@ -164,43 +172,46 @@ ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
   : m_pid(_pid), m_flags(_flags), m_fd(posix::invalid_descriptor)
 {
   m_fd = s_platform.add(m_pid, m_flags); // add PID to monitor and return communications pipe
-
-  EventBackend::add(m_fd, EventBackend::SimplePollReadFlags, // connect communications pipe to a lambda function
-                    [this](posix::fd_t lambda_fd, native_flags_t) noexcept
-                    {
-                      proc_event data;
-                      pollfd fds = { lambda_fd, POLLIN, 0 };
-                      while(posix::poll(&fds, 1, 0) > 0 && // while there is another event to be read
-                            posix::read(lambda_fd, &data, sizeof(data)) > 0) // read the event
-                        switch(from_native_flags(data.what)) // find the type of event
-                        {
-                          case Flags::Exec: // queue exec signal with PID
-                            Object::enqueue(execed,
-                                            data.event_data.exec.process_pid);
-                            break;
-                          case Flags::Exit: // queue exit signal with PID and exit code
-                            if(data.event_data.exit.exit_signal) // if killed by a signal
-                              Object::enqueue(killed,
-                                              data.event_data.exit.process_pid,
-                                              *reinterpret_cast<posix::signal::EId*>(&data.event_data.exit.exit_signal));
-                            else // else exited by itself
-                              Object::enqueue(exited,
-                                              data.event_data.exit.process_pid,
-                                              *reinterpret_cast<posix::error_t*>(&data.event_data.exit.exit_code));
-                            break;
-                          case Flags::Fork: // queue fork signal with PID and child PID
-                            Object::enqueue(forked,
-                                            data.event_data.fork.parent_pid,
-                                            data.event_data.fork.child_pid);
-                            break;
-                        }
-                    });
+  if(m_fd != posix::invalid_descriptor)
+    EventBackend::add(m_fd, EventBackend::SimplePollReadFlags, // connect communications pipe to a lambda function
+                      [this](posix::fd_t lambda_fd, native_flags_t) noexcept
+                      {
+                        proc_event data;
+                        pollfd fds = { lambda_fd, POLLIN, 0 };
+                        while(posix::poll(&fds, 1, 0) > 0 && // while there is another event to be read
+                              posix::read(lambda_fd, &data, sizeof(data)) > 0) // read the event
+                          switch(from_native_flags(data.what)) // find the type of event
+                          {
+                            case Flags::Exec: // queue exec signal with PID
+                              Object::enqueue(execed,
+                                              data.event_data.exec.process_pid);
+                              break;
+                            case Flags::Exit: // queue exit signal with PID and exit code
+                              if(data.event_data.exit.exit_signal) // if killed by a signal
+                                Object::enqueue(killed,
+                                                data.event_data.exit.process_pid,
+                                                *reinterpret_cast<posix::signal::EId*>(&data.event_data.exit.exit_signal));
+                              else // else exited by itself
+                                Object::enqueue(exited,
+                                                data.event_data.exit.process_pid,
+                                                *reinterpret_cast<posix::error_t*>(&data.event_data.exit.exit_code));
+                              break;
+                            case Flags::Fork: // queue fork signal with PID and child PID
+                              Object::enqueue(forked,
+                                              data.event_data.fork.parent_pid,
+                                              data.event_data.fork.child_pid);
+                              break;
+                          }
+                      });
 }
 
 ProcessEvent::~ProcessEvent(void) noexcept
 {
-  EventBackend::remove(m_fd, EventBackend::SimplePollReadFlags);
-  s_platform.remove(m_pid);
+  if(m_fd != posix::invalid_descriptor)
+  {
+    EventBackend::remove(m_fd, EventBackend::SimplePollReadFlags);
+    s_platform.remove(m_pid);
+  }
 }
 
 #elif defined(__darwin__)     /* Darwin 7+     */ || \
