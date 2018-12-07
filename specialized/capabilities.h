@@ -8,10 +8,10 @@
 #if defined(POSIX_DRAFT_1E) && !defined(CAPABILITIES_H)
 #define CAPABILITIES_H
 
-// POSIX++
-#include <cstdio>
-#include <cstring>
-#include <cerrno>
+// POSIX
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
 // Non-POSIX
 #include <sys/capability.h>
@@ -135,11 +135,11 @@ struct capability_data_t
       permitted  (data + CAP_PERMITTED),
       inheritable(data + CAP_INHERITABLE)
   {
-    std::memset(data, 0, sizeof(data)); // zero out memory
+    posix::memset(data, 0, sizeof(data)); // zero out memory
     head.version = CAPABILITY_VERSION; // set version number
     head.pid = 0;
     if(::capget(*this, NULL)) // load the kernel-capability version???
-      std::fprintf(stderr, "failed to init: %s\n", std::strerror(errno));
+      posix::fprintf(stderr, "failed to init: %s\n", posix::strerror(errno));
   }
 };
 

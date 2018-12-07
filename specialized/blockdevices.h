@@ -1,9 +1,7 @@
 #ifndef BLOCKDEVICE_H
 #define BLOCKDEVICE_H
 
-#include <cstdint>
-#include <cstring>
-#include <climits>
+#include <cxxutils/posix_helpers.h>
 
 struct blockdevice_t
 {
@@ -15,8 +13,8 @@ struct blockdevice_t
   uint64_t block_count;
   bool     clean;
 
-  blockdevice_t(void) noexcept { std::memset(this, 0, sizeof(blockdevice_t)); }
-  blockdevice_t(blockdevice_t& other) noexcept { std::memcpy(this, &other, sizeof(blockdevice_t)); }
+  blockdevice_t(void) noexcept { posix::memset(this, 0, sizeof(blockdevice_t)); }
+  blockdevice_t(blockdevice_t& other) noexcept { posix::memcpy(this, &other, sizeof(blockdevice_t)); }
 };
 
 namespace blockdevices

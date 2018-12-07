@@ -1,7 +1,6 @@
 #include "syslogstream.h"
 
-#include <cstring>
-#include <cassert>
+#include <assert.h>
 
 ErrorMessageStream::ErrorMessageStream(void) noexcept { purge_buffer(); }
 
@@ -12,34 +11,34 @@ ErrorMessageStream& ErrorMessageStream::operator << (const char* arg) noexcept
                                     'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
                                     'U', 'V', 'W', 'X', 'Y', 'Z' };
   if(!m_argId)
-    std::strncpy(m_buffer, arg, sizeof(m_buffer));
+    posix::strncpy(m_buffer, arg, sizeof(m_buffer));
   else if(m_argId > 0 && size_t(m_argId) < sizeof(lookup_table))
   {
 
     ssize_t buffer_remaining = sizeof(m_tmpbuf);
-    const size_t arglen = std::strlen(arg);
-    std::memset(m_tmpbuf, 0, sizeof(m_tmpbuf));
+    const size_t arglen = posix::strlen(arg);
+    posix::memset(m_tmpbuf, 0, sizeof(m_tmpbuf));
 
     char seach_token[3] = { '%', '0', '\0' };
     seach_token[1] = lookup_table[m_argId];
 
     char* lastpos = m_buffer;
     for(char* pos = nullptr;
-        (pos = std::strstr(lastpos, seach_token)) != NULL;
+        (pos = posix::strstr(lastpos, seach_token)) != NULL;
         lastpos = pos + 2)
     {
       ssize_t slice = pos - lastpos;
       buffer_remaining -= slice;
       if(buffer_remaining > 0)
-        std::strncat(m_tmpbuf, lastpos, std::size_t(slice));
+        posix::strncat(m_tmpbuf, lastpos, std::size_t(slice));
 
       buffer_remaining -= arglen;
       if(buffer_remaining > 0)
-        std::strncat(m_tmpbuf, arg, arglen);
+        posix::strncat(m_tmpbuf, arg, arglen);
     }
     if(buffer_remaining > 0)
-      std::strncat(m_tmpbuf, lastpos, size_t(buffer_remaining));
-    std::strncpy(m_buffer, m_tmpbuf, sizeof(m_buffer));
+      posix::strncat(m_tmpbuf, lastpos, size_t(buffer_remaining));
+    posix::strncpy(m_buffer, m_tmpbuf, sizeof(m_buffer));
   }
 
   ++m_argId;
@@ -59,7 +58,7 @@ ErrorLogStream::ErrorLogStream(void) noexcept { }
 
 inline void ErrorMessageStream::purge_buffer(void) noexcept
 {
-  std::memset(m_buffer, 0, sizeof(m_buffer));
+  posix::memset(m_buffer, 0, sizeof(m_buffer));
   m_argId = 0;
 }
 

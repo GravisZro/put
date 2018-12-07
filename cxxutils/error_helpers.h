@@ -1,9 +1,9 @@
 #ifndef ERROR_HELPERS_H
 #define ERROR_HELPERS_H
 
-// POSIX++
-#include <cerrno>
-#include <cstdio>
+// POSIX
+#include <errno.h>
+#include <stdio.h>
 
 // STL
 #include <system_error>
@@ -12,9 +12,9 @@
 #define flaw(condition, msg_prefix, exec, rvalue, ...) \
   if(condition) \
   { \
-    std::fprintf(stderr, msg_prefix); \
-    std::fprintf(stderr, ##__VA_ARGS__); \
-    std::fprintf(stderr, "\n"); \
+    posix::fprintf(stderr, msg_prefix); \
+    posix::fprintf(stderr, ##__VA_ARGS__); \
+    posix::fprintf(stderr, "\n"); \
     exec; \
     return rvalue; \
   }

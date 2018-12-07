@@ -20,9 +20,6 @@ std::list<std::pair<posix::fd_t, native_flags_t>> EventBackend::results;
 // Linux
 # include <sys/epoll.h>
 
-// POSIX++
-# include <cstdlib>
-
 struct EventBackend::platform_dependant // poll notification (epoll)
 {
   posix::fd_t fd;
@@ -34,8 +31,8 @@ struct EventBackend::platform_dependant // poll notification (epoll)
     fd = ::epoll_create(1);
     flaw(fd == posix::invalid_descriptor,
          terminal::critical,
-         std::exit(errno),,
-         "Unable to create an instance of epoll! %s", std::strerror(errno));
+         posix::exit(errno),,
+         "Unable to create an instance of epoll! %s", posix::strerror(errno));
     posix::fcntl(fd, F_SETFD, FD_CLOEXEC); // close on exec*()
   }
 
@@ -87,9 +84,6 @@ bool EventBackend::poll(milliseconds_t timeout) noexcept
 # include <sys/time.h>
 # include <sys/event.h>
 
-// POSIX++
-# include <cstdlib>
-
 // POSIX
 # include <sys/socket.h>
 
@@ -121,8 +115,8 @@ struct EventBackend::platform_dependant // poll notification (kqueue)
     kq = posix::ignore_interruption(::kqueue);
     flaw(kq == posix::error_response,
          terminal::critical,
-         std::exit(errno),,
-         "Unable to create a new kqueue: %s", std::strerror(errno))
+         posix::exit(errno),,
+         "Unable to create a new kqueue: %s", posix::strerror(errno))
     posix::fcntl(kq, F_SETFD, FD_CLOEXEC); // close on exec*()
     koutput.resize(MAX_EVENTS);
   }
@@ -193,8 +187,8 @@ struct EventBackend::platform_dependant
     port = ::port_create();
     flaw(port == posix::error_response,
          terminal::critical,
-         std::exit(errno),,
-         "Unable to create a new poll port: %s", std::strerror(errno))
+         posix::exit(errno),,
+         "Unable to create a new poll port: %s", posix::strerror(errno))
    pinput .reserve(1024);
    poutput.reserve(1024);
    posix::fcntl(port, F_SETFD, FD_CLOEXEC); // close on exec*()

@@ -41,7 +41,7 @@ namespace tui
   {
     assert(posix::donotblock(STDIN_FILENO));
     assert(tcgetattr(STDIN_FILENO, &m_original) == posix::success_response); // get current terminal settings
-    std::memcpy(&m_terminal, &m_original, sizeof(termios));
+    posix::memcpy(&m_terminal, &m_original, sizeof(termios));
     m_terminal.c_lflag &= tcflag_t(~ICANON); // disable the canonical mode (waits for Enter key)
     m_terminal.c_lflag &= tcflag_t(~ECHO); // disable ECHO
     assert(tcsetattr(STDIN_FILENO, TCSANOW, &m_terminal) == posix::success_response); // apply settings    

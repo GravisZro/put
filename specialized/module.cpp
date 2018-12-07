@@ -143,7 +143,7 @@ bool unload_module(const std::string& name) noexcept
 template<class T> constexpr T min(T a, T b) { return (a < b) ? a : b; }
 
 constexpr posix::size_t section_length(const char* start, const char* end, posix::size_t max)
-  { return min<posix::size_t>((end == nullptr ? std::strlen(start) : end - start - 1), max); }
+  { return min<posix::size_t>((end == nullptr ? posix::strlen(start) : end - start - 1), max); }
 
 bool load_module(const std::string& filename, const std::string& module_arguments) noexcept
 {
@@ -158,13 +158,13 @@ bool load_module(const std::string& filename, const std::string& module_argument
     const char* next = tok.next("= ");
     while(next != nullptr && *next == '=') // if NOT at end AND found '=' instead of ' '
     {
-      std::memset(key  , 0, sizeof(key  )); // clear key
-      std::memset(value, 0, sizeof(value)); // clear value
-      std::memcpy(key, next, section_length(pos, next, KENV_MNAMELEN)); // copy key
+      posix::memset(key  , 0, sizeof(key  )); // clear key
+      posix::memset(value, 0, sizeof(value)); // clear value
+      posix::memcpy(key, next, section_length(pos, next, KENV_MNAMELEN)); // copy key
       pos = next;
       next = tok.next(' '); // find next ' '
-      std::memcpy(value, pos, section_length(pos, next, KENV_MVALLEN)); // copy value
-      kenv(KENV_SET, key, value, std::strlen(value) + 1); // set key/value pair
+      posix::memcpy(value, pos, section_length(pos, next, KENV_MVALLEN)); // copy value
+      kenv(KENV_SET, key, value, posix::strlen(value) + 1); // set key/value pair
     }
     if(next == nullptr || *next != ' ')
       return true;

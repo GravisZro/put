@@ -6,13 +6,8 @@
 // STL
 #include <string>
 
-// POSIX++
-#include <cstdint>
-#include <cstring>
-
 // PUT
 #include <cxxutils/posix_helpers.h>
-
 
 // CRC32 Table (zlib polynomial)
 static constexpr uint32_t crc_table[256] = {
@@ -93,7 +88,7 @@ static inline uint32_t crc32_runtime(const char* str, posix::size_t idx) noexcep
 }
 
 static inline uint32_t hash(const char* str, const posix::size_t sz) noexcept { return crc32_runtime(str, sz) ^ UINT32_MAX; }
-static inline uint32_t hash(const char* str) noexcept { return hash(str, std::strlen(str)); }
+static inline uint32_t hash(const char* str) noexcept { return hash(str, posix::strlen(str)); }
 static inline uint32_t hash(const std::string& str) noexcept { return crc32_runtime(str.data(), str.size() - 1) ^ UINT32_MAX; }
 
 #endif // HASHING_H

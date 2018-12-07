@@ -14,26 +14,26 @@ void exiting(void)
 void printKey(uint8_t key)
 {
   if(key > 0x20 && key < 0x7F)
-    printf(" %c ", key);
+    posix::printf(" %c ", key);
   else if (key)
-    printf(" %02x", key);
+    posix::printf(" %02x", key);
 }
 
 void keyOutput(uint64_t key) noexcept
 {
-  printf("key: %016lx -", key);
+  posix::printf("key: %016lx -", key);
 
   for(int i = 0; i < 8; ++i)
     printKey(reinterpret_cast<uint8_t*>(&key)[i]);
-  printf("\n");
+  posix::printf("\n");
 }
 
 int main(int argc, char* argv[])
 {
   Application app;
-  std::atexit(exiting);
-  std::signal(SIGPIPE, SIG_IGN);
-  std::signal(SIGINT, [](int){ Application::quit(0); });
+  posix::atexit(exiting);
+  posix::signal(SIGPIPE, SIG_IGN);
+  posix::signal(SIGINT, [](int){ Application::quit(0); });
 
   tui::Keyboard kb;
   Object::connect(kb.keyPressed, keyOutput);

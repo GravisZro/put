@@ -2,9 +2,7 @@
 #define VQUEUE_H
 
 // POSIX++
-#include <cstdint>
-#include <cstring>
-#include <cwchar>
+#include <wchar.h>
 
 // STL
 #include <vector>
@@ -228,7 +226,7 @@ private:
 
 // string literals
   void serialize(const char* arg) noexcept
-    { serialize_arr(arg, uint16_t(std::strlen(arg))); }
+    { serialize_arr(arg, uint16_t(posix::strlen(arg))); }
 
   void serialize(const wchar_t* arg) noexcept
     { serialize_arr(arg, uint16_t(std::wcslen(arg))); }

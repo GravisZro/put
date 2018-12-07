@@ -13,7 +13,7 @@ namespace tui
     if(count == posix::error_response)
       return posix::error_response;
 
-    if (std::sscanf(buffer, CSI "%hu;%huR", &row, &column) != 2)
+    if (posix::sscanf(buffer, CSI "%hu;%huR", &row, &column) != 2)
       return posix::error(EINVAL);
 
     return true;

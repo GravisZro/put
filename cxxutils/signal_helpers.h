@@ -2,7 +2,7 @@
 #define SIGNAL_HELPERS_H
 
 // POSIX++
-#include <csignal>
+#include <signal.h>
 
 // PUT
 #include "error_helpers.h"
@@ -34,7 +34,7 @@ namespace posix
     RType rval = error_response;
     do {
       rval = func(args...);
-    } while(rval == error_response && errno == std::errc::interrupted);
+    } while(error_t(rval) == error_response && errno == std::errc::interrupted);
     return rval;
   }
 

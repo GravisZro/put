@@ -45,9 +45,9 @@ bool TimerEvent::start(milliseconds_t delay, bool repeat) noexcept
   interval_spec.it_value.tv_nsec = (delay % 1000) * 1000000;
 
   if(repeat)
-    std::memcpy(&interval_spec.it_interval, &interval_spec.it_value, sizeof(struct timespec));
+    posix::memcpy(&interval_spec.it_interval, &interval_spec.it_value, sizeof(struct timespec));
   else
-    std::memset(&interval_spec.it_interval, 0, sizeof(struct timespec));
+    posix::memset(&interval_spec.it_interval, 0, sizeof(struct timespec));
 
   return ::timerfd_settime(m_fd, TFD_TIMER_ABSTIME, &interval_spec, NULL) == posix::success_response;
 }
@@ -161,8 +161,8 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
 
     flaw(::sigaction(SIGTIMERQUEUE, &actions, nullptr) == posix::error_response,
          terminal::critical,
-         std::exit(errno),,
-         "Unable assign action to a signal: %s", std::strerror(errno))
+         posix::exit(errno),,
+         "Unable assign action to a signal: %s", posix::strerror(errno))
   }
 
   static void handler(int, siginfo_t* info, void*) noexcept
@@ -170,8 +170,8 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
     static const uint8_t dummydata = 0; // dummy content
     flaw(posix::write(info->si_value.sival_int, &dummydata, 1) != 1,
          terminal::critical,
-         std::exit(errno),, // triggers execution stepper FD
-         "Unable to trigger TimerEvent: %s", std::strerror(errno))
+         posix::exit(errno),, // triggers execution stepper FD
+         "Unable to trigger TimerEvent: %s", posix::strerror(errno))
   }
 
   posix::fd_t add(void) noexcept
@@ -210,9 +210,9 @@ struct TimerEvent::platform_dependant // timer notification (POSIX)
       interval_spec.it_value.tv_nsec = (delay % 1000) * 1000000;
 
       if(repeat)
-        std::memcpy(&interval_spec.it_interval, &interval_spec.it_value, sizeof(struct timespec));
+        posix::memcpy(&interval_spec.it_interval, &interval_spec.it_value, sizeof(struct timespec));
       else
-        std::memset(&interval_spec.it_interval, 0, sizeof(struct timespec));
+        posix::memset(&interval_spec.it_interval, 0, sizeof(struct timespec));
 
       return ::timer_settime(data.timer, 0, &interval_spec, NULL) == posix::success_response;
     }

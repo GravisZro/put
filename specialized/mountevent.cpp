@@ -50,14 +50,13 @@ MountEvent::MountEvent(void) noexcept
         };
 
 #if defined(PROC_MOUNTS_FLAGS) /* Linux 2.6.30+ */
-    char proc_mounts[PATH_MAX] = { 0 };
-    if(procfs_path == nullptr &&
-      !reinitialize_paths())
-      return;
-    std::sscanf(proc_mounts, "%s/mounts", procfs_path);
-
-    m_fd = posix::open(proc_mounts, O_RDONLY | O_NONBLOCK);
-    EventBackend::add(m_fd, PROC_MOUNTS_FLAGS, comparison_func); // connect FD with flags to comparison_func
+    if(procfs_path != nullptr) // safety check
+    {
+      char proc_mounts[PATH_MAX] = { 0 };
+      posix::sscanf(proc_mounts, "%s/mounts", procfs_path);
+      m_fd = posix::open(proc_mounts, O_RDONLY | O_NONBLOCK);
+      EventBackend::add(m_fd, PROC_MOUNTS_FLAGS, comparison_func); // connect FD with flags to comparison_func
+    }
 #elif defined(__unix__)   /* Generic UNIX */
     m_timer = new TimerEvent();
     m_timer->start(seconds(10), true); // once per 10 seconds

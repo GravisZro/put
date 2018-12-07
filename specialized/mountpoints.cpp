@@ -19,7 +19,7 @@ inline void assign_data(char*& target, const char* str) noexcept
     ::free(target);
   size_t length = ::strnlen(str, PATH_MAX) + 1;
   target = static_cast<char*>(::malloc(length));
-  std::strncpy(target, str, length);
+  posix::strncpy(target, str, length);
 }
 
 bool reinitialize_paths(void) noexcept

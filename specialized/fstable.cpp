@@ -27,10 +27,10 @@ fsentry_t::fsentry_t(const char* _device,
                      const int _pass) noexcept
   : fsentry_t()
 {
-  if(device      != NULL) { std::strncpy(device     , _device     , PATH_MAX); }
-  if(path        != NULL) { std::strncpy(path       , _path       , PATH_MAX); }
-  if(filesystems != NULL) { std::strncpy(filesystems, _filesystems, PATH_MAX); }
-  if(options     != NULL) { std::strncpy(options    , _options    , PATH_MAX); }
+  if(device      != NULL) { posix::strncpy(device     , _device     , PATH_MAX); }
+  if(path        != NULL) { posix::strncpy(path       , _path       , PATH_MAX); }
+  if(filesystems != NULL) { posix::strncpy(filesystems, _filesystems, PATH_MAX); }
+  if(options     != NULL) { posix::strncpy(options    , _options    , PATH_MAX); }
   dump_frequency = _dump_frequency;
   pass = _pass;
 }
@@ -193,7 +193,7 @@ bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
   struct fsentry_t entry;
   table.clear();
 
-  std::FILE* file = posix::fopen(fs_table_path, "r");
+  posix::FILE* file = posix::fopen(fs_table_path, "r");
 
   if(file == NULL)
     return false;
@@ -205,9 +205,9 @@ bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
   posix::ssize_t count = 0;
   posix::size_t size = 0;
   char* line = NULL; // getline will malloc
-  while((count = ::getline(&line, &size, file)) != posix::error_response)
+  while((count = posix::getline(&line, &size, file)) != posix::error_response)
   {
-    char* comment = std::strchr(line, '#');
+    char* comment = posix::strchr(line, '#');
     if(comment != NULL)
       *comment = '\0';
 

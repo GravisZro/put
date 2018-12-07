@@ -60,7 +60,7 @@ struct ProcessEvent::platform_dependant // process notification (process events 
     fd = posix::socket(EDomain::netlink, EType::datagram, EProtocol::connector);
     flaw(fd == posix::invalid_descriptor,
          terminal::warning,,,
-         "Unable to open a netlink socket for Process Events Connector: %s", std::strerror(errno))
+         "Unable to open a netlink socket for Process Events Connector: %s", posix::strerror(errno))
 
     sockaddr_nl sa_nl;
     sa_nl.nl_family = PF_NETLINK;
@@ -72,7 +72,7 @@ struct ProcessEvent::platform_dependant // process notification (process events 
     {
       flaw(errno != std::errc::operation_not_permitted,
            terminal::warning,,,
-           "Unable to bind socket for Process Events Connector: %s", std::strerror(errno))
+           "Unable to bind socket for Process Events Connector: %s", posix::strerror(errno))
     }
     else
     {
@@ -86,7 +86,7 @@ struct ProcessEvent::platform_dependant // process notification (process events 
 #pragma pack(pop)
       static_assert(sizeof(nlmsghdr) + sizeof(cn_msg) + sizeof(proc_cn_mcast_op) == sizeof(procconn_t), "compiler needs to pack struct");
 
-      std::memset(&procconn, 0, sizeof(procconn));
+      posix::memset(&procconn, 0, sizeof(procconn));
       procconn.header.nlmsg_len = sizeof(procconn);
       procconn.header.nlmsg_pid = uint32_t(getpid());
       procconn.header.nlmsg_type = NLMSG_DONE;
@@ -97,12 +97,12 @@ struct ProcessEvent::platform_dependant // process notification (process events 
 
       flaw(posix::send(fd, &procconn, sizeof(procconn)) == posix::error_response,
            terminal::warning,,,
-           "Failed to enable Process Events Connector notifications: %s", std::strerror(errno));
+           "Failed to enable Process Events Connector notifications: %s", posix::strerror(errno));
 
       EventBackend::add(fd, EventBackend::SimplePollReadFlags,
                         [this](posix::fd_t lambda_fd, native_flags_t) noexcept { read(lambda_fd); });
 
-      std::fprintf(stderr, "%s%s\n", terminal::information, "Process Events Connector active");
+      posix::fprintf(stderr, "%s%s\n", terminal::information, "Process Events Connector active");
     }
   }
 
@@ -190,7 +190,7 @@ ProcessEvent::ProcessEvent(pid_t _pid, Flags_t _flags) noexcept
                               if(data.event_data.exit.exit_signal) // if killed by a signal
                                 Object::enqueue(killed,
                                                 data.event_data.exit.process_pid,
-                                                *reinterpret_cast<posix::signal::EId*>(&data.event_data.exit.exit_signal));
+                                                *reinterpret_cast<posix::Signal::EId*>(&data.event_data.exit.exit_signal));
                               else // else exited by itself
                                 Object::enqueue(exited,
                                                 data.event_data.exit.process_pid,

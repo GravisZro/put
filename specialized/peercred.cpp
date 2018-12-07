@@ -161,7 +161,7 @@ bool recv_cred(posix::fd_t socket, proccred_t& cred) noexcept
     char    rawbuffer[CMSG_SPACE(cred_size)];
     cmsghdr formatted;
   } cmsg_header;
-  std::memset(cmsg_header.rawbuffer, 0, sizeof(cmsg_header.rawbuffer)); // initialize memory
+  posix::memset(cmsg_header.rawbuffer, 0, sizeof(cmsg_header.rawbuffer)); // initialize memory
 
   char data = 0; // dummy data
   struct iovec iov = { &data, sizeof(data) };
@@ -200,7 +200,7 @@ bool send_cred(posix::fd_t socket) noexcept
     char    rawbuffer[CMSG_SPACE(cred_size)];
     cmsghdr formatted;
   } cmsg_header;
-  std::memset(cmsg_header.rawbuffer, 0, sizeof(cmsg_header.rawbuffer)); // initialize memory
+  posix::memset(cmsg_header.rawbuffer, 0, sizeof(cmsg_header.rawbuffer)); // initialize memory
 
   cmsg_header.formatted.cmsg_len   = CMSG_LEN(cred_size);
   cmsg_header.formatted.cmsg_level = SOL_SOCKET;

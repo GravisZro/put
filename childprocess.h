@@ -2,17 +2,11 @@
 #define PROCESS_H
 
 // POSIX
-#include <sys/types.h>
 #include <sys/resource.h>
-#include <signal.h>
-
-// POSIX++
-#include <csignal>
 
 // STL
 #include <string>
 #include <vector>
-#include <system_error>
 #include <utility>
 #include <initializer_list>
 #include <vector>
@@ -48,21 +42,21 @@ public:
 
   bool invoke    (void) noexcept;
 
-  bool sendSignal(posix::signal::EId id, int value = 0) const noexcept;
+  bool sendSignal(posix::Signal::EId id, int value = 0) const noexcept;
 
-  void stop      (void) const noexcept { sendSignal(posix::signal::Stop     ); }
-  void resume    (void) const noexcept { sendSignal(posix::signal::Resume   ); }
+  void stop      (void) const noexcept { sendSignal(posix::Signal::Stop     ); }
+  void resume    (void) const noexcept { sendSignal(posix::Signal::Resume   ); }
 
-  void quit      (void) const noexcept { sendSignal(posix::signal::Quit     ); }
-  void terminate (void) const noexcept { sendSignal(posix::signal::Terminate); }
-  void kill      (void) const noexcept { sendSignal(posix::signal::Kill     ); }
+  void quit      (void) const noexcept { sendSignal(posix::Signal::Quit     ); }
+  void terminate (void) const noexcept { sendSignal(posix::Signal::Terminate); }
+  void kill      (void) const noexcept { sendSignal(posix::Signal::Kill     ); }
 
   signal<posix::fd_t> stdoutMessage;
   signal<posix::fd_t> stderrMessage;
   signal<pid_t> started;
   signal<pid_t> stopped;
   signal<pid_t, posix::error_t> finished;
-  signal<pid_t, posix::signal::EId> killed;
+  signal<pid_t, posix::Signal::EId> killed;
 private:
   vfifo m_iobuf;
   State m_state;

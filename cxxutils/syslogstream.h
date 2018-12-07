@@ -8,9 +8,8 @@
 // POSIX
 #include <syslog.h>
 
-// POSIX++
-#include <climits>
-#include <cstdio>
+// PUT
+#include <cxxutils/posix_helpers.h>
 
 namespace posix
 {

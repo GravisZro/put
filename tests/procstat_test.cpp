@@ -47,7 +47,7 @@ T decode(const char* start, const char* end)
 }
 
 template<typename T, int base> T decode(const char* str)
-{ return decode<T,base>(str, str + std::strlen(str)); }
+{ return decode<T,base>(str, str + posix::strlen(str)); }
 
 void proc_test_split_arguments(std::vector<std::string>& argvector, const char* argstr)
 {
@@ -119,10 +119,10 @@ void file_cleanup(void)
 int main(int argc, char* argv[])
 {
 #if defined(PROCFS_DEBUG)
-  std::printf("procfs checking enabled\n");
+  posix::printf("procfs checking enabled\n");
 #endif
 
-  std::atexit(file_cleanup);
+  posix::atexit(file_cleanup);
 
   char tmp_buffer1[PATH_MAX] = { 0 };
   char tmp_buffer2[PATH_MAX] = { 0 };
@@ -184,7 +184,7 @@ int main(int argc, char* argv[])
                             " -e 's/|/\t/g'" \
                             " < psoutput > sedoutput";
 
-  //std::printf("\n%s\n%s\n", ps_command, sed_command);
+  //posix::printf("\n%s\n%s\n", ps_command, sed_command);
 
   assert(!system(ps_command));
   assert(!system(sed_command));
@@ -205,19 +205,19 @@ int main(int argc, char* argv[])
     {
       ps_state.process_id = decode<pid_t, 10>(field_buffer);
       if(!ps_state.process_id)
-        std::printf("failed to read PID! '%s'\n", field_buffer);
+        posix::printf("failed to read PID! '%s'\n", field_buffer);
     }
     if(getfield(field_buffer, '\t', fptr)) // ppid
     {
       ps_state.parent_process_id = decode<pid_t, 10>(field_buffer);
       if(!ps_state.parent_process_id && not_zero(field_buffer))
-        std::printf("failed (PID: %i) to decode parent PID! '%s'\n", ps_state.process_id, field_buffer);
+        posix::printf("failed (PID: %i) to decode parent PID! '%s'\n", ps_state.process_id, field_buffer);
     }
     if(getfield(field_buffer, '\t', fptr)) // pgid
     {
       ps_state.process_group_id = decode<pid_t, 10>(field_buffer);
       if(!ps_state.process_group_id && not_zero(field_buffer))
-        std::printf("failed (PID: %i) to decode process GID! '%s'\n", ps_state.process_id, field_buffer);
+        posix::printf("failed (PID: %i) to decode process GID! '%s'\n", ps_state.process_id, field_buffer);
     }
     if(getfield(field_buffer, '\t', fptr)) // name
     {
@@ -226,7 +226,7 @@ int main(int argc, char* argv[])
       {
         ps_state.effective_user_id = decode<uid_t, 10>(field_buffer);
         if(!ps_state.effective_user_id && not_zero(field_buffer))
-          std::printf("failed (PID: %i) to find effective user id for: '%s'\n", ps_state.process_id, field_buffer);
+          posix::printf("failed (PID: %i) to find effective user id for: '%s'\n", ps_state.process_id, field_buffer);
       }
     }
     if(getfield(field_buffer, '\t', fptr)) // group
@@ -236,7 +236,7 @@ int main(int argc, char* argv[])
       {
         ps_state.effective_group_id = decode<gid_t, 10>(field_buffer);
         if(!ps_state.effective_group_id && not_zero(field_buffer))
-          std::printf("failed (PID: %i) to find effective group id for: '%s'\n", ps_state.process_id, field_buffer);
+          posix::printf("failed (PID: %i) to find effective group id for: '%s'\n", ps_state.process_id, field_buffer);
       }
     }
     if(getfield(field_buffer, '\t', fptr)) // rname
@@ -246,7 +246,7 @@ int main(int argc, char* argv[])
       {
         ps_state.real_user_id = decode<uid_t, 10>(field_buffer);
         if(!ps_state.real_user_id && not_zero(field_buffer))
-          std::printf("failed (PID: %i) to find real user id for: '%s'\n", ps_state.process_id, field_buffer);
+          posix::printf("failed (PID: %i) to find real user id for: '%s'\n", ps_state.process_id, field_buffer);
       }
     }
     if(getfield(field_buffer, '\t', fptr)) // rgroup
@@ -256,7 +256,7 @@ int main(int argc, char* argv[])
       {
         ps_state.real_group_id = decode<gid_t, 10>(field_buffer);
         if(!ps_state.real_group_id && not_zero(field_buffer))
-          std::printf("failed (PID: %i) to find real group id for: '%s'\n", ps_state.process_id, field_buffer);
+          posix::printf("failed (PID: %i) to find real group id for: '%s'\n", ps_state.process_id, field_buffer);
       }
     }
     if(getfield(field_buffer, '\t', fptr)) // tty
@@ -271,14 +271,14 @@ int main(int argc, char* argv[])
     {
       ps_state.memory_size.rss = decode<segsz_t, 10>(field_buffer);
       if(!ps_state.memory_size.rss && not_zero(field_buffer))
-        std::printf("failed (PID: %i) to decode memory RSS! '%s'\n", ps_state.process_id, field_buffer);
+        posix::printf("failed (PID: %i) to decode memory RSS! '%s'\n", ps_state.process_id, field_buffer);
     }
     if(getfield(field_buffer, '\t', fptr)) // nice
     {
       ps_state.nice_value = decode<int8_t, 10>(field_buffer);
       if((!ps_state.nice_value && not_zero(field_buffer)) ||
          ps_state.nice_value > 20 || ps_state.nice_value < -20)
-        std::printf("failed (PID: %i) to decode nice value! '%s'\n", ps_state.process_id, field_buffer);
+        posix::printf("failed (PID: %i) to decode nice value! '%s'\n", ps_state.process_id, field_buffer);
     }
     if(getfield(field_buffer, '\t', fptr)) // time
     {
@@ -299,7 +299,7 @@ int main(int argc, char* argv[])
        ps_state.process_id)
     {
 //      if(!posix::is_success())
-//        std::printf("procstat error: %s\n", std::strerror(errno));
+//        posix::printf("procstat error: %s\n", posix::strerror(errno));
       flaw(skip_count > 2,
            terminal::critical,,EXIT_FAILURE,
            "too many processes missing!  processed: %i", processed_count)
@@ -310,14 +310,14 @@ int main(int argc, char* argv[])
       ++processed_count;
 
 #if defined(PROCFS_DEBUG)
-    std::snprintf(tmp_buffer1, sizeof(tmp_buffer1), "%s/%i/status", procfs_path, ps_state.process_id);
+    posix::snprintf(tmp_buffer1, sizeof(tmp_buffer1), "%s/%i/status", procfs_path, ps_state.process_id);
     if(::access(tmp_buffer1, R_OK) == posix::error_response) // if no longer exists
       continue;
 
-    std::snprintf(tmp_buffer2, sizeof(tmp_buffer2), "cat %s || %s", tmp_buffer1, psdump_command);
-    std::snprintf(tmp_buffer1, sizeof(tmp_buffer1), tmp_buffer2, ps_state.process_id);
+    posix::snprintf(tmp_buffer2, sizeof(tmp_buffer2), "cat %s || %s", tmp_buffer1, psdump_command);
+    posix::snprintf(tmp_buffer1, sizeof(tmp_buffer1), tmp_buffer2, ps_state.process_id);
 #else
-    std::snprintf(tmp_buffer1, sizeof(tmp_buffer1), psdump_command, ps_state.process_id);
+    posix::snprintf(tmp_buffer1, sizeof(tmp_buffer1), psdump_command, ps_state.process_id);
 #endif
 
     flaw(ps_state.process_id != procstat_state.process_id,
@@ -381,7 +381,7 @@ int main(int argc, char* argv[])
   if(field_buffer != NULL)
     ::free(field_buffer);
 
-  std::printf("TEST PASSED!\n");
+  posix::printf("TEST PASSED!\n");
   return EXIT_SUCCESS;
 }
 
@@ -391,8 +391,8 @@ int main(int argc, char* argv[])
 
 void copy_field(char* output, const char* start, const char* end)
 {
-  std::memset(output, 0, BUF_SIZE);
-  std::memcpy(output, start, size_t(end - start));
+  posix::memset(output, 0, BUF_SIZE);
+  posix::memcpy(output, start, size_t(end - start));
 }
 
 
@@ -412,7 +412,7 @@ int main(int argc, char* argv[])
        !posix::pipe(stdout_pipe) ||
        !posix::pipe(stderr_pipe),
        terminal::critical,,EXIT_FAILURE,
-       "Unable to create a pipe: %s", std::strerror(errno))
+       "Unable to create a pipe: %s", posix::strerror(errno))
 
   posix_spawn_file_actions_init(&action);
 
@@ -476,7 +476,7 @@ int main(int argc, char* argv[])
                     "/bin/ps", &action, NULL,
                     static_cast<char* const*>(const_cast<char**>(args)), NULL) != posix::success_response,
        terminal::critical,,EXIT_FAILURE,
-       "posix_spawnp failed with error: %s", std::strerror(errno))
+       "posix_spawnp failed with error: %s", posix::strerror(errno))
 
 
   sleep(1);
@@ -487,9 +487,9 @@ int main(int argc, char* argv[])
   char* field_buffer = static_cast<char*>(::malloc(BUF_SIZE));
   char* line_buffer  = static_cast<char*>(::malloc(BUF_SIZE));
 
-  std::memset(data_buffer , 0, BUF_SIZE);
-  std::memset(field_buffer, 0, BUF_SIZE);
-  std::memset(line_buffer , 0, BUF_SIZE);
+  posix::memset(data_buffer , 0, BUF_SIZE);
+  posix::memset(field_buffer, 0, BUF_SIZE);
+  posix::memset(line_buffer , 0, BUF_SIZE);
 
   process_state_t ps_state, procstat_state;
   ssize_t count = 0;
@@ -516,7 +516,7 @@ int main(int argc, char* argv[])
 
     if (remaining < BUF_SIZE / 2)
     {
-      std::printf("bytes buffered: %li - requesting %li bytes - ", remaining, BUF_SIZE - remaining);
+      posix::printf("bytes buffered: %li - requesting %li bytes - ", remaining, BUF_SIZE - remaining);
       count = posix::read(stdout_pipe[Read], pos + remaining, size_t(BUF_SIZE - remaining));
       if(count > 0)
       {
@@ -524,12 +524,12 @@ int main(int argc, char* argv[])
         total += count;
       }
 
-      std::printf("bytes returned: %li  - processed bytes: %li - total bytes: %li\n", count, processed, total);
+      posix::printf("bytes returned: %li  - processed bytes: %li - total bytes: %li\n", count, processed, total);
     }
     else
     {
       count = 0;
-      std::printf("bytes buffered: %li - processed bytes: %li - total bytes: %li\n", remaining, processed, total);
+      posix::printf("bytes buffered: %li - processed bytes: %li - total bytes: %li\n", remaining, processed, total);
     }
 
     if(remaining > 0)
@@ -557,28 +557,28 @@ int main(int argc, char* argv[])
       }
 
       if(!ps_state.process_id)
-        std::printf("failed to read PID! '%s'\nline: '%s'\n", field_buffer, line_buffer);
+        posix::printf("failed to read PID! '%s'\nline: '%s'\n", field_buffer, line_buffer);
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.parent_process_id = decode<pid_t, 10>(pos, next);
       if(!ps_state.parent_process_id && pos[0] != '0' && pos+1 != next)
-        std::printf("failed (PID: %i) to decode parent PID! '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
+        posix::printf("failed (PID: %i) to decode parent PID! '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.process_group_id = decode<pid_t, 10>(pos, next);
       if(!ps_state.process_group_id && pos[0] != '0' && pos+1 != next)
-        std::printf("failed (PID: %i) to decode process GID! '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
+        posix::printf("failed (PID: %i) to decode process GID! '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.effective_user_id = posix::getuserid(field_buffer);
       if(ps_state.effective_user_id == uid_t(posix::error_response))
-        std::printf("failed (PID: %i) to find effective user id for: '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
+        posix::printf("failed (PID: %i) to find effective user id for: '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
@@ -586,7 +586,7 @@ int main(int argc, char* argv[])
       copy_field(field_buffer, pos, next);
       ps_state.effective_group_id = posix::getgroupid(field_buffer);
       if(ps_state.effective_group_id == uid_t(posix::error_response))
-        std::printf("failed (PID: %i) to find effective group id for: '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
+        posix::printf("failed (PID: %i) to find effective group id for: '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
@@ -594,14 +594,14 @@ int main(int argc, char* argv[])
       copy_field(field_buffer, pos, next);
       ps_state.real_user_id = posix::getuserid(field_buffer);
       if(ps_state.real_user_id == uid_t(posix::error_response))
-        std::printf("failed (PID: %i) to find real user id for: '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
+        posix::printf("failed (PID: %i) to find real user id for: '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
       copy_field(field_buffer, pos, next);
       ps_state.real_group_id = posix::getgroupid(field_buffer);
       if(ps_state.real_group_id == uid_t(posix::error_response))
-        std::printf("failed (PID: %i) to find real group id for: '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
+        posix::printf("failed (PID: %i) to find real group id for: '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
@@ -618,7 +618,7 @@ int main(int argc, char* argv[])
       copy_field(field_buffer, pos, next);
       ps_state.memory_size.rss = decode<segsz_t, 10>(pos, next);
       if(!ps_state.memory_size.rss && pos[0] != '0' && pos+1 != next)
-        std::printf("failed (PID: %i) to decode memory RSS! '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
+        posix::printf("failed (PID: %i) to decode memory RSS! '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
@@ -626,7 +626,7 @@ int main(int argc, char* argv[])
       ps_state.nice_value = decode<int8_t, 10>(pos, next);
       if((!ps_state.nice_value && pos[0] != '0' && pos+1 != next) ||
          ps_state.nice_value > 20 || ps_state.nice_value < -20)
-        std::printf("failed (PID: %i) to decode nice value! '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
+        posix::printf("failed (PID: %i) to decode nice value! '%s'\nline: '%s'\n", ps_state.process_id, field_buffer, line_buffer);
 
       for(pos = next; std::isspace(*pos ) && pos  != nextline; ++pos);
       for(next = pos;!std::isspace(*next) && next != nextline;++next);
@@ -650,7 +650,7 @@ int main(int argc, char* argv[])
 
       flaw(!procstat(ps_state.process_id, procstat_state),
            terminal::critical,,EXIT_FAILURE,
-           "procstat failed to get pid: %d : err: %s", ps_state.process_id, std::strerror(errno))
+           "procstat failed to get pid: %d : err: %s", ps_state.process_id, posix::strerror(errno))
 
       flaw(ps_state.process_id != procstat_state.process_id,
            terminal::critical,,EXIT_FAILURE,
@@ -706,7 +706,7 @@ int main(int argc, char* argv[])
   if(line_buffer != NULL)
     ::free(line_buffer);
 
-  std::printf("TEST PASSED!\n");
+  posix::printf("TEST PASSED!\n");
   return EXIT_SUCCESS;
 }
 #endif

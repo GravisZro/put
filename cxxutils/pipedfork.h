@@ -3,13 +3,8 @@
 
 // PUT
 #include <cxxutils/posix_helpers.h>
-#include <cxxutils/socket_helpers.h>
 #include <cxxutils/vterm.h>
 #include <cxxutils/vfifo.h>
-
-// POSIX++
-#include <cstdlib>
-
 
 class PipedFork
 {
@@ -33,12 +28,12 @@ public:
          !posix::pipe(ipc_cipo) ||
          !posix::pipe(out) ||
          !posix::pipe(err),
-         terminal::critical, /*std::exit(errno)*/, ,
-         "Unable to create a pipe: %s", std::strerror(errno))
+         terminal::critical, /*posix::exit(errno)*/, ,
+         "Unable to create a pipe: %s", posix::strerror(errno))
 
     flaw((m_pid = posix::fork()) <= posix::error_response,
-         terminal::critical, /*std::exit(errno)*/, ,
-         "Unable to create a fork: %s", std::strerror(errno))
+         terminal::critical, /*posix::exit(errno)*/, ,
+         "Unable to create a fork: %s", posix::strerror(errno))
 
     posix::fcntl(ipc_pico[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
     posix::fcntl(ipc_pico[Write], F_SETFD, FD_CLOEXEC); // close on exec*()

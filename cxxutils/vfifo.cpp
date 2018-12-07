@@ -25,7 +25,7 @@ bool vfifo::allocate(posix::ssize_t length) noexcept
   if(new_data == nullptr)
     return false;
 
-  std::memset(new_data, 0, posix::size_t(length));
+  posix::memset(new_data, 0, posix::size_t(length));
   if(m_data == nullptr) // if no memory allocated yet
   {
     m_data = new_data; // assign memory
@@ -33,7 +33,7 @@ bool vfifo::allocate(posix::ssize_t length) noexcept
   }
   else // expand memory
   {
-    std::memcpy(new_data, m_data, posix::size_t(capacity())); // copy old memory to new
+    posix::memcpy(new_data, m_data, posix::size_t(capacity())); // copy old memory to new
     m_virt_begin = new_data + (m_virt_begin - m_data); // shift the progress pointers to the new memory
     m_virt_end   = new_data + (m_virt_end   - m_data);
     delete[] m_data; // delete the old memory

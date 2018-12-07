@@ -32,7 +32,7 @@ constexpr char uuid_digit(uint8_t* data, uint8_t digit)
 
 static bool uuid_matches(const char* str, uint8_t* data)
 {
-  size_t length = std::strlen(str);
+  size_t length = posix::strlen(str);
   for(uint8_t digit = 0; digit < 32; ++digit, ++str)
   {
     if(!::isxdigit(*str))
@@ -68,19 +68,18 @@ namespace blockdevices
   bool fill_device_list(void) noexcept
   {
     char filename[PATH_MAX] = { 0 };
-    if(procfs_path == nullptr &&
-      !reinitialize_paths())
+    if(procfs_path == nullptr) // safety check
       return false;
-    std::snprintf(filename, PATH_MAX, "%s/partitions", procfs_path);
+    posix::snprintf(filename, PATH_MAX, "%s/partitions", procfs_path);
 
-    std::FILE* file = posix::fopen(filename, "r");
+    posix::FILE* file = posix::fopen(filename, "r");
     if(file == NULL)
       return false;
 
     posix::ssize_t count = 0;
     posix::size_t size = 0;
     char* line = NULL; // getline will malloc
-    while((count = ::getline(&line, &size, file)) != posix::error_response)
+    while((count = posix::getline(&line, &size, file)) != posix::error_response)
     {
       char* pos = line;
       if(!std::isspace(*pos)) // if line doesn't start with a space then it's not an entry!
@@ -109,9 +108,9 @@ namespace blockdevices
 
       // read device name
       blockdevice_t dev;
-      std::strncpy(dev.path, devfs_path, sizeof(blockdevice_t::path) - sizeof("/"));
-      std::strcat(dev.path, "/");
-      for(char* field = dev.path + std::strlen(dev.path);
+      posix::strncpy(dev.path, devfs_path, sizeof(blockdevice_t::path) - sizeof("/"));
+      posix::strcat(dev.path, "/");
+      for(char* field = dev.path + posix::strlen(dev.path);
           *pos && pos < dev.path + sizeof(blockdevice_t::path) && std::isgraph(*pos);
           ++pos, ++field)
         *field = *pos;
@@ -152,10 +151,6 @@ namespace blockdevices
 
 #elif defined(__FreeBSD__) && KERNEL_VERION_CODE >= KERNEL_VERSION(5,1,0)
 
-  // POSIX++
-  #include <cstdlib>
-  #include <cstring>
-
   // STL
   #include <vector>
 
@@ -169,7 +164,7 @@ namespace blockdevices
     request_argument(const char* _name, T& _value)
     {
       name  = ::strdup(_name);
-      nlen  = std::strlen(name) + 1;
+      nlen  = posix::strlen(name) + 1;
       value = &_value;
       flag  = GCTL_PARAM_RD;
       len   = sizeof(T);
@@ -178,10 +173,10 @@ namespace blockdevices
     request_argument(const char* _name, const char* _value)
     {
       name  = ::strdup(_name);
-      nlen  = std::strlen(name) + 1;
+      nlen  = posix::strlen(name) + 1;
       value = _value;
       flag  = GCTL_PARAM_RD | GCTL_PARAM_ASCII;
-      len   = std::strlen(value) + 1;
+      len   = posix::strlen(value) + 1;
     }
 
     ~request_argument(void) noexcept
@@ -228,10 +223,9 @@ namespace blockdevices
     args.emplace_back("cmd", "list");
 
     char filename[PATH_MAX] = { 0 };
-    if(devfs_path == nullptr &&
-      !reinitialize_paths())
+    if(devfs_path == nullptr) // safety check
       return false;
-    std::snprintf(filename, PATH_MAX, "%s/%s", devfs_path, PATH_GEOM_CTL);
+    posix::snprintf(filename, PATH_MAX, "%s/%s", devfs_path, PATH_GEOM_CTL);
 
     posix::fd_t fd = posix::open(filename, O_RDONLY);
     if(fd == posix::invalid_descriptor)
@@ -268,7 +262,7 @@ namespace blockdevices
   blockdevice_t* lookupByPath(const char* path) noexcept // finds device based on absolute path
   {
     for(blockdevice_t& dev : devices)
-      if(!std::strcmp(path, dev.path))
+      if(!posix::strcmp(path, dev.path))
         return &dev;
     return nullptr;
   }
@@ -284,7 +278,7 @@ namespace blockdevices
   blockdevice_t* lookupByLabel(const char* label) noexcept // finds device based on label
   {
     for(blockdevice_t& dev : devices)
-      if(!std::strcmp(label, dev.label))
+      if(!posix::strcmp(label, dev.label))
         return &dev;
     return nullptr;
   }
@@ -293,8 +287,8 @@ namespace blockdevices
   {
     for(blockdevice_t& dev : devices)
     {
-      if(!std::strcmp(id, dev.label) ||
-         !std::strcmp(id, dev.path) ||
+      if(!posix::strcmp(id, dev.label) ||
+         !posix::strcmp(id, dev.path) ||
          uuid_matches(id, dev.uuid))
         return &dev;
     }
@@ -304,7 +298,7 @@ namespace blockdevices
   blockdevice_t* probe(const char* path) noexcept
   {
     blockdevice_t dev;
-    std::strncpy(dev.path, path, sizeof(blockdevice_t::path));
+    posix::strncpy(dev.path, path, sizeof(blockdevice_t::path));
     detect_filesystem(dev);
     if(!dev.fstype[0]) // if filesystem wasn't detected
       return nullptr;
@@ -325,7 +319,7 @@ namespace blockdevices
     if(superblock == NULL)
       return false;
 
-    std::memset(superblock, 0, info.block_size);
+    posix::memset(superblock, 0, info.block_size);
     if(device_read(fd, posix::off_t(info.block_size), superblock, info.block_size) != uint64_t(info.block_size)) // if read filesystem superblock
       return false;
 
@@ -334,7 +328,7 @@ namespace blockdevices
           !(*detectpos)(info, dev, superblock)) // run filesystem detection functions until you find one
       ++detectpos;
 
-    std::printf("device: %s - label: %s - fs: %s - block size: %u - block count: %lu\n", dev.path, dev.label, dev.fstype, dev.block_size, dev.block_count);
+    posix::printf("device: %s - label: %s - fs: %s - block size: %u - block count: %lu\n", dev.path, dev.label, dev.fstype, dev.block_size, dev.block_count);
     ::free(superblock);
 
     return posix::close(fd);
@@ -441,27 +435,27 @@ namespace blockdevices
       return false;
 
     else if(allFlagsSet (data, offsets::incompat_flags , e_incompat_flags::journal_dev))
-      std::strncpy(dev.fstype, "jbd", sizeof(blockdevice_t::fstype));
+      posix::strncpy(dev.fstype, "jbd", sizeof(blockdevice_t::fstype));
 
     else if(noFlagsSet  (data, offsets::incompat_flags , e_incompat_flags::journal_dev) &&
             allFlagsSet (data, offsets::misc_flags     , e_misc_flags::dev_filesystem))
-      std::strncpy(dev.fstype, "ext4dev", sizeof(blockdevice_t::fstype));
+      posix::strncpy(dev.fstype, "ext4dev", sizeof(blockdevice_t::fstype));
 
     else if(noFlagsSet  (data, offsets::incompat_flags , e_incompat_flags::journal_dev) &&
             (allFlagsSet(data, offsets::ro_compat_flags, EXT2_RO_compat_flags) ||
              allFlagsSet(data, offsets::incompat_flags , EXT3_incompat_flags)) &&
             noFlagsSet  (data, offsets::misc_flags     , e_misc_flags::dev_filesystem))
-      std::strncpy(dev.fstype, "ext4", sizeof(blockdevice_t::fstype));
+      posix::strncpy(dev.fstype, "ext4", sizeof(blockdevice_t::fstype));
 
     else if(allFlagsSet (data, offsets::compat_flags   , e_compat_flags::has_journal) &&
             noFlagsSet  (data, offsets::ro_compat_flags, EXT2_RO_compat_flags) &&
             noFlagsSet  (data, offsets::incompat_flags , EXT3_incompat_flags))
-      std::strncpy(dev.fstype, "ext3", sizeof(blockdevice_t::fstype));
+      posix::strncpy(dev.fstype, "ext3", sizeof(blockdevice_t::fstype));
 
     else if(noFlagsSet  (data, offsets::compat_flags   , e_compat_flags::has_journal) &&
             noFlagsSet  (data, offsets::ro_compat_flags, EXT2_RO_compat_flags) &&
             noFlagsSet  (data, offsets::incompat_flags , EXT2_incompat_flags))
-      std::strncpy(dev.fstype, "ext2", sizeof(blockdevice_t::fstype));
+      posix::strncpy(dev.fstype, "ext2", sizeof(blockdevice_t::fstype));
 
     else
       return false;
@@ -469,8 +463,8 @@ namespace blockdevices
     dev.block_size  = info.block_size << getLE32(data, offsets::block_size); // filesystem block size
     dev.block_count = getLE32(data, offsets::block_count); // filesystem block count
 
-    std::memcpy(dev.uuid, data + offsets::uuid, 16);
-    std::strncpy(dev.label, reinterpret_cast<char*>(data) + offsets::label, 16);
+    posix::memcpy(dev.uuid, data + offsets::uuid, 16);
+    posix::strncpy(dev.label, reinterpret_cast<char*>(data) + offsets::label, 16);
     return true;
   }
 

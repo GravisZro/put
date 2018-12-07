@@ -1,21 +1,12 @@
 #include "childprocess.h"
 
 // POSIX
-#include <unistd.h>
-#include <sys/stat.h>
 #include <sys/wait.h>
-
-// POSIX++
-#include <cerrno>
-#include <cstdlib>
-#include <climits>
-#include <cstring>
-#include <cassert>
+#include <assert.h>
 
 // PUT
 #include <specialized/procstat.h>
 #include <specialized/eventbackend.h>
-#include <cxxutils/error_helpers.h>
 #include <cxxutils/vterm.h>
 
 
@@ -34,8 +25,8 @@ void ChildProcess::init_once(void) noexcept
 
     flaw(::sigaction(SIGCHLD, &actions, NULL) == posix::error_response,
          terminal::critical,
-         std::exit(errno),,
-         "Unable assign action to a signal: %s", std::strerror(errno))
+         posix::exit(errno),,
+         "Unable assign action to a signal: %s", posix::strerror(errno))
   }
 }
 
@@ -69,7 +60,7 @@ void ChildProcess::handler(int signum) noexcept
 
         p->m_state = ChildProcess::State::Finished;
         if(WIFSIGNALED(status))
-          Object::enqueue_copy(p->killed, p->processId(), posix::signal::EId(WTERMSIG(status)));
+          Object::enqueue_copy(p->killed, p->processId(), posix::Signal::EId(WTERMSIG(status)));
         else
           Object::enqueue_copy(p->finished, p->processId(), posix::error_t(WEXITSTATUS(status)));
         process_map.erase(process_map_iter); // remove finished process from the process map
@@ -109,9 +100,9 @@ bool ChildProcess::setOption(const std::string& name, const std::string& value) 
   return !(m_iobuf << name << value).hadError() && writeStdIn(m_iobuf);
 }
 
-bool ChildProcess::sendSignal(posix::signal::EId id, int value) const noexcept
+bool ChildProcess::sendSignal(posix::Signal::EId id, int value) const noexcept
 {
-  return posix::signal::send(processId(), id, value);
+  return posix::Signal::send(processId(), id, value);
 }
 
 bool ChildProcess::invoke(void) noexcept

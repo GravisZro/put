@@ -1,6 +1,6 @@
 #include "stringtoken.h"
 
-#include <cassert>
+#include <assert.h>
 
 StringToken::StringToken(const char* origin) noexcept
   : m_pos(origin)

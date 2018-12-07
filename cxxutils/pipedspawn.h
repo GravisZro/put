@@ -35,7 +35,7 @@ public:
          !posix::pipe(stdout_pipe) ||
          !posix::pipe(stderr_pipe),
          terminal::critical,,,
-         "Unable to create a pipe: %s", std::strerror(errno))
+         "Unable to create a pipe: %s", posix::strerror(errno))
 
     posix::fcntl(stdin_pipe[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
     posix::fcntl(stdin_pipe[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
@@ -68,7 +68,7 @@ public:
                       SPAWN_PROGRAM_NAME, &action, NULL,
                       static_cast<char* const*>(const_cast<char**>(args)), NULL) != posix::success_response,
          terminal::severe,,,
-         "posix_spawnp failed with error: %s", std::strerror(errno))
+         "posix_spawnp failed with error: %s", posix::strerror(errno))
   }
 
   ~PipedSpawn(void) noexcept

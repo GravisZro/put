@@ -10,7 +10,7 @@
 
 template<typename T>
 static inline void copy_struct(T& dest, const T& source)
-  { std::memcpy(&dest, &source, sizeof(T)); }
+  { posix::memcpy(&dest, &source, sizeof(T)); }
 
 bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
 {
@@ -129,7 +129,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 {
   struct kinfo_proc info;
   posix::size_t length = sizeof(struct kinfo_proc);
-  std::memset(&info, 0, length); // zero out struct
+  posix::memset(&info, 0, length); // zero out struct
   int request[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid };
 
 # if defined(__darwin__) || defined(OLD_BSD)
@@ -285,7 +285,7 @@ typedef bool (*decode_func)(FILE*, process_state_t&);
 bool proc_decode(pid_t pid, const char* subfile, decode_func func, process_state_t& data)
 {
   char filename[PATH_MAX] = { 0 };
-  std::snprintf(filename, PATH_MAX, "%s/%d%c%s", procfs_path, pid,
+  posix::snprintf(filename, PATH_MAX, "%s/%d%c%s", procfs_path, pid,
                 subfile == nullptr ? '\0' : '/',
                 subfile == nullptr ? "" : subfile);
 
@@ -303,7 +303,7 @@ bool proc_exe_symlink(pid_t pid, const char* subfile, process_state_t& data) noe
 {
   char linkname[PATH_MAX] = { 0 };
   char filename[PATH_MAX] = { 0 };
-  std::snprintf(linkname, PATH_MAX, "%s/%d/%s", procfs_path, pid, subfile); // fill buffer
+  posix::snprintf(linkname, PATH_MAX, "%s/%d/%s", procfs_path, pid, subfile); // fill buffer
 
   posix::ssize_t length = ::readlink(linkname, filename, PATH_MAX); // result may contain " (deleted)" (which we don't want)
   if(length == posix::error_response)
@@ -313,7 +313,7 @@ bool proc_exe_symlink(pid_t pid, const char* subfile, process_state_t& data) noe
   char* pos = std::strrchr(filename, ' '); // find last space
   if(pos != NULL && // contains a space (may be part of " (deleted)")
      pos[sizeof(" (deleted)") - 1] == '\0' && // might end with " (deleted)"
-     pos == std::strstr(filename, " (deleted)")) // definately ends with " (deleted)"
+     pos == posix::strstr(filename, " (deleted)")) // definately ends with " (deleted)"
     *pos = 0; // add string terminator to truncate at " (deleted)"
   data.executable = filename; // copy corrected string
   return true;
@@ -522,41 +522,41 @@ bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
   size_t line_sz = 0;
 
   char name[PATH_MAX] = { 0 };
-  while(::getline(&line, &line_sz, file) > 0 &&
-        std::memcmp(line, "Name:\t", sizeof("Name:\t") - 1));
-  std::sscanf(line, "Name:\t%s\n", name);
+  while(posix::getline(&line, &line_sz, file) > 0 &&
+        posix::memcmp(line, "Name:\t", sizeof("Name:\t") - 1));
+  posix::sscanf(line, "Name:\t%s\n", name);
   data.name = name;
 
-  while(::getline(&line, &line_sz, file) > 0 &&
-        std::memcmp(line, "Uid:\t", sizeof("Uid:\t") - 1));
-  std::sscanf(line, "Uid:\t%" SCNi32 "\t%" SCNi32 "\t",
+  while(posix::getline(&line, &line_sz, file) > 0 &&
+        posix::memcmp(line, "Uid:\t", sizeof("Uid:\t") - 1));
+  posix::sscanf(line, "Uid:\t%" SCNi32 "\t%" SCNi32 "\t",
               &data.real_user_id,
               &data.effective_user_id);
 
-  while(::getline(&line, &line_sz, file) > 0 &&
-        std::memcmp(line, "Gid:\t", sizeof("Gid:\t") - 1));
-  std::sscanf(line, "Gid:\t%" SCNi32 "\t%" SCNi32 "\t",
+  while(posix::getline(&line, &line_sz, file) > 0 &&
+        posix::memcmp(line, "Gid:\t", sizeof("Gid:\t") - 1));
+  posix::sscanf(line, "Gid:\t%" SCNi32 "\t%" SCNi32 "\t",
               &data.real_group_id,
               &data.effective_group_id);
 
-  while(::getline(&line, &line_sz, file) > 0 &&
-        std::memcmp(line, "SigPnd:\t", sizeof("SigBlk:\t") - 1));
-  std::sscanf(line, "SigPnd:\t%" SCNx64 "\n",
+  while(posix::getline(&line, &line_sz, file) > 0 &&
+        posix::memcmp(line, "SigPnd:\t", sizeof("SigBlk:\t") - 1));
+  posix::sscanf(line, "SigPnd:\t%" SCNx64 "\n",
               reinterpret_cast<uint64_t*>(&data.signals_pending));
 
-  while(::getline(&line, &line_sz, file) > 0 &&
-        std::memcmp(line, "SigBlk:\t", sizeof("SigBlk:\t") - 1));
-  std::sscanf(line, "SigBlk:\t%" SCNx64 "\n",
+  while(posix::getline(&line, &line_sz, file) > 0 &&
+        posix::memcmp(line, "SigBlk:\t", sizeof("SigBlk:\t") - 1));
+  posix::sscanf(line, "SigBlk:\t%" SCNx64 "\n",
               reinterpret_cast<uint64_t*>(&data.signals_blocked));
 
-  while(::getline(&line, &line_sz, file) > 0 &&
-        std::memcmp(line, "SigIgn:\t", sizeof("SigIgn:\t") - 1));
-  std::sscanf(line, "SigIgn:\t%" SCNx64 "\n",
+  while(posix::getline(&line, &line_sz, file) > 0 &&
+        posix::memcmp(line, "SigIgn:\t", sizeof("SigIgn:\t") - 1));
+  posix::sscanf(line, "SigIgn:\t%" SCNx64 "\n",
               reinterpret_cast<uint64_t*>(&data.signals_ignored));
 
-  while(::getline(&line, &line_sz, file) > 0 &&
-        std::memcmp(line, "SigCgt:\t", sizeof("SigCgt:\t") - 1));
-  std::sscanf(line, "SigCgt:\t%" SCNx64 "\n",
+  while(posix::getline(&line, &line_sz, file) > 0 &&
+        posix::memcmp(line, "SigCgt:\t", sizeof("SigCgt:\t") - 1));
+  posix::sscanf(line, "SigCgt:\t%" SCNx64 "\n",
               reinterpret_cast<uint64_t*>(&data.signals_caught));
 
   ::free(line);
@@ -819,20 +819,19 @@ inline void clear_state(process_state_t& data) noexcept
   data.priority_value     = 0;
   data.nice_value         = 0;
   data.percent_cpu        = 0;
-  std::memset(&data.signals_pending, 0, sizeof(sigset_t));
-  std::memset(&data.signals_blocked, 0, sizeof(sigset_t));
-  std::memset(&data.signals_ignored, 0, sizeof(sigset_t));
-  std::memset(&data.signals_caught , 0, sizeof(sigset_t));
-  std::memset(&data.start_time     , 0, sizeof(timeval ));
-  std::memset(&data.user_time      , 0, sizeof(timeval ));
-  std::memset(&data.system_time    , 0, sizeof(timeval ));
+  posix::memset(&data.signals_pending, 0, sizeof(sigset_t));
+  posix::memset(&data.signals_blocked, 0, sizeof(sigset_t));
+  posix::memset(&data.signals_ignored, 0, sizeof(sigset_t));
+  posix::memset(&data.signals_caught , 0, sizeof(sigset_t));
+  posix::memset(&data.start_time     , 0, sizeof(timeval ));
+  posix::memset(&data.user_time      , 0, sizeof(timeval ));
+  posix::memset(&data.system_time    , 0, sizeof(timeval ));
 }
 
 bool procstat(pid_t pid, process_state_t& data) noexcept
 {
   clear_state(data);
-  if(procfs_path == nullptr && // safety check
-    !reinitialize_paths())
+  if(procfs_path == nullptr) // safety check
     return false;
 
 # if defined(__linux__) // Linux

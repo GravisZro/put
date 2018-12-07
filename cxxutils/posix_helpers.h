@@ -6,17 +6,17 @@
 #include <sys/stat.h>  // stat stuff
 #include <pwd.h>       // passwd stuff
 #include <grp.h>       // group stuff
-#include <unistd.h>
-#include <fcntl.h>
+#include <unistd.h> // LOTS
+#include <fcntl.h>  // fcntl() stuff
+#include <string.h> // for useringroup()
+#include <signal.h> // signal functions
+#include <stdio.h>  // file descriptor I/O
+#include <stdint.h> // need standard types
+#include <stdlib.h> // exit functions
+#include <limits.h> // system limits
 
 // POSIX-esque?
 #include <sys/ioctl.h>
-
-// POSIX++
-#include <cstring> // for useringroup()
-#include <csignal>
-#include <cstdio>  // file descriptor I/O
-#include <cstdint> // need standard types
 
 // PUT
 #include "error_helpers.h"
@@ -31,6 +31,53 @@ namespace posix
   using ::size_t;
   using ::ssize_t;
   using ::off_t;
+  using ::FILE;
+
+  // stdlib.h
+  using ::signal;
+  using ::exit;
+  using ::atexit;
+
+  // string.h
+  using ::memset;
+  using ::memchr;
+  using ::memcmp;
+  using ::memcpy;
+  using ::memmove;
+
+  using ::strerror;
+  using ::strchr;
+  using ::strlen;
+  using ::strstr;
+
+  using ::strcat;
+  using ::strncat;
+  using ::strcmp;
+  using ::strncmp;
+  using ::strcpy;
+  using ::strncpy;
+
+  using ::atoi;
+  using ::atol;
+  using ::atoll;
+  using ::strtod;
+  using ::strtof;
+  using ::strtol;
+  using ::strtoll;
+  using ::strtoul;
+  using ::strtoull;
+
+  // stdio.h
+  using ::getline;
+  using ::printf;
+  using ::dprintf;
+  using ::sprintf;
+  using ::snprintf;
+  using ::fprintf;
+  using ::scanf;
+  using ::sscanf;
+  using ::fscanf;
+
 
   // unistd.h
   using ::access;
@@ -163,13 +210,13 @@ namespace posix
     if(grp == nullptr)
       return false;
     for(char** member = grp->gr_mem; *member != nullptr; ++member)
-      if(!std::strcmp(*member, username))
+      if(!::strcmp(*member, username))
         return true;
     return false;
   }
 
 // longcuts
-  namespace signal
+  namespace Signal
   {
     enum EId : error_t
     {
@@ -256,7 +303,7 @@ namespace posix
     };
 
     static inline bool raise(EId id) noexcept
-      { return std::raise(id) == success_response; }
+      { return ::raise(id) == success_response; }
 
     static inline bool send(pid_t pid, EId id, int value = 0) noexcept
 #if defined(_XOPEN_SOURCE_EXTENDED)
@@ -335,23 +382,29 @@ namespace posix
     absolute = SEEK_SET,
   };
   // POSIX wrappers
-  static inline std::FILE* fopen(const char* filename, const char* mode) noexcept
-    { return ignore_interruption<std::FILE, const char*, const char*>(std::fopen, filename, mode); }
+  static inline FILE* fopen(const char* filename, const char* mode) noexcept
+    { return ignore_interruption<FILE, const char*, const char*>(::fopen, filename, mode); }
 
-  static inline bool fclose(std::FILE* stream) noexcept
-    { return ignore_interruption(std::fclose, stream) != error_response; }
+  static inline bool fclose(FILE* stream) noexcept
+    { return ignore_interruption(::fclose, stream) != error_response; }
 
-  static inline bool feof(std::FILE* stream) noexcept
+  static inline bool feof(FILE* stream) noexcept
     { return ::feof(stream); }
 
-  static inline bool fseek(std::FILE* stream, off_t offset, posix::seek whence) noexcept
+  static inline bool fseek(FILE* stream, off_t offset, posix::seek whence) noexcept
     { return ::fseeko(stream, offset, int(whence)) == success_response; }
 
-  static inline bool fgets(char* s, int n, std::FILE* stream) noexcept
-    { return ignore_interruption<char, char*, int, std::FILE*>(std::fgets, s, n, stream) != nullptr; }
+  static inline bool fgets(char* s, int n, FILE* stream) noexcept
+    { return ignore_interruption<char, char*, int, FILE*>(::fgets, s, n, stream) != nullptr; }
 
   static inline int fgetc(FILE* stream) noexcept
-    { return ignore_interruption(std::fgetc, stream); }
+    { return ignore_interruption(::fgetc, stream); }
+
+  static inline size_t fread(void* buffer, size_t buffer_size, size_t count, FILE* stream) noexcept
+   { return ignore_interruption(::fread, buffer, buffer_size, count, stream); }
+
+  static inline size_t fwrite(const void* buffer, size_t buffer_size, size_t count, FILE* stream) noexcept
+   { return ignore_interruption(::fwrite, buffer, buffer_size, count, stream); }
 
   static inline bool donotblock(fd_t fd)
   {

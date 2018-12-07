@@ -36,9 +36,9 @@ void exiting(void)
 int main(int argc, char* argv[])
 {
   Application app;
-  std::atexit(exiting);
-  std::signal(SIGPIPE, SIG_IGN);
-  std::signal(SIGINT, [](int){ Application::quit(0); });
+  posix::atexit(exiting);
+  posix::signal(SIGPIPE, SIG_IGN);
+  posix::signal(SIGINT, [](int){ Application::quit(0); });
 
   ObjectDemo demo;
   std::cout << "before trigger" << std::endl;

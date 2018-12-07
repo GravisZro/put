@@ -234,7 +234,7 @@
 #endif
 
 constexpr posix::size_t section_length(const char* start, const char* end)
-  { return end == nullptr ? std::strlen(start) : posix::size_t(end - start - 1); }
+  { return end == nullptr ? posix::strlen(start) : posix::size_t(end - start - 1); }
 
 //#define BSD
 
@@ -762,7 +762,7 @@ bool parse_args(void* data, const std::string& options,
                 arg_parser_kv<T> parse_kv,
                 arg_finalize<T> finalize)
 {
-  std::memset(data, 0, MAX_MOUNT_MEM);
+  posix::memset(data, 0, MAX_MOUNT_MEM);
   T* args = static_cast<T*>(data);
   StringToken tok(options.c_str());
   const char* pos = tok.pos();
@@ -818,7 +818,7 @@ bool mount_bsd(const char* device,
 #endif
 {
   char fslist[1024] = { 0 };
-  std::strncpy(fslist, filesystem, 1024);
+  posix::strncpy(fslist, filesystem, 1024);
   const char *pos, *next;
   StringToken tok;
   int mountflags = 0;
@@ -1067,7 +1067,7 @@ static inline bool link_resolve(const char* input, char* output) noexcept
 {
   assert(input != output);
   return readlink(input, output, PATH_MAX) > 0 ||
-      (errno == EINVAL && std::strncpy(output, input, PATH_MAX));
+      (errno == EINVAL && posix::strncpy(output, input, PATH_MAX));
 }
 
 static inline bool device2dir(const char* input, char* output) noexcept
@@ -1083,7 +1083,7 @@ static inline bool device2dir(const char* input, char* output) noexcept
     else if(S_ISDIR(buf.st_mode))
     {
       if(input != output)
-        std::strncpy(output, input, PATH_MAX);
+        posix::strncpy(output, input, PATH_MAX);
       return true;
     }
     else if(S_ISBLK(buf.st_mode) || S_ISCHR(buf.st_mode))
@@ -1091,8 +1091,8 @@ static inline bool device2dir(const char* input, char* output) noexcept
       std::list<fsentry_t> table;
       if(mount_table(table))
         for(const fsentry_t& entry : table)
-          if(!std::strcmp(entry.device, input))
-            return std::strncpy(output, entry.path, PATH_MAX) == output;
+          if(!posix::strcmp(entry.device, input))
+            return posix::strncpy(output, entry.path, PATH_MAX) == output;
     }
   }
   return false;
@@ -1111,7 +1111,7 @@ static inline bool dir2device(const char* input, char* output) noexcept
     else if(S_ISBLK(buf.st_mode) || S_ISCHR(buf.st_mode))
     {
       if(input != output)
-        std::strncpy(output, input, PATH_MAX);
+        posix::strncpy(output, input, PATH_MAX);
       return true;
     }
     else if(S_ISDIR(buf.st_mode))
@@ -1119,8 +1119,8 @@ static inline bool dir2device(const char* input, char* output) noexcept
       std::list<fsentry_t> table;
       if(mount_table(table))
         for(const fsentry_t& entry : table)
-          if(!std::strcmp(entry.path, input))
-            return std::strncpy(output, entry.device, PATH_MAX) == output;
+          if(!posix::strcmp(entry.path, input))
+            return posix::strncpy(output, entry.device, PATH_MAX) == output;
     }
   }
   return false;

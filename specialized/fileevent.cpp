@@ -55,7 +55,7 @@ struct FileEvent::platform_dependant // file notification (inotify)
     fd = ::inotify_init();
     flaw(fd == posix::invalid_descriptor,
          terminal::severe,,,
-         "Unable to create an instance of inotify!: %s", std::strerror(errno));
+         "Unable to create an instance of inotify!: %s", posix::strerror(errno));
     posix::fcntl(fd, F_SETFD, FD_CLOEXEC); // close on exec*()
   }
 
@@ -100,7 +100,7 @@ struct FileEvent::platform_dependant // file notification (inotify)
           return { event->name, from_native_flags(event->mask) };
         if(pos + sizeof(inotify_event) + event->len >= end) // check if next entry exceeds buffer
         {
-          std::memmove(buffer, pos, end - pos); // move partial entry
+          posix::memmove(buffer, pos, end - pos); // move partial entry
           pos = buffer + (end - pos); // move to end of partial entry
           end = pos; // ensure exit
         }
@@ -146,7 +146,7 @@ static constexpr native_flags_t to_native_flags(const uint8_t flags) noexcept
 
 template<typename T>
 static inline bool data_identical(T& a, T& b) noexcept
-{ return std::memcmp(&a, &b, sizeof(T)) == 0; }
+{ return posix::memcmp(&a, &b, sizeof(T)) == 0; }
 
 struct FileEvent::platform_dependant // file notification (inotify)
 {
@@ -178,8 +178,8 @@ struct FileEvent::platform_dependant // file notification (inotify)
 
     flaw(::sigaction(SIGFILEEVENTQUEUE, &actions, nullptr) == posix::error_response,
          terminal::critical,
-         std::exit(errno),,
-         "Unable assign action to a signal: %s", std::strerror(errno))
+         posix::exit(errno),,
+         "Unable assign action to a signal: %s", posix::strerror(errno))
   }
 
   ~platform_dependant(void) noexcept
@@ -224,8 +224,8 @@ struct FileEvent::platform_dependant // file notification (inotify)
                   uint8_t rdata = flags;
                   flaw(posix::write(data.fd[Write], &rdata, 1) != 1,
                        terminal::critical,
-                       std::exit(errno),, // triggers execution stepper FD
-                       "Unable to trigger FileEvent: %s", std::strerror(errno))
+                       posix::exit(errno),, // triggers execution stepper FD
+                       "Unable to trigger FileEvent: %s", posix::strerror(errno))
                 }
               }
             }
@@ -464,7 +464,7 @@ FileEvent::~FileEvent(void) noexcept
 
 template<typename T>
 static inline bool data_identical(T& a, T& b) noexcept
-{ return std::memcmp(&a, &b, sizeof(T)) == 0; }
+{ return posix::memcmp(&a, &b, sizeof(T)) == 0; }
 
 struct FileEvent::platform_dependant // file notification (TimerEvent)
 {

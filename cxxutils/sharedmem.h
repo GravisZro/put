@@ -1,16 +1,15 @@
 #ifndef SHAREDMEM_H
 #define SHAREDMEM_H
 
-#include <cxxutils/posix_helpers.h>
-#include <cxxutils/error_helpers.h>
-#include <cxxutils/vterm.h>
+// POSIX
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
-// POSIX++
-#include <cstdlib> // for exit
-#include <cstdio>
-#include <cstdint>
+// PUT
+#include <cxxutils/posix_helpers.h>
+#include <cxxutils/vterm.h>
+
+
 
 #if _XOPEN_SOURCE >= 700 || _POSIX_C_SOURCE >= 200809L
 
@@ -37,7 +36,7 @@ public:
   {
     flaw(pos >= m_size,
          terminal::critical,
-         std::exit(int(std::errc::bad_address)),
+         posix::exit(int(std::errc::bad_address)),
          m_mem[0],
         "Attempted to access memory out of bounds of the shared memory type!")
     return m_mem[pos];
@@ -47,7 +46,7 @@ private:
   posix::fd_t m_shm_id;
   posix::size_t m_size;
   uint8_t* m_mem;
-  std::FILE* m_rofile;
+  posix::FILE* m_rofile;
 };
 
 #endif

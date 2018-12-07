@@ -1,13 +1,7 @@
 #include "socket.h"
 
-// POSIX
-#include <sys/stat.h>
-
-// POSIX++
-#include <cstdlib>
-
 // PUT
-#include <cxxutils/error_helpers.h>
+#include <cxxutils/posix_helpers.h>
 #include <cxxutils/vterm.h>
 
 // GenericSocket
@@ -62,10 +56,10 @@ bool ClientSocket::connect(const char *socket_path) noexcept
        false,
        "Client socket is already connected!")
 
-  flaw(std::strlen(socket_path) >= sizeof(sockaddr_un::sun_path),
+  flaw(posix::strlen(socket_path) >= sizeof(sockaddr_un::sun_path),
        terminal::warning,,
        false,
-       "socket_path (%lu characters) exceeds the maximum path length (%lu characters)", std::strlen(socket_path), sizeof(sockaddr_un::sun_path))
+       "socket_path (%lu characters) exceeds the maximum path length (%lu characters)", posix::strlen(socket_path), sizeof(sockaddr_un::sun_path))
 
   posix::sockaddr_t peeraddr;
   proccred_t cred;
@@ -77,18 +71,18 @@ bool ClientSocket::connect(const char *socket_path) noexcept
   flaw(!posix::connect(m_socket, peeraddr, socklen_t(peeraddr.size())),
        terminal::warning,,
        false,
-       "connect() to socket file \"%s\" failure: %s", socket_path, std::strerror(errno)) // connect to peer process
+       "connect() to socket file \"%s\" failure: %s", socket_path, posix::strerror(errno)) // connect to peer process
   m_connected = true;
 
   flaw(!::send_cred(m_socket),
        terminal::warning,,
        false,
-       "send_cred() failure: %s", std::strerror(errno)); // get creditials of connected peer process
+       "send_cred() failure: %s", posix::strerror(errno)); // get creditials of connected peer process
 
   flaw(!::recv_cred(m_socket, cred),
        terminal::warning,,
        false,
-       "recv_cred() failure: %s", std::strerror(errno)); // get creditials of connected peer process
+       "recv_cred() failure: %s", posix::strerror(errno)); // get creditials of connected peer process
 
   Object::enqueue(connected, m_socket, peeraddr, cred);
   return true;
@@ -124,7 +118,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t passfd) const noexcept
   flaw(posix::sendmsg(m_socket, &header) == posix::error_response,
        terminal::warning,,
        false,
-       "sendmsg() failure: %s", std::strerror(errno));
+       "sendmsg() failure: %s", posix::strerror(errno));
   ::free(aux_buffer);
   return true;
 }
@@ -134,9 +128,9 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
   (void)flags;
   flaw(m_socket != socket,
        terminal::critical,
-       std::exit(int(std::errc::invalid_argument)),
+       posix::exit(int(std::errc::invalid_argument)),
        false,
-       "ClientSocket::read() was improperly called: %s", std::strerror(int(std::errc::invalid_argument)))
+       "ClientSocket::read() was improperly called: %s", posix::strerror(int(std::errc::invalid_argument)))
 
   msghdr header = {};
   iovec iov = {};
@@ -157,7 +151,7 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
   flaw(byte_count == posix::error_response,
        terminal::warning,,
        false,
-       "recvmsg() failure: %s", std::strerror(errno))
+       "recvmsg() failure: %s", posix::strerror(errno))
 
   flaw(!byte_count,
        terminal::information,
@@ -206,10 +200,10 @@ bool ServerSocket::bind(const char* socket_path, EDomain domain, int socket_back
        false,
        "socket_path is a null value")
 
-  flaw(std::strlen(socket_path) >= sizeof(sockaddr_un::sun_path),
+  flaw(posix::strlen(socket_path) >= sizeof(sockaddr_un::sun_path),
        terminal::warning,,
        false,
-      "socket_path (%lu characters) exceeds the maximum path length (%lu characters)", std::strlen(socket_path), sizeof(sockaddr_un::sun_path));
+      "socket_path (%lu characters) exceeds the maximum path length (%lu characters)", posix::strlen(socket_path), sizeof(sockaddr_un::sun_path));
 
   m_selfaddr = socket_path;
   m_selfaddr = domain;
@@ -217,13 +211,13 @@ bool ServerSocket::bind(const char* socket_path, EDomain domain, int socket_back
   flaw(!posix::bind(m_socket, m_selfaddr, socklen_t(m_selfaddr.size())),
        terminal::warning,,
        false,
-       "Unable to bind to socket to %s: %s", socket_path, std::strerror(errno))
+       "Unable to bind to socket to %s: %s", socket_path, posix::strerror(errno))
   m_connected = true;
 
   flaw(!posix::listen(m_socket, socket_backlog),
        terminal::warning,,
        false,
-       "Unable to listen to server socket: %s", std::strerror(errno))
+       "Unable to listen to server socket: %s", posix::strerror(errno))
   return true;
 }
 
@@ -274,9 +268,9 @@ bool ServerSocket::read(posix::fd_t socket, Flags_t flags) noexcept
   (void)flags;
   flaw(m_socket != socket,
        terminal::critical,
-       std::exit(int(std::errc::invalid_argument)),
+       posix::exit(int(std::errc::invalid_argument)),
        false,
-       "ServerSocket::read() was improperly called: %s", std::strerror(int(std::errc::invalid_argument)))
+       "ServerSocket::read() was improperly called: %s", posix::strerror(int(std::errc::invalid_argument)))
   proccred_t cred;
   posix::sockaddr_t peeraddr;
   socklen_t addrlen = 0;
@@ -285,7 +279,7 @@ bool ServerSocket::read(posix::fd_t socket, Flags_t flags) noexcept
   flaw(connection == posix::error_response,
        terminal::warning,,
        false,
-       "accept() failure: %s", std::strerror(errno))
+       "accept() failure: %s", posix::strerror(errno))
 
   flaw(addrlen >= sizeof(sockaddr_un::sun_path),
        terminal::severe,,
@@ -300,12 +294,12 @@ bool ServerSocket::read(posix::fd_t socket, Flags_t flags) noexcept
   flaw(::recv_cred(m_socket, cred),
        terminal::warning,,
        false,
-       "recv_cred() failure: %s", std::strerror(errno)); // get creditials of connected peer process
+       "recv_cred() failure: %s", posix::strerror(errno)); // get creditials of connected peer process
 
   flaw(::send_cred(m_socket),
        terminal::warning,,
        false,
-       "send_cred() failure: %s", std::strerror(errno)); // get creditials of connected peer process
+       "send_cred() failure: %s", posix::strerror(errno)); // get creditials of connected peer process
 
   m_peers.emplace(connection, peer_t(connection, peeraddr, cred));
   Object::enqueue(newPeerRequest, connection, peeraddr, cred);

@@ -2,13 +2,9 @@
 #define SOCKET_HELPERS_H
 
 // POSIX
-#include <sys/types.h>
 #include <sys/un.h>     // for struct sockaddr_un
 #include <sys/socket.h> // for socket()
 #include <poll.h>       // for poll()
-
-// POSIX++
-#include <cstring>
 
 // PUT
 #include "error_helpers.h"
@@ -89,16 +85,16 @@ namespace posix
     sockaddr_t(void) noexcept
     {
       operator =(EDomain::unspec);
-      std::memset(sun_path, 0, sizeof(sun_path));
+      posix::memset(sun_path, 0, sizeof(sun_path));
     }
 
-    size_t size(void) const noexcept { return sizeof(sun_family) + std::strlen(sun_path); }
+    size_t size(void) const noexcept { return sizeof(sun_family) + posix::strlen(sun_path); }
     operator struct sockaddr*(void) noexcept { return reinterpret_cast<struct sockaddr*>(this); }
     operator const struct sockaddr*(void) const noexcept { return reinterpret_cast<const struct sockaddr*>(this); }
     operator EDomain(void) const noexcept { return static_cast<EDomain>(sun_family); }
     sockaddr_t& operator = (sa_family_t family) noexcept { sun_family = family; return *this; }
     sockaddr_t& operator = (EDomain family) noexcept { return operator =(static_cast<sa_family_t>(family)); }
-    sockaddr_t& operator = (const char* path) noexcept { std::strncpy(sun_path, path, sizeof(sockaddr_un::sun_path)); return *this; }
+    sockaddr_t& operator = (const char* path) noexcept { posix::strncpy(sun_path, path, sizeof(sockaddr_un::sun_path)); return *this; }
   };
 
 // POSIX wrappers

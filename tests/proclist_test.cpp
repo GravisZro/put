@@ -22,11 +22,11 @@ int main(int argc, char* argv[])
 
   flaw(!proclist(everypid),
        terminal::critical,,EXIT_FAILURE,
-       "proclist() failed: %s", std::strerror(errno))
+       "proclist() failed: %s", posix::strerror(errno))
 
   printf("pids:\n");
   for(pid_t onepid : everypid)
-    std::printf("%d ", onepid);
+    posix::printf("%d ", onepid);
   printf("\nend\n");
 
   enum {
@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
        !posix::pipe(stdout_pipe) ||
        !posix::pipe(stderr_pipe),
        terminal::critical,,EXIT_FAILURE,
-       "Unable to create a pipe: %s", std::strerror(errno))
+       "Unable to create a pipe: %s", posix::strerror(errno))
 
   posix_spawn_file_actions_init(&action);
 
@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
                     "/bin/ps", &action, NULL,
                     static_cast<char* const*>(const_cast<char**>(args)), NULL) != posix::success_response,
        terminal::critical,,EXIT_FAILURE,
-       "posix_spawnp failed with error: %s", std::strerror(errno))
+       "posix_spawnp failed with error: %s", posix::strerror(errno))
 
   ::sleep(1);
 
@@ -89,9 +89,9 @@ int main(int argc, char* argv[])
     }
   }
   flaw(!everypid.empty(),
-       terminal::critical, for(pid_t onepid : everypid){ std::fprintf(stderr,"extra pid: %d\n", onepid); },EXIT_FAILURE,
+       terminal::critical, for(pid_t onepid : everypid){ posix::fprintf(stderr,"extra pid: %d\n", onepid); },EXIT_FAILURE,
        "PID count didn't match:\nextra pid count: %d\npids matched: %d", everypid.size(), match_count);
 
-  std::printf("Found %li PIDs\nTEST PASSED!\n", match_count);
+  posix::printf("Found %li PIDs\nTEST PASSED!\n", match_count);
   return EXIT_SUCCESS;
 }

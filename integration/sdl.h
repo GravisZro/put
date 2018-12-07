@@ -1,9 +1,10 @@
 #ifndef PUT_SDL_H
 #define PUT_SDL_H
 
+// integration
 #include <SDL2/SDL.h>
-#include <sys/types.h>
 
+// PUT
 #include <object.h>
 
 static_assert(sizeof(SDL_EventType) == sizeof(uint32_t), "bad size");

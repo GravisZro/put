@@ -4,9 +4,6 @@
 // STL
 #include <string>
 
-// POSIX
-#include <limits.h>
-
 // PUT
 #include <object.h>
 

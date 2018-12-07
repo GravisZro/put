@@ -1,9 +1,5 @@
 #include "application.h"
 
-// POSIX++
-#include <cstring> // for strerror()
-#include <cstdlib> // for exit
-
 // STL
 #include <atomic>
 #include <list>
@@ -30,8 +26,8 @@ Application::Application(void) noexcept
   {
     flaw(!posix::pipe(s_pipeio),
          terminal::critical,
-         std::exit(errno),,
-         "Unable to create pipe for execution stepper: %s", std::strerror(errno))
+         posix::exit(errno),,
+         "Unable to create pipe for execution stepper: %s", posix::strerror(errno))
 
     posix::fcntl(s_pipeio[Read ], F_SETFD, FD_CLOEXEC); // close on exec*()
     posix::fcntl(s_pipeio[Write], F_SETFD, FD_CLOEXEC); // close on exec*()
@@ -39,8 +35,8 @@ Application::Application(void) noexcept
 
     flaw(!EventBackend::add(s_pipeio[Read], EventBackend::SimplePollReadFlags, read),
          terminal::critical,
-         std::exit(errno),, // watch for when execution stepper pipe has been triggered
-         "Unable to watch execution stepper to backend: %s", std::strerror(errno))
+         posix::exit(errno),, // watch for when execution stepper pipe has been triggered
+         "Unable to watch execution stepper to backend: %s", posix::strerror(errno))
   }
 }
 
@@ -49,8 +45,8 @@ void Application::step(void) noexcept
   static const uint8_t dummydata = 0; // dummy content
   flaw(posix::write(s_pipeio[Write], &dummydata, 1) != 1,
        terminal::critical,
-       std::exit(errno),, // triggers execution stepper FD
-       "Unable to trigger Object signal queue processor: %s", std::strerror(errno))
+       posix::exit(errno),, // triggers execution stepper FD
+       "Unable to trigger Object signal queue processor: %s", posix::strerror(errno))
 }
 
 // this is the callback function for the signal queue
