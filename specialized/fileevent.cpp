@@ -229,6 +229,15 @@ struct FileEvent::platform_dependant // file notification (inotify)
                 }
               }
             }
+            else
+            {
+              switch(errno)
+              {
+                case std::errc::permission_denied: flags.AttributeMod = 1; break;
+                case std::errc::not_a_directory:
+                case std::errc::no_such_file_or_directory: flags.Deleted = 1; break; // file may be moved but assume it's deleted
+              }
+            }
           }
         }
       }
@@ -525,9 +534,9 @@ struct FileEvent::platform_dependant // file notification (TimerEvent)
     {
       switch(errno)
       {
-        case EACCES: flags.AttributeMod = 1; break;
-        case ENOTDIR:
-        case ENOENT: flags.Deleted = 1; break; // file may be moved but assume it's deleted
+        case std::errc::permission_denied: flags.AttributeMod = 1; break;
+        case std::errc::not_a_directory:
+        case std::errc::no_such_file_or_directory: flags.Deleted = 1; break; // file may be moved but assume it's deleted
       }
     }
     if(flags)
