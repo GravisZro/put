@@ -1,13 +1,10 @@
 #include "mount.h"
 
 // POSIX++
-#include <cstdlib>
-#include <climits>
-#include <cassert>
+#include <assert.h>
 
 // POSIX
 #include <socket.h>
-#include <sys/stat.h>
 
 // PUT
 #include <cxxutils/posix_helpers.h>

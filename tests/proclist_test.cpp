@@ -1,12 +1,5 @@
-// POSIX++
-#include <cstdlib>
-#include <cstdio>
-
 // Realtime POSIX
 #include <spawn.h>
-
-// POSIX
-#include <unistd.h>
 
 // STL
 #include <algorithm>

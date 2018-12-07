@@ -50,10 +50,10 @@ fsentry_t::~fsentry_t(void) noexcept
 bool fsentry_t::operator == (const fsentry_t& other) const
 {
   return
-      std::strncmp(device     , other.device      , PATH_MAX) == 0 &&
-      std::strncmp(path       , other.path        , PATH_MAX) == 0 &&
-      std::strncmp(filesystems, other.filesystems , PATH_MAX) == 0 &&
-      std::strncmp(options    , other.options     , PATH_MAX) == 0 &&
+      posix::strncmp(device     , other.device      , PATH_MAX) == 0 &&
+      posix::strncmp(path       , other.path        , PATH_MAX) == 0 &&
+      posix::strncmp(filesystems, other.filesystems , PATH_MAX) == 0 &&
+      posix::strncmp(options    , other.options     , PATH_MAX) == 0 &&
       dump_frequency == other.dump_frequency &&
       pass == other.pass;
 }
@@ -106,7 +106,7 @@ bool parse_table(std::list<struct fsentry_t>& table, const char* filename) noexc
 
 #elif defined(__solaris__)  /* Solaris  */
 # include <sys/vfstab.h>
-# include <cctype>
+# include <ctype.h>
 
 int decode_pass(const char* pass)
 {

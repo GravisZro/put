@@ -1,10 +1,5 @@
 #include "procstat.h"
 
-// POSIX++
-# include <cstring>
-# include <climits>
-# include <cstdio>
-
 // PUT
 #include <specialized/osdetect.h>
 
@@ -269,12 +264,6 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 
 #elif defined(__unix__) /* Generic UNIX */
 
-// POSIX
-# include <unistd.h>
-
-// POSIX++
-# include <cstdio>
-
 // PUT
 # include <specialized/mountpoints.h>
 
@@ -310,7 +299,7 @@ bool proc_exe_symlink(pid_t pid, const char* subfile, process_state_t& data) noe
     return false;
 
   filename[length] = 0; // add string terminator
-  char* pos = std::strrchr(filename, ' '); // find last space
+  char* pos = posix::strrchr(filename, ' '); // find last space
   if(pos != NULL && // contains a space (may be part of " (deleted)")
      pos[sizeof(" (deleted)") - 1] == '\0' && // might end with " (deleted)"
      pos == posix::strstr(filename, " (deleted)")) // definately ends with " (deleted)"
@@ -578,8 +567,8 @@ bool proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
        defined(__aix__)     /* AIX      */
 
 // POSIX++
-#  include <cctype>
-#  include <cassert>
+#  include <ctype.h>
+#  include <assert.h>
 
 #  if defined(__solaris__)
 // Solaris

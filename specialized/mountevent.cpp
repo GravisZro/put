@@ -1,8 +1,5 @@
 #include "mountevent.h"
 
-// POSIX++
-#include <climits>
-
 // PUT
 #include <specialized/osdetect.h>
 #include <specialized/mountpoints.h>

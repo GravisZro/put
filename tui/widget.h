@@ -9,7 +9,7 @@
 #include "sizepolicy.h"
 #include "event.h"
 
-#include <cassert>
+#include <assert.h>
 
 namespace tui
 {

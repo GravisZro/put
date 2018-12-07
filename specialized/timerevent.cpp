@@ -124,9 +124,8 @@ bool TimerEvent::stop(void) noexcept
 
 #if defined(_POSIX_TIMERS) && defined(FALLBACK_ON_POSIX_TIMERS)
 // POSIX++
-# include <ctime>
-# include <climits>
-# include <cassert>
+# include <time.h>
+# include <assert.h>
 
 // PUT
 # include <cxxutils/vterm.h>

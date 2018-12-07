@@ -1,9 +1,5 @@
 #include "mountpoints.h"
 
-// POSIX++
-#include <climits>
-#include <cstring>
-
 // PUT
 #include <cxxutils/hashing.h>
 #include <specialized/fstable.h>

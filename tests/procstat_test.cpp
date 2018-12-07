@@ -1,9 +1,5 @@
 // POSIX++
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <climits>
-#include <cassert>
+#include <assert.h>
 
 // Realtime POSIX
 #include <spawn.h>

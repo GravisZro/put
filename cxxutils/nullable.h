@@ -2,8 +2,10 @@
 #define NULLABLE_H
 
 // STL
-#include <cstddef>
 #include <ostream>
+
+// POSIX
+#include <stddef.h>
 
 // PUT
 #include <cxxutils/posix_helpers.h>

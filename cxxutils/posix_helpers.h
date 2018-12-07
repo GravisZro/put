@@ -49,6 +49,7 @@ namespace posix
 
   using ::strerror;
   using ::strchr;
+  using ::strrchr;
   using ::strlen;
   using ::strstr;
 

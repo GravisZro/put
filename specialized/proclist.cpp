@@ -74,9 +74,6 @@ bool proclist(std::set<pid_t>& list) noexcept
       defined(__tru64__)    /* Tru64    */ || \
       defined(__hpux__)     /* HP-UX    */
 
-// POSIX++
-#include <cstdlib>
-
 // POSIX
 #include <dirent.h>
 

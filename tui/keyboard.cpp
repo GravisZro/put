@@ -2,7 +2,7 @@
 
 #include <specialized/eventbackend.h>
 
-#include <cassert>
+#include <assert.h>
 
 #define ESCAPE_BYTE 0x1B
 #define EXTEND_BYTE 0x5B

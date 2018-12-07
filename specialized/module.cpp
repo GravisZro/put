@@ -12,7 +12,6 @@
 // Linux
 # include <sys/mman.h>
 # include <sys/syscall.h>
-# include <sys/stat.h>
 
 # if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,0)
 struct module;
@@ -130,8 +129,6 @@ bool unload_module(const std::string& name) noexcept
 
 #elif defined(__DragonFly__) /* DragonFly BSD */ || \
      (defined(__FreeBSD__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(3,0,0)) /* FreeBSD 3+ */
-// POSIX++
-# include <cstring>
 
 // FreeBSD / DragonFly BSD
 # include <sys/linker.h>

@@ -1,6 +1,5 @@
-// POSIX++
-#include <cassert>
-#include <cstdlib>
+// POSIX
+#include <assert.h>
 
 // PUT
 #include <cxxutils/posix_helpers.h>

@@ -1,7 +1,7 @@
 #ifndef TUITYPES_H
 #define TUITYPES_H
 
-#include <cstdint>
+#include <stdint.h>
 
 namespace tui
 {

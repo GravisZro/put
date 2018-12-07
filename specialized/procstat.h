@@ -5,9 +5,6 @@
 #include <string>
 #include <vector>
 
-// POSIX++
-#include <cstdint>
-
 // POSIX
 #include <time.h>
 
