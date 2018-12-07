@@ -1,15 +1,42 @@
 #include "blockinfo.h"
 
+#include <specialized/osdetect.h>
+#include <specialized/mountpoints.h>
+
 #if defined(__linux__) /* Linux */
-#include <linux/fs.h>
+# include <linux/fs.h>
+# include <sys/sysmacros.h>
 #elif defined(BSD) || defined(__darwin__) /* *BSD/Darwin */
-#include <sys/disklabel.h>
-#include <sys/disk.h>
+# include <sys/disklabel.h>
+# include <sys/disk.h>
 #endif
 
 bool block_info(const char* device, blockinfo_t& info) noexcept
 {
-  posix::fd_t fd = posix::open(device, O_RDONLY);
+#if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,0) /* Linux 2.6.0+ */
+  struct stat devinfo;
+  if(sysfs_path != nullptr && // check if mounted
+     posix::stat(device, &devinfo))
+  {
+    unsigned int major_num = major(devinfo.st_dev);
+    unsigned int minor_num = minor(devinfo.st_dev);
+    char sysfs_info[PATH_MAX] = { 0 };
+    posix::sscanf(sysfs_info, "%s/dev/block/%u:%u/size", sysfs_path, &major_num, &minor_num);
+
+    posix::FILE* file = posix::fopen(sysfs_info, "r");
+    char sz[256] = { '\0' };
+    if(posix::fread(sz, 256, 256, file) > 0 && posix::feof(file))
+    {
+      info.block_count = posix::strtoull(sz, NULL, 10);
+      if(info.block_count)
+      {
+        info.block_size = 512;
+        return true;
+      }
+    }
+  }
+#endif
+  posix::fd_t fd = posix::open(device, O_RDONLY | O_CLOEXEC);
 
   if(fd == posix::error_response)
     return false;
