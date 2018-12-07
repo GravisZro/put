@@ -1,9 +1,7 @@
 #include "fstable.h"
 
-// POSIX++
-#include <cstring>
-#include <cctype>
-#include <climits>
+// POSIX
+#include <ctype.h>
 
 // PUT
 #include <specialized/osdetect.h>
@@ -13,10 +11,10 @@ fsentry_t::fsentry_t(void) noexcept
   : dump_frequency(0),
     pass(0)
 {
-  device      = static_cast<char*>(::malloc(PATH_MAX));
-  path        = static_cast<char*>(::malloc(PATH_MAX));
-  filesystems = static_cast<char*>(::malloc(PATH_MAX));
-  options     = static_cast<char*>(::malloc(PATH_MAX));
+  device      = static_cast<char*>(posix::malloc(PATH_MAX));
+  path        = static_cast<char*>(posix::malloc(PATH_MAX));
+  filesystems = static_cast<char*>(posix::malloc(PATH_MAX));
+  options     = static_cast<char*>(posix::malloc(PATH_MAX));
 }
 
 fsentry_t::fsentry_t(const char* _device,
@@ -37,10 +35,10 @@ fsentry_t::fsentry_t(const char* _device,
 
 fsentry_t::~fsentry_t(void) noexcept
 {
-  if(device      != NULL) { ::free(device     ); }
-  if(path        != NULL) { ::free(path       ); }
-  if(filesystems != NULL) { ::free(filesystems); }
-  if(options     != NULL) { ::free(options    ); }
+  if(device      != NULL) { posix::free(device     ); }
+  if(path        != NULL) { posix::free(path       ); }
+  if(filesystems != NULL) { posix::free(filesystems); }
+  if(options     != NULL) { posix::free(options    ); }
   device      = nullptr;
   path        = nullptr;
   filesystems = nullptr;
@@ -198,7 +196,7 @@ bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
   if(file == NULL)
     return false;
 /*
-  char* field = static_cast<char*>(::malloc(PATH_MAX));
+  char* field = static_cast<char*>(posix::malloc(PATH_MAX));
   if(field == NULL)
     return posix::error_response;
 
@@ -247,10 +245,10 @@ bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
     if(std::isgraph(entry.pass))
       table.push_back(entry);
   }
-  ::free(line);
+  posix::free(line);
   line = nullptr;
 
-  ::free(field);
+  posix::free(field);
   field = nullptr;
 */
   return posix::is_success();
@@ -288,7 +286,7 @@ bool mount_table(std::list<struct fsentry_t>& table) noexcept
   if(count < 0)
     return false;
 
-  struct statfs* buffer = static_cast<struct statfs*>(::malloc(sizeof(struct statfs) * count));
+  struct statfs* buffer = static_cast<struct statfs*>(posix::malloc(sizeof(struct statfs) * count));
   if(buffer == nullptr)
     return false;
 
@@ -309,7 +307,7 @@ bool mount_table(std::list<struct fsentry_t>& table) noexcept
                        "",
                        0,
                        0);
-  ::free(buffer);
+  posix::free(buffer);
   return true;
 }
 

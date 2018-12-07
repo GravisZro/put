@@ -21,7 +21,7 @@ bool vfifo::allocate(posix::ssize_t length) noexcept
 
   if(length <= capacity()) // reducing the allocated size is not allowed!
     return false;
-  char* new_data = static_cast<char*>(::malloc(posix::size_t(length)));
+  char* new_data = static_cast<char*>(posix::malloc(posix::size_t(length)));
   if(new_data == nullptr)
     return false;
 

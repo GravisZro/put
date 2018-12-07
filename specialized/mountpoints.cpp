@@ -16,9 +16,9 @@ char* scfs_path   = nullptr;
 inline void assign_data(char*& target, const char* str) noexcept
 {
   if(target != nullptr)
-    ::free(target);
+    posix::free(target);
   size_t length = ::strnlen(str, PATH_MAX) + 1;
-  target = static_cast<char*>(::malloc(length));
+  target = static_cast<char*>(posix::malloc(length));
   posix::strncpy(target, str, length);
 }
 

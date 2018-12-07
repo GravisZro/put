@@ -802,11 +802,11 @@ bool mount(const char* device,
            const char* options) noexcept
 #if defined(BSD)
 {
-  void* data = ::malloc(MAX_MOUNT_MEM); // allocate memory
+  void* data = posix::malloc(MAX_MOUNT_MEM); // allocate memory
   if(data == NULL)
     return false;
   bool result = mount_bsd(device, path, filesystem, options, data);
-  ::free(data);
+  posix::free(data);
   return result;
 }
 

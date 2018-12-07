@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
 
   for(size_t i = 0; i < arraylength(field_buffer) - 1; ++i)
     if(field_buffer[i] != NULL)
-      ::free(field_buffer[i]);
+      posix::free(field_buffer[i]);
 
   posix::printf("matched %i devices - skipped %i devices\n", processed_count, skip_count);
   posix::printf("TEST PASSED!\n");

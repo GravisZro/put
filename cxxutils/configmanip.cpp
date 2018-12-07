@@ -4,7 +4,7 @@
 #include <map>
 
 // POSIX++
-#include <cctype>
+#include <ctype.h>
 
 // PUT
 #include "syslogstream.h"

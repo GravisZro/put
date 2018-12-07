@@ -379,7 +379,7 @@ int main(int argc, char* argv[])
   posix::fclose(fptr);
 
   if(field_buffer != NULL)
-    ::free(field_buffer);
+    posix::free(field_buffer);
 
   posix::printf("TEST PASSED!\n");
   return EXIT_SUCCESS;
@@ -483,9 +483,9 @@ int main(int argc, char* argv[])
   posix::donotblock(stdout_pipe[Read]);
   //FILE* fptr = ::fdopen(stdout_pipe[Read], "r");
 
-  char* data_buffer  = static_cast<char*>(::malloc(BUF_SIZE));
-  char* field_buffer = static_cast<char*>(::malloc(BUF_SIZE));
-  char* line_buffer  = static_cast<char*>(::malloc(BUF_SIZE));
+  char* data_buffer  = static_cast<char*>(posix::malloc(BUF_SIZE));
+  char* field_buffer = static_cast<char*>(posix::malloc(BUF_SIZE));
+  char* line_buffer  = static_cast<char*>(posix::malloc(BUF_SIZE));
 
   posix::memset(data_buffer , 0, BUF_SIZE);
   posix::memset(field_buffer, 0, BUF_SIZE);
@@ -698,13 +698,13 @@ int main(int argc, char* argv[])
   } while(remaining > 0);
 
   if(data_buffer != NULL)
-    ::free(data_buffer);
+    posix::free(data_buffer);
 
   if(field_buffer != NULL)
-    ::free(field_buffer);
+    posix::free(field_buffer);
 
   if(line_buffer != NULL)
-    ::free(line_buffer);
+    posix::free(line_buffer);
 
   posix::printf("TEST PASSED!\n");
   return EXIT_SUCCESS;

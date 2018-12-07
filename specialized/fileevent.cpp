@@ -5,9 +5,8 @@
 
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,4,0) /* Linux 2.4.0+ */
 
-// POSIX++
-# include <cstring>
-# include <cassert>
+// POSIX
+# include <assert.h>
 
 // PUT
 # include <cxxutils/vterm.h>
@@ -451,12 +450,8 @@ FileEvent::~FileEvent(void) noexcept
 }
 
 #else
-// POSIX++
-# include <cstring>
-# include <cassert>
-
 // POSIX
-# include <sys/stat.h>
+# include <assert.h>
 
 // PUT
 # include <cxxutils/vterm.h>

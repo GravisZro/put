@@ -37,6 +37,8 @@ namespace posix
   using ::signal;
   using ::exit;
   using ::atexit;
+  using ::malloc;
+  using ::free;
 
   // string.h
   using ::memset;

@@ -1,9 +1,8 @@
-#include "object.h"
-
-#include <csignal>
+// STL
 #include <iostream>
 
-
+// PUT
+#include <object.h>
 #include <tui/keyboard.h>
 
 void exiting(void)

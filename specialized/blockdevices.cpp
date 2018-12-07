@@ -118,7 +118,7 @@ namespace blockdevices
         devices.emplace_back(dev);
       }
     }
-    ::free(line);
+    posix::free(line);
     line = nullptr;
 
     return posix::fclose(file);
@@ -137,7 +137,7 @@ namespace blockdevices
     if(sysctl(mib, sizeof(mib), NULL, &len, NULL, 0) == posix::error_response)
       return false;
 
-    char* p = (char *)::malloc(len);
+    char* p = (char *)posix::malloc(len);
     if(p == NULL)
       return false;
 
@@ -182,7 +182,7 @@ namespace blockdevices
     ~request_argument(void) noexcept
     {
       if(valid_memory())
-        ::free(name);
+        posix::free(name);
       name = NULL;
     }
 
@@ -201,7 +201,7 @@ namespace blockdevices
     ~control_request(void)
     {
       if(valid_memory())
-        ::free(error);
+        posix::free(error);
       error = NULL;
     }
 
@@ -315,7 +315,7 @@ namespace blockdevices
        !block_info(fd, info))
       return false;
 
-    uint8_t* superblock = static_cast<uint8_t*>(::malloc(info.block_size));
+    uint8_t* superblock = static_cast<uint8_t*>(posix::malloc(info.block_size));
     if(superblock == NULL)
       return false;
 
@@ -329,7 +329,7 @@ namespace blockdevices
       ++detectpos;
 
     posix::printf("device: %s - label: %s - fs: %s - block size: %u - block count: %lu\n", dev.path, dev.label, dev.fstype, dev.block_size, dev.block_count);
-    ::free(superblock);
+    posix::free(superblock);
 
     return posix::close(fd);
   } // end detect()

@@ -92,7 +92,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t passfd) const noexcept
 {
   msghdr header = {};
   iovec iov = {};
-  char* aux_buffer = static_cast<char*>(::malloc(CMSG_SPACE(sizeof(int))));
+  char* aux_buffer = static_cast<char*>(posix::malloc(CMSG_SPACE(sizeof(int))));
   if(aux_buffer == NULL)
     return false;
 
@@ -119,7 +119,7 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t passfd) const noexcept
        terminal::warning,,
        false,
        "sendmsg() failure: %s", posix::strerror(errno));
-  ::free(aux_buffer);
+  posix::free(aux_buffer);
   return true;
 }
 
@@ -134,7 +134,7 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
 
   msghdr header = {};
   iovec iov = {};
-  char* aux_buffer = static_cast<char*>(::malloc(CMSG_SPACE(sizeof(int))));
+  char* aux_buffer = static_cast<char*>(posix::malloc(CMSG_SPACE(sizeof(int))));
   if(aux_buffer == NULL)
     return false;
 
@@ -181,7 +181,7 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
          "error, message flags: 0x%04x", header.msg_flags)
   }
   Object::enqueue(newMessage, m_socket, m_buffer, passfd);
-  ::free(aux_buffer);
+  posix::free(aux_buffer);
   return true;
 }
 

@@ -514,7 +514,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
 
 bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
 {
-  char* line = static_cast<char*>(::malloc(PATH_MAX));
+  char* line = static_cast<char*>(posix::malloc(PATH_MAX));
 
   if(line == NULL)
     return false;
@@ -559,7 +559,7 @@ bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
   posix::sscanf(line, "SigCgt:\t%" SCNx64 "\n",
               reinterpret_cast<uint64_t*>(&data.signals_caught));
 
-  ::free(line);
+  posix::free(line);
   return true;
 }
 
@@ -570,7 +570,7 @@ bool proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
   while(::getdelim(&argbuffer, &argsz, '\0', file) != posix::error_response)
     data.arguments.emplace_back(argbuffer);
   if(argbuffer != NULL)
-    ::free(argbuffer);
+    posix::free(argbuffer);
   return ::feof(file); // if read to the end of the file
 }
 
