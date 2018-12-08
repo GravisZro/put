@@ -86,7 +86,10 @@ namespace posix
   using ::scanf;
   using ::sscanf;
   using ::fscanf;
-
+  using ::ftell;
+  using ::fflush;
+  using ::fileno;
+  using ::rewind;
 
   // unistd.h
   using ::access;

@@ -284,7 +284,7 @@ bool proc_decode(pid_t pid, const char* subfile, decode_func func, process_state
 
   bool rval = true;
   rval &= func(file, data);
-  rval &= std::fclose(file) == posix::success_response;
+  rval &= posix::fclose(file) == posix::success_response;
   return rval;
 }
 
