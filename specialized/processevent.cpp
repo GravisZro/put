@@ -73,6 +73,7 @@ struct ProcessEvent::platform_dependant // process notification (process events 
       flaw(errno != std::errc::operation_not_permitted,
            terminal::warning,,,
            "Unable to bind socket for Process Events Connector: %s", posix::strerror(errno))
+      errno = posix::success_response; // clear error
     }
     else
     {
