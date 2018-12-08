@@ -13,7 +13,7 @@ inline void assign_data(char*& target, const char* str) noexcept
 {
   if(target != nullptr)
     posix::free(target);
-  size_t length = ::strnlen(str, PATH_MAX) + 1;
+  size_t length = posix::strnlen(str, PATH_MAX) + 1;
   target = static_cast<char*>(posix::malloc(length));
   posix::strncpy(target, str, length);
 }
