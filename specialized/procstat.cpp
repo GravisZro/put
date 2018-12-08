@@ -269,7 +269,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 
 static posix::size_t arg_max = posix::size_t(sysconf(_SC_ARG_MAX));
 
-typedef bool (*decode_func)(FILE*, process_state_t&);
+typedef bool (*decode_func)(posix::FILE*, process_state_t&);
 
 bool proc_decode(pid_t pid, const char* subfile, decode_func func, process_state_t& data)
 {
@@ -278,7 +278,7 @@ bool proc_decode(pid_t pid, const char* subfile, decode_func func, process_state
                 subfile == nullptr ? '\0' : '/',
                 subfile == nullptr ? "" : subfile);
 
-  FILE* file = posix::fopen(filename, "r");
+  posix::FILE* file = posix::fopen(filename, "r");
   if(file == NULL)
     return false;
 
@@ -313,7 +313,7 @@ bool proc_exe_symlink(pid_t pid, const char* subfile, process_state_t& data) noe
 // POSIX
 #  include <inttypes.h> // for fscanf macros
 
-bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
+bool proc_stat_decoder(posix::FILE* file, process_state_t& data) noexcept
 {
   struct //procinfo_t
   {
@@ -501,7 +501,7 @@ bool proc_stat_decoder(FILE* file, process_state_t& data) noexcept
   return true;
 }
 
-bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
+bool proc_status_decoder(posix::FILE* file, process_state_t& data) noexcept
 {
   char* line = static_cast<char*>(posix::malloc(PATH_MAX));
 
@@ -552,7 +552,7 @@ bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
   return true;
 }
 
-bool proc_cmdline_decoder(FILE* file, process_state_t& data) noexcept
+bool proc_cmdline_decoder(posix::FILE* file, process_state_t& data) noexcept
 {
   char* argbuffer = NULL;
   size_t argsz = 0;
@@ -579,7 +579,7 @@ typdef struct psinfo  psinfo_t;
 typdef struct pstatus pstatus_t;
 #  endif
 
-bool proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
+bool proc_psinfo_decoder(posix::FILE* file, process_state_t& data) noexcept
 {
   psinfo_t info;
   if(fread(&info, sizeof(info), 1, file) <= 0 ||
@@ -613,7 +613,7 @@ bool proc_psinfo_decoder(FILE* file, process_state_t& data) noexcept
   return true;
 }
 
-bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
+bool proc_status_decoder(posix::FILE* file, process_state_t& data) noexcept
 {
   pstatus_t status;
   if(fread(&status, sizeof(status), 1, file) <= 0)
@@ -652,7 +652,7 @@ bool proc_status_decoder(FILE* file, process_state_t& data) noexcept
 // Tru64/IRIX
 #  include <sys/procfs.h>
 
-bool proc_pid_decoder(FILE* file, process_state_t& data) noexcept
+bool proc_pid_decoder(posix::FILE* file, process_state_t& data) noexcept
 {
   prpsinfo_t info;
   prstatus_t status;
