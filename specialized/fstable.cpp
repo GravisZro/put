@@ -80,10 +80,10 @@ static const char* mount_table_path = "/etc/mtab";
 bool parse_table(std::list<struct fsentry_t>& table, const char* filename) noexcept
 {
   table.clear();
-  FILE* file = ::setmntent(filename, "r");
-  if(file == nullptr && posix::is_success())
+  posix::FILE* file = ::setmntent(filename, "r");
+  if(file == NULL && posix::is_success())
     return posix::error(std::errc::no_such_file_or_directory);
-  if(file == nullptr)
+  if(file == NULL)
     return false;
 
   struct mntent* entry = NULL;
@@ -115,8 +115,8 @@ int decode_pass(const char* pass)
 bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
 {
   table.clear();
-  FILE* file = ::open(fs_table_path, "r");
-  if(file == nullptr)
+  posix::FILE* file = posix::fopen(fs_table_path, "r");
+  if(file == NULL)
     return posix::error_response;
 
   vfstab entry;
@@ -129,7 +129,7 @@ bool filesystem_table(std::list<struct fsentry_t>& table) noexcept
                        0,
                        decode_pass(entry.vfs_fsckpass));
   }
-  ::close(file);
+  posix::fclose(file);
   return posix::is_success();
 }
 #endif
