@@ -57,6 +57,7 @@ namespace posix
   using ::strchr;
   using ::strrchr;
   using ::strlen;
+  using ::strnlen;
   using ::strstr;
 
   using ::strcat;
