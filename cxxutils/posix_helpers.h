@@ -79,6 +79,7 @@ namespace posix
 
   // stdio.h
   using ::getline;
+  using ::getdelim;
   using ::printf;
   using ::dprintf;
   using ::sprintf;
