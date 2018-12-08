@@ -284,7 +284,7 @@ bool proc_decode(pid_t pid, const char* subfile, decode_func func, process_state
 
   bool rval = true;
   rval &= func(file, data);
-  rval &= posix::fclose(file) == posix::success_response;
+  rval &= posix::fclose(file);
   return rval;
 }
 
@@ -556,7 +556,7 @@ bool proc_cmdline_decoder(posix::FILE* file, process_state_t& data) noexcept
 {
   char* argbuffer = NULL;
   size_t argsz = 0;
-  while(::getdelim(&argbuffer, &argsz, '\0', file) != posix::error_response)
+  while(posix::getdelim(&argbuffer, &argsz, '\0', file) != posix::error_response)
     data.arguments.emplace_back(argbuffer);
   if(argbuffer != NULL)
     posix::free(argbuffer);
@@ -816,7 +816,7 @@ inline void clear_state(process_state_t& data) noexcept
   posix::memset(&data.system_time    , 0, sizeof(timeval ));
 }
 
-bool procstat(pid_t pid, process_state_t& data) noexcept
+bool real_procstat(pid_t pid, process_state_t& data) noexcept
 {
   clear_state(data);
   if(procfs_path == nullptr) // safety check
@@ -852,6 +852,16 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 # endif
 
   return true;
+}
+
+bool procstat(pid_t pid, process_state_t& data) noexcept
+{
+  error_t backup = errno;
+  errno = posix::success_response;
+  bool rval = real_procstat(pid, data);
+  if(errno == posix::success_response)
+    errno = backup;
+  return rval;
 }
 
 #else

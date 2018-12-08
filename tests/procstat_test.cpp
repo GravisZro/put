@@ -94,7 +94,7 @@ bool getfield(char*& lineptr,
               FILE* fptr)
 {
   size_t line_size = 0;
-  ssize_t count = ::getdelim(&lineptr, &line_size, delimiter, fptr);
+  ssize_t count = posix::getdelim(&lineptr, &line_size, delimiter, fptr);
   if(count > 0)
     lineptr[count - 1] = '\0';
   return count > 0;
@@ -106,13 +106,16 @@ constexpr bool not_zero(const char* data)
 
 void file_cleanup(void)
 {
-  assert(!system("rm psoutput sedoutput"));
+  assert(!system("rm -f psoutput sedoutput"));
 }
 
 int main(int, char* [])
 {
 #if defined(PROCFS_DEBUG)
   posix::printf("procfs checking enabled\n");
+  assert(reinitialize_paths());
+  assert(procfs_path != nullptr);
+  assert(procfs_path != NULL);
 #endif
 
   posix::atexit(file_cleanup);
@@ -287,7 +290,6 @@ int main(int, char* [])
     if(getfield(field_buffer, '\n', fptr)) // args
       proc_test_split_arguments(ps_state.arguments, field_buffer);
 
-    posix::success();
     if(!procstat(ps_state.process_id, procstat_state) &&
        ps_state.process_id)
     {

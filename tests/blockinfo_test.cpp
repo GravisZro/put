@@ -39,7 +39,7 @@ bool getfield(char*& lineptr,
               FILE* fptr)
 {
   size_t line_size = 0;
-  ssize_t count = ::getdelim(&lineptr, &line_size, delimiter, fptr);
+  ssize_t count = posix::getdelim(&lineptr, &line_size, delimiter, fptr);
   if(count > 0)
     lineptr[count - 1] = '\0';
   return count > 0;
@@ -51,16 +51,12 @@ constexpr bool not_zero(const char* data)
 
 void file_cleanup(void)
 {
-  assert(!system("rm lsblkoutput sedoutput"));
+  assert(!system("rm -f lsblkoutput sedoutput"));
 }
 
 int main(int, char* [])
 {
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,0) /* Linux 2.6.0+ */
-  posix::printf("TEST NOT SUPPORTED!\n");
-  return 0;
-#else
-
   posix::atexit(file_cleanup);
   const char* lsblk_command  = "lsblk -b -n -l -o NAME,LOG-SEC,SIZE > lsblkoutput";
 
@@ -123,6 +119,9 @@ int main(int, char* [])
   posix::printf("matched %i devices - skipped %i devices\n", processed_count, skip_count);
   posix::printf("TEST PASSED!\n");
 
+  return 0;
+#else
+  posix::printf("TEST NOT SUPPORTED!\n");
   return 0;
 #endif
 }
