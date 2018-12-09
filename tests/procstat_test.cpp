@@ -544,7 +544,7 @@ int main(int argc, char* argv[])
 
       if(first ||
          ps_state.process_id == pspid ||
-         ps_state.process_id == ::getpid())
+         ps_state.process_id == posix::getpid())
       {
         first = false;
         pos = nextline + 1;

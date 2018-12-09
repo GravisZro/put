@@ -115,20 +115,8 @@ namespace posix
 #if (_XOPEN_SOURCE - 0) >= 700
   using ::fexecve;
 #endif
+  using ::getpid;
 
-  /*
-  int execl(const char *path, const char *arg0, ... /, (char *)0 /);
-//  int execle(const char *path, const char *arg0, ... /, (char *)0, char *const envp[]/);
-  int execlp(const char *file, const char *arg0, ... /, (char *)0 /);
-
-  // scripts
-  static inline bool execvp(const char *file, char *const argv[]);
-
-  // binaries
-  static inline bool execv(const char *path, char *const argv[]);
-  static inline bool execve(const char *path, char *const argv[], char *const envp[]);
-  static inline bool fexecve(int fd, char *const argv[], char *const envp[]);
-*/
 
   typedef int fd_t;
   static const fd_t invalid_descriptor = error_response;
