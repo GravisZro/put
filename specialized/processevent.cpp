@@ -117,6 +117,9 @@ struct ProcessEvent::platform_dependant // process notification (process events 
 
   posix::fd_t add(pid_t pid, Flags_t flags) noexcept
   {
+    if(events.find(pid) != events.end())
+      return events.find(pid)->second.fd[Read];
+
     eventinfo_t data;
     data.flags = flags;
     if(!permitted || !posix::pipe(data.fd))
