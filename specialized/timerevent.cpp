@@ -108,7 +108,7 @@ TimerEvent::~TimerEvent(void) noexcept
 
 bool TimerEvent::start(milliseconds_t delay, bool repeat) noexcept
 {
-  return EventBackend::add(m_fd, composite_flag( repeat ? EV_ONESHOT : 0, EVFILT_TIMER, delay), // connect timer event to lambda function
+  return EventBackend::add(m_fd, composite_flag((repeat ? EV_ONESHOT : 0), EVFILT_TIMER, delay), // connect timer event to lambda function
                     [this](posix::fd_t lambda_fd, native_flags_t lambda_flags) noexcept
                       { Object::enqueue_copy(expired); });
 }
