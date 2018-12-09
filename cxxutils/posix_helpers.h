@@ -37,7 +37,9 @@ namespace posix
   // stdlib.h
   using ::signal;
   using ::exit;
+#if (_XOPEN_SOURCE) >= 400
   using ::atexit;
+#endif
   using ::malloc;
   using ::free;
 
@@ -51,13 +53,19 @@ namespace posix
   using ::memchr;
   using ::memcmp;
   using ::memcpy;
+#if (_XOPEN_SOURCE) >= 400
   using ::memmove;
+#endif
 
+#if (_XOPEN_SOURCE) >= 300
   using ::strerror;
+#endif
   using ::strchr;
   using ::strrchr;
   using ::strlen;
+#if (_XOPEN_SOURCE) >= 700
   using ::strnlen;
+#endif
   using ::strstr;
 
   using ::strcat;
@@ -69,13 +77,18 @@ namespace posix
 
   using ::atoi;
   using ::atol;
-  using ::atoll;
   using ::strtod;
-  using ::strtof;
   using ::strtol;
+#if (_XOPEN_SOURCE) >= 600
+  using ::atoll;
+  using ::strtof;
+  using ::strtold;
   using ::strtoll;
+#endif
+#if (_XOPEN_SOURCE) >= 400
   using ::strtoul;
   using ::strtoull;
+#endif
 
   // stdio.h
   using ::getline;
@@ -83,7 +96,9 @@ namespace posix
   using ::printf;
   using ::dprintf;
   using ::sprintf;
+#if (_XOPEN_SOURCE) >= 500
   using ::snprintf;
+#endif
   using ::fprintf;
   using ::scanf;
   using ::sscanf;
@@ -95,7 +110,9 @@ namespace posix
 
   // unistd.h
   using ::access;
+#if (_XOPEN_SOURCE) >= 700
   using ::faccessat;
+#endif
   using ::alarm;
   using ::chdir;
   // ::chown EINTR
@@ -112,7 +129,7 @@ namespace posix
   using ::execv;
   using ::execve;
   using ::execvp;
-#if (_XOPEN_SOURCE - 0) >= 700
+#if (_XOPEN_SOURCE) >= 700
   using ::fexecve;
 #endif
   using ::getpid;
@@ -121,25 +138,29 @@ namespace posix
   typedef int fd_t;
   static const fd_t invalid_descriptor = error_response;
 
+#if (_XOPEN_SOURCE) >= 420
   static inline bool fchdir(fd_t fd) noexcept
     { return ignore_interruption<int, fd_t>(::fchdir, fd) != error_response; }
-
+#endif
 
   static inline bool setuid(uid_t uid) noexcept
     { return ignore_interruption<int, uid_t>(::setuid, uid) != error_response; }
 
-  static inline bool seteuid(uid_t uid) noexcept
-    { return ignore_interruption<int, uid_t>(::seteuid, uid) != error_response; }
-
   static inline bool setgid(gid_t gid) noexcept
     { return ignore_interruption<int, gid_t>(::setgid, gid) != error_response; }
 
+  using ::getuid;
+  using ::getgid;
+
+#if (_XOPEN_SOURCE) >= 600
+  static inline bool seteuid(uid_t uid) noexcept
+    { return ignore_interruption<int, uid_t>(::seteuid, uid) != error_response; }
+
   static inline bool setegid(gid_t gid) noexcept
     { return ignore_interruption<int, gid_t>(::setegid, gid) != error_response; }
+#endif
 
-  using ::getuid;
   using ::geteuid;
-  using ::getgid;
   using ::getegid;
 
   static inline bool pipe(fd_t fildes[2]) noexcept
@@ -149,15 +170,18 @@ namespace posix
   //using ::dup2; EINTR
 
   using ::fork;
-#if defined(_XOPEN_SOURCE_EXTENDED)
+#if (_XOPEN_SOURCE) >= 500 && defined(_XOPEN_SOURCE_EXTENDED)
   static inline bool sigqueue(pid_t pid, int signo, union sigval value) noexcept
     { return ignore_interruption<int, pid_t, int, union sigval>(::sigqueue, pid, signo, value) != error_response; }
 #endif
+
   static inline bool kill(pid_t pid, int signo) noexcept
     { return ignore_interruption<int, pid_t, int>(::kill, pid, signo) != error_response; }
 
+#if (_XOPEN_SOURCE) >= 420
   static inline bool killpg(pid_t pid, int signo) noexcept
     { return ignore_interruption<int, pid_t, int>(::killpg, pid, signo) != error_response; }
+#endif
 
   using ::getopt;
 
@@ -304,11 +328,13 @@ namespace posix
       DeviceDisconnected                = POLL_HUP,
     };
 
+#if (_XOPEN_SOURCE) >= 400
     static inline bool raise(EId id) noexcept
       { return ::raise(id) == success_response; }
+#endif
 
     static inline bool send(pid_t pid, EId id, int value = 0) noexcept
-#if defined(_XOPEN_SOURCE_EXTENDED)
+#if (_XOPEN_SOURCE) >= 500 && defined(_XOPEN_SOURCE_EXTENDED)
       { return posix::sigqueue(pid, id, {value}); }
 #else
       { (void)value; return posix::kill(pid, id); }
