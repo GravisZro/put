@@ -86,6 +86,8 @@ bool parse_table(std::list<struct fsentry_t>& table, const char* filename) noexc
   if(file == NULL)
     return false;
 
+  error_t backup = errno;
+  errno = posix::success_response;
   struct mntent* entry = NULL;
   while((entry = ::getmntent(file)) != NULL &&
         posix::is_success())
@@ -98,7 +100,10 @@ bool parse_table(std::list<struct fsentry_t>& table, const char* filename) noexc
                        entry->mnt_passno);
   }
   ::endmntent(file);
-  return posix::is_success();
+  bool rval = posix::is_success();
+  if(errno == posix::success_response)
+    errno = backup;
+  return rval;
 }
 
 #elif defined(__solaris__)  /* Solaris  */
