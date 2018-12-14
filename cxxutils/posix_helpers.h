@@ -25,6 +25,29 @@
 static_assert(sizeof(::size_t) == sizeof(::off_t), "size_t not the same is as off_t!");
 static_assert(sizeof(::size_t) == sizeof(::ssize_t), "size_t not the same is as ssize_t!");
 
+#ifndef _XOPEN_SOURCE
+#error _XOPEN_SOURCE not defined
+#elif (_XOPEN_SOURCE) >= 800
+# error _XOPEN_SOURCE >= 800
+#elif (_XOPEN_SOURCE) >= 700
+# error _XOPEN_SOURCE >= 700
+#elif (_XOPEN_SOURCE) >= 600
+# error _XOPEN_SOURCE >= 600
+#elif (_XOPEN_SOURCE) >= 500
+# error _XOPEN_SOURCE >= 500
+#elif (_XOPEN_SOURCE) >= 420
+# error _XOPEN_SOURCE >= 420
+#elif (_XOPEN_SOURCE) >= 400
+# error _XOPEN_SOURCE >= 400
+#elif (_XOPEN_SOURCE) >= 300
+# error _XOPEN_SOURCE >= 300
+#elif (_XOPEN_SOURCE) >= 200
+# error _XOPEN_SOURCE >= 200
+#elif (_XOPEN_SOURCE) >= 100
+# error _XOPEN_SOURCE >= 100
+#endif
+
+
 namespace posix
 {
   using ::size_t;
@@ -338,8 +361,10 @@ namespace posix
       { (void)value; return posix::kill(pid, id); }
 #endif
 
+#if (_XOPEN_SOURCE) >= 420
     static inline bool sendpg(pid_t pgid, EId id) noexcept
       { return posix::killpg(pgid, id); }
+#endif
   }
 
 // POSIX wrappers
