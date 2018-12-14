@@ -34,7 +34,7 @@ namespace posix
     RType rval = error_response;
     do {
       rval = func(args...);
-    } while(error_t(rval) == error_response && errno == std::errc::interrupted);
+    } while(error_t(rval) == error_response && errno == posix::errc::interrupted);
     return rval;
   }
 
@@ -44,7 +44,7 @@ namespace posix
     RType* rval = NULL;
     do {
       rval = func(args...);
-    } while(rval == NULL && errno == std::errc::interrupted);
+    } while(rval == NULL && errno == posix::errc::interrupted);
     return rval;
   }
 #endif

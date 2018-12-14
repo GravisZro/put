@@ -128,9 +128,9 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
   (void)flags;
   flaw(m_socket != socket,
        terminal::critical,
-       posix::exit(int(std::errc::invalid_argument)),
+       posix::exit(int(posix::errc::invalid_argument)),
        false,
-       "ClientSocket::read() was improperly called: %s", posix::strerror(int(std::errc::invalid_argument)))
+       "ClientSocket::read() was improperly called: %s", posix::strerror(int(posix::errc::invalid_argument)))
 
   msghdr header = {};
   iovec iov = {};
@@ -161,7 +161,7 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
 
   flaw(!m_buffer.resize(byte_count),
        terminal::severe,,
-       posix::error(std::errc::not_enough_memory),
+       posix::error(posix::errc::not_enough_memory),
        "Failed to resize buffer to %li bytes", byte_count)
 
   posix::fd_t passfd = posix::invalid_descriptor;
@@ -268,9 +268,9 @@ bool ServerSocket::read(posix::fd_t socket, Flags_t flags) noexcept
   (void)flags;
   flaw(m_socket != socket,
        terminal::critical,
-       posix::exit(int(std::errc::invalid_argument)),
+       posix::exit(int(posix::errc::invalid_argument)),
        false,
-       "ServerSocket::read() was improperly called: %s", posix::strerror(int(std::errc::invalid_argument)))
+       "ServerSocket::read() was improperly called: %s", posix::strerror(int(posix::errc::invalid_argument)))
   proccred_t cred;
   posix::sockaddr_t peeraddr;
   socklen_t addrlen = 0;

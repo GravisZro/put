@@ -41,7 +41,7 @@ bool recv_cred(posix::fd_t socket, proccred_t& cred) noexcept
   int rval = ::getsockopt(socket, SOL_LOCAL, LOCAL_PEERCRED, &data, &len);
 
   if(len != sizeof(data))
-    rval = posix::error(std::errc::invalid_argument);
+    rval = posix::error(posix::errc::invalid_argument);
 
   if(rval == posix::success_response)
   {
@@ -52,7 +52,7 @@ bool recv_cred(posix::fd_t socket, proccred_t& cred) noexcept
     rval = ::getsockopt(socket, SOL_LOCAL, LOCAL_PEERPID, &cred.pid, &len);
 
     if(len != sizeof(cred.pid))
-      rval = posix::error(std::errc::invalid_argument);
+      rval = posix::error(posix::errc::invalid_argument);
   }
   return rval == posix::success_response;
 }
@@ -99,7 +99,7 @@ bool recv_cred(posix::fd_t socket, proccred_t& cred) noexcept
   int rval = ::getsockopt(socket, SOL_SOCKET, socket_cred_option, &data, &len);
 
   if(len != sizeof(data))
-    rval = posix::error(std::errc::invalid_argument);
+    rval = posix::error(posix::errc::invalid_argument);
 
   if(rval == posix::success_response)
   {

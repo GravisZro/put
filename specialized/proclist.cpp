@@ -46,7 +46,7 @@ bool proclist(std::set<pid_t>& list) noexcept
   proc_list.resize(length);
   if(proc_list.size() < length) // if resize failed to allocate the required memory
   {
-    errno = int(std::errc::not_enough_memory);
+    errno = int(posix::errc::not_enough_memory);
     return false;
   }
 

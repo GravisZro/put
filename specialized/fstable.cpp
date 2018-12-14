@@ -82,7 +82,7 @@ bool parse_table(std::list<struct fsentry_t>& table, const char* filename) noexc
   table.clear();
   posix::FILE* file = ::setmntent(filename, "r");
   if(file == NULL && posix::is_success())
-    return posix::error(std::errc::no_such_file_or_directory);
+    return posix::error(posix::errc::no_such_file_or_directory);
   if(file == NULL)
     return false;
 

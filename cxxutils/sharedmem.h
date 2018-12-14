@@ -36,7 +36,7 @@ public:
   {
     flaw(pos >= m_size,
          terminal::critical,
-         posix::exit(int(std::errc::bad_address)),
+         posix::exit(int(posix::errc::bad_address)),
          m_mem[0],
         "Attempted to access memory out of bounds of the shared memory type!")
     return m_mem[pos];

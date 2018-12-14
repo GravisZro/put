@@ -377,7 +377,7 @@ namespace posix
     fd_t rval = error_response;
     do {
       rval = ::open(path, oflag, args...);
-    } while(rval == error_response && errno == std::errc::interrupted);
+    } while(rval == error_response && errno == posix::errc::interrupted);
     return rval;
   }
 #endif
@@ -396,7 +396,7 @@ namespace posix
     int rval = error_response;
     do {
       rval = ::ioctl(fd, request, args...);
-    } while(rval == error_response && errno == std::errc::interrupted);
+    } while(rval == error_response && errno == posix::errc::interrupted);
     return rval;
   }
 #endif

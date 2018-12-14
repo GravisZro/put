@@ -166,7 +166,7 @@ bool load_module(const std::string& filename, const std::string& module_argument
     if(next == nullptr || *next != ' ')
       return true;
     else
-      errno = int(std::errc::invalid_argument);
+      errno = int(posix::errc::invalid_argument);
   }
   return false;
 }
