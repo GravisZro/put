@@ -2,10 +2,11 @@
 #define POSIX_HELPERS_H
 
 // POSIX
-#include <sys/types.h> // system specific types
-#include <sys/stat.h>  // stat stuff
-#include <pwd.h>       // passwd stuff
-#include <grp.h>       // group stuff
+#include <sys/types.h>  // system specific types
+#include <sys/stat.h>   // stat stuff
+#include <sys/ioctl.h>  // ioctl() stuff
+#include <pwd.h>    // passwd stuff
+#include <grp.h>    // group stuff
 #include <unistd.h> // LOTS
 #include <fcntl.h>  // fcntl() stuff
 #include <string.h> // for useringroup()
@@ -16,14 +17,10 @@
 #include <limits.h> // system limits
 #include <ctype.h>  // char type detection
 
-// POSIX-esque?
-#include <sys/ioctl.h>
-
 // PUT
 #include "error_helpers.h"
 #include "signal_helpers.h"
 
-static_assert(sizeof(::size_t) == sizeof(std::size_t), "STL's size_t doesn't match the C standard!");
 static_assert(sizeof(::size_t) == sizeof(::off_t), "size_t not the same is as off_t!");
 static_assert(sizeof(::size_t) == sizeof(::ssize_t), "size_t not the same is as ssize_t!");
 
