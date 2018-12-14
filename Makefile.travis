@@ -18,10 +18,6 @@ ifndef CSTANDARD
   CSTANDARD:=-std=c11
 endif
 
-ifndef POSIX_VERSION
-  POSIX_VERSION=700
-endif
-
 ifndef SOURCE_PATH
   SOURCE_PATH=.
 endif
@@ -37,7 +33,7 @@ UNAME_FLAGS   = -DUNAME_RELEASE="$(shell uname -r)" \
 		$(shell uname -r | sed -e "s/^\([0-9]*\)\.*\([0-9]*\)\.*\([0-9]*\)\(.*\)$$/-DUNAME_KERNEL_MAJOR=\1 -DUNAME_KERNEL_MINOR=\2 -DUNAME_KERNEL_RELEASE=\3/")
 
 INCPATH       = -I.
-CFLAGS        = -pipe -g -Os -Wall -W -fPIC -D_XOPEN_SOURCE=$(POSIX_VERSION) $(DEFINES) $(INCPATH) $(UNAME_FLAGS)
+CFLAGS        = -pipe -g -Os -Wall -W -fPIC $(DEFINES) $(INCPATH) $(UNAME_FLAGS)
 CXXFLAGS      = $(CFLAGS) -fno-exceptions -fno-rtti
 LDFLAGS       = 
 
