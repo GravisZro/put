@@ -5,6 +5,7 @@
 #include <sys/types.h>  // system specific types
 #include <sys/stat.h>   // stat stuff
 #include <sys/ioctl.h>  // ioctl() stuff
+#include <sys/wait.h>
 #include <pwd.h>    // passwd stuff
 #include <grp.h>    // group stuff
 #include <unistd.h> // LOTS
@@ -406,7 +407,7 @@ namespace posix
     from_end = SEEK_END,
     absolute = SEEK_SET,
   };
-  // POSIX wrappers
+  // POSIX STREAM wrappers
   static inline FILE* fopen(const char* filename, const char* mode) noexcept
     { return ignore_interruption<FILE, const char*, const char*>(::fopen, filename, mode); }
 
@@ -426,11 +427,23 @@ namespace posix
     { return ignore_interruption(::fgetc, stream); }
 
   static inline size_t fread(void* buffer, size_t buffer_size, size_t count, FILE* stream) noexcept
-   { return ignore_interruption(::fread, buffer, buffer_size, count, stream); }
+    { return ignore_interruption(::fread, buffer, buffer_size, count, stream); }
 
   static inline size_t fwrite(const void* buffer, size_t buffer_size, size_t count, FILE* stream) noexcept
-   { return ignore_interruption(::fwrite, buffer, buffer_size, count, stream); }
+    { return ignore_interruption(::fwrite, buffer, buffer_size, count, stream); }
 
+  // sys/wait.h
+
+#if !defined(WCONTINUED) /* if lacking XSI Conformance */
+# define WCONTINUED 0
+# define WIFCONTINUED(x) false
+#endif
+
+  static inline pid_t waitpid(pid_t pid, int* stat_loc, int options) noexcept
+    { return ignore_interruption(::waitpid, pid, stat_loc, options); }
+
+
+  // shortcut
   static inline bool donotblock(fd_t fd)
   {
 #if defined(O_NONBLOCK) // POSIX

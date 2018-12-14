@@ -1,7 +1,6 @@
 #include "childprocess.h"
 
 // POSIX
-#include <sys/wait.h>
 #include <assert.h>
 
 // PUT
@@ -30,21 +29,18 @@ void ChildProcess::init_once(void) noexcept
   }
 }
 
-// in case of incomplete implementations
-#if !defined(WCONTINUED)
-#define WCONTINUED 0
-#endif
+
 
 void ChildProcess::handler(int signum) noexcept
 {
   flaw(signum != SIGCHLD,
        terminal::warning,
-       posix::error(std::errc::invalid_argument),,
+       posix::error(posix::errc::invalid_argument),,
        "Process::reaper() has been called improperly")
 
   pid_t pid = posix::error_response; // set value just in case
   int status = 0;
-  while((pid = ::waitpid(pid_t(-1), &status, WNOHANG | WCONTINUED | WUNTRACED)) > 0) // get the next dead process (if there is one)... while the currently reaped process was valid
+  while((pid = posix::waitpid(pid_t(-1), &status, WNOHANG | WCONTINUED | WUNTRACED)) > 0) // get the next dead process (if there is one)... while the currently reaped process was valid
   {
     auto process_map_iter = process_map.find(pid); // find dead process
     if(process_map_iter != process_map.end()) // if the dead process exists...
@@ -70,13 +66,11 @@ void ChildProcess::handler(int signum) noexcept
         p->m_state = ChildProcess::State::Stopped;
         Object::enqueue_copy(p->stopped, p->processId());
       }
-#if defined(WIFCONTINUED)
       else if(WIFCONTINUED(status))
       {
         p->m_state = ChildProcess::State::Running;
         Object::enqueue_copy(p->started, p->processId());
       }
-#endif
     }
   }
 }
