@@ -22,6 +22,10 @@
 #include "error_helpers.h"
 #include "signal_helpers.h"
 
+#if !defined(_XOPEN_SOURCE) && defined(_POSIX_VERSION) && (_POSIX_VERSION) >= 200112L
+#define _XOPEN_SOURCE 600
+#endif
+
 static_assert(sizeof(::size_t) == sizeof(::off_t), "size_t not the same is as off_t!");
 static_assert(sizeof(::size_t) == sizeof(::ssize_t), "size_t not the same is as ssize_t!");
 
