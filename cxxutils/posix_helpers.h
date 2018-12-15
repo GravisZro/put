@@ -23,7 +23,7 @@
 #include "signal_helpers.h"
 
 // Generated
-#if !defined(_XOPEN_SOURCE)
+#if !defined(_XOPEN_VERSION)
 # include <posix_features.h>
 #endif
 
@@ -40,7 +40,7 @@ namespace posix
   // stdlib.h
   using ::signal;
   using ::exit;
-#if (_XOPEN_SOURCE) >= 400 || defined(HAVE_ATEXIT)
+#if (_XOPEN_VERSION) >= 400 || defined(HAVE_ATEXIT)
   using ::atexit;
 #endif
   using ::malloc;
@@ -56,17 +56,17 @@ namespace posix
   using ::memchr;
   using ::memcmp;
   using ::memcpy;
-#if (_XOPEN_SOURCE) >= 400 || defined(HAVE_MEMMOVE)
+#if (_XOPEN_VERSION) >= 400 || defined(HAVE_MEMMOVE)
   using ::memmove;
 #endif
 
-#if (_XOPEN_SOURCE) >= 300 || defined(HAVE_STRERROR)
+#if (_XOPEN_VERSION) >= 300 || defined(HAVE_STRERROR)
   using ::strerror;
 #endif
   using ::strchr;
   using ::strrchr;
   using ::strlen;
-#if (_XOPEN_SOURCE) >= 700 || defined(HAVE_STRNLEN)
+#if (_XOPEN_VERSION) >= 700 || defined(HAVE_STRNLEN)
   using ::strnlen;
 #endif
   using ::strstr;
@@ -82,22 +82,22 @@ namespace posix
   using ::atol;
   using ::strtod;
   using ::strtol;
-#if (_XOPEN_SOURCE) >= 600 || defined(HAVE_ATOLL)
+#if (_XOPEN_VERSION) >= 600 || defined(HAVE_ATOLL)
   using ::atoll;
 #endif
-#if (_XOPEN_SOURCE) >= 600 || defined(HAVE_STRTOF)
+#if (_XOPEN_VERSION) >= 600 || defined(HAVE_STRTOF)
   using ::strtof;
 #endif
-#if (_XOPEN_SOURCE) >= 600 || defined(HAVE_STRTOLD)
+#if (_XOPEN_VERSION) >= 600 || defined(HAVE_STRTOLD)
   using ::strtold;
 #endif
-#if (_XOPEN_SOURCE) >= 600 || defined(HAVE_STRTOLL)
+#if (_XOPEN_VERSION) >= 600 || defined(HAVE_STRTOLL)
   using ::strtoll;
 #endif
-#if (_XOPEN_SOURCE) >= 400 || defined(HAVE_STRTOUL)
+#if (_XOPEN_VERSION) >= 400 || defined(HAVE_STRTOUL)
   using ::strtoul;
 #endif
-#if (_XOPEN_SOURCE) >= 400 || defined(HAVE_STRTOULL)
+#if (_XOPEN_VERSION) >= 400 || defined(HAVE_STRTOULL)
   using ::strtoull;
 #endif
 
@@ -107,7 +107,7 @@ namespace posix
   using ::printf;
   using ::dprintf;
   using ::sprintf;
-#if (_XOPEN_SOURCE) >= 500 || defined(HAVE_SNPRINTF)
+#if (_XOPEN_VERSION) >= 500 || defined(HAVE_SNPRINTF)
   using ::snprintf;
 #endif
   using ::fprintf;
@@ -121,7 +121,7 @@ namespace posix
 
   // unistd.h
   using ::access;
-#if (_XOPEN_SOURCE) >= 700 || defined(HAVE_FACCESSAT)
+#if (_XOPEN_VERSION) >= 700 || defined(HAVE_FACCESSAT)
   using ::faccessat;
 #endif
   using ::alarm;
@@ -140,7 +140,7 @@ namespace posix
   using ::execv;
   using ::execve;
   using ::execvp;
-#if (_XOPEN_SOURCE) >= 700 || defined(HAVE_FEXECVE)
+#if (_XOPEN_VERSION) >= 700 || defined(HAVE_FEXECVE)
   using ::fexecve;
 #endif
   using ::getpid;
@@ -149,7 +149,7 @@ namespace posix
   typedef int fd_t;
   static const fd_t invalid_descriptor = error_response;
 
-#if (_XOPEN_SOURCE) >= 420 || defined(HAVE_FCHDIR)
+#if (_XOPEN_VERSION) >= 420 || defined(HAVE_FCHDIR)
   static inline bool fchdir(fd_t fd) noexcept
     { return ignore_interruption<int, fd_t>(::fchdir, fd) != error_response; }
 #endif
@@ -163,11 +163,11 @@ namespace posix
   using ::getuid;
   using ::getgid;
 
-#if (_XOPEN_SOURCE) >= 600 || defined(HAVE_SETEUID)
+#if (_XOPEN_VERSION) >= 600 || defined(HAVE_SETEUID)
   static inline bool seteuid(uid_t uid) noexcept
     { return ignore_interruption<int, uid_t>(::seteuid, uid) != error_response; }
 #endif
-#if (_XOPEN_SOURCE) >= 600 || defined(HAVE_SETEGID)
+#if (_XOPEN_VERSION) >= 600 || defined(HAVE_SETEGID)
   static inline bool setegid(gid_t gid) noexcept
     { return ignore_interruption<int, gid_t>(::setegid, gid) != error_response; }
 #endif
@@ -182,7 +182,7 @@ namespace posix
   //using ::dup2; EINTR
 
   using ::fork;
-#if ((_XOPEN_SOURCE) >= 500 && defined(_XOPEN_SOURCE_EXTENDED)) || defined(HAVE_SIGQUEUE)
+#if ((_XOPEN_VERSION) >= 500 && defined(_XOPEN_VERSION_EXTENDED)) || defined(HAVE_SIGQUEUE)
   static inline bool sigqueue(pid_t pid, int signo, union sigval value) noexcept
     { return ignore_interruption<int, pid_t, int, union sigval>(::sigqueue, pid, signo, value) != error_response; }
 #endif
@@ -190,7 +190,7 @@ namespace posix
   static inline bool kill(pid_t pid, int signo) noexcept
     { return ignore_interruption<int, pid_t, int>(::kill, pid, signo) != error_response; }
 
-#if (_XOPEN_SOURCE) >= 420 || defined(HAVE_KILLPG)
+#if (_XOPEN_VERSION) >= 420 || defined(HAVE_KILLPG)
   static inline bool killpg(pid_t pid, int signo) noexcept
     { return ignore_interruption<int, pid_t, int>(::killpg, pid, signo) != error_response; }
 #endif
@@ -340,19 +340,19 @@ namespace posix
       DeviceDisconnected                = POLL_HUP,
     };
 
-#if (_XOPEN_SOURCE) >= 400 || defined(HAVE_RAISE)
+#if (_XOPEN_VERSION) >= 400 || defined(HAVE_RAISE)
     static inline bool raise(EId id) noexcept
       { return ::raise(id) == success_response; }
 #endif
 
     static inline bool send(pid_t pid, EId id, int value = 0) noexcept
-#if ((_XOPEN_SOURCE) >= 500 && defined(_XOPEN_SOURCE_EXTENDED)) || defined(HAVE_SIGQUEUE)
+#if ((_XOPEN_VERSION) >= 500 && defined(_XOPEN_VERSION_EXTENDED)) || defined(HAVE_SIGQUEUE)
       { return posix::sigqueue(pid, id, {value}); }
 #else
       { (void)value; return posix::kill(pid, id); }
 #endif
 
-#if (_XOPEN_SOURCE) >= 420 || defined(HAVE_KILLPG)
+#if (_XOPEN_VERSION) >= 420 || defined(HAVE_KILLPG)
     static inline bool sendpg(pid_t pgid, EId id) noexcept
       { return posix::killpg(pgid, id); }
 #endif
