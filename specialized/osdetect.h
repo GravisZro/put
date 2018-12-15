@@ -20,7 +20,7 @@
  *
  * Commercial open source OS detection macros
  *-------------------------------------------------------*
- * __darwin__          | Darwin         |    | BSD       |
+ * __darwin__          | Darwin         | VS | BSD       |
  * __sunos__           | SunOS          |    | BSD       |
  * __solaris__         | Solaris        |    | SysV      |
  * __sco_openserver__  | SCO OpenServer |    | SysV->BSD |
@@ -37,7 +37,7 @@
  * __dynix__           | DYNIX          |    | BSD->SysV |
  * __mpeix__           | MPE/iX         |    | alien/PC  |
  * __vms__             | VMS            |    | alien/PC  |
- * __aix__             | AIX            |    | SysV/BSD  |
+ * __aix__             | AIX            | VS | SysV/BSD  |
  * __dcosx__           | DC/OSx         |    | SysV      |
  * __reliant_unix__    | Reliant UNIX   |    | SysV      |
  * __interix__         | Interix        |    | alien/PC  |
@@ -172,16 +172,6 @@
 #if defined(__linux__) // Linux
 # include <linux/version.h>
 # define KERNEL_VERSION_CODE LINUX_VERSION_CODE
-
-#elif defined(__aix__) // AIX
-# define KERNEL_VERSION(a,b,c) (((a) * 10) + (b))
-# if defined(_AIX43)
-#  define KERNEL_VERSION_CODE KERNEL_VERSION(4,3,0)
-# elif defined(_AIX41)
-#  define KERNEL_VERSION_CODE KERNEL_VERSION(4,1,0)
-# elif defined(_AIX3) || defined(_AIX32)
-#  define KERNEL_VERSION_CODE KERNEL_VERSION(3,2,0)
-# endif
 
 #elif defined(__FreeBSD__) // FreeBSD
 # include <sys/param.h>
@@ -357,6 +347,41 @@
 #  define KERNEL_VERSION_CODE KERNEL_VERSION(4,3,0)
 # elif defined(BSD4_2)
 #  define KERNEL_VERSION_CODE KERNEL_VERSION(4,2,0)
+# endif
+
+#elif defined(__darwin__) // Darwin
+# include <AvailabilityMacros.h>
+# define KERNEL_VERSION(a,b,c) (((a) * 100) + (b*10))
+# if defined(MAC_OS_X_VERSION_10_9)
+#  define KERNEL_VERSION_CODE KERNEL_VERSION(10,9,0)
+# elif defined(MAC_OS_X_VERSION_10_8)
+#  define KERNEL_VERSION_CODE KERNEL_VERSION(10,8,0)
+# elif defined(MAC_OS_X_VERSION_10_7)
+#  define KERNEL_VERSION_CODE KERNEL_VERSION(10,7,0)
+# elif defined(MAC_OS_X_VERSION_10_6)
+#  define KERNEL_VERSION_CODE KERNEL_VERSION(10,6,0)
+# elif defined(MAC_OS_X_VERSION_10_5)
+#  define KERNEL_VERSION_CODE KERNEL_VERSION(10,5,0)
+# elif defined(MAC_OS_X_VERSION_10_4)
+#  define KERNEL_VERSION_CODE KERNEL_VERSION(10,4,0)
+# elif defined(MAC_OS_X_VERSION_10_3)
+#  define KERNEL_VERSION_CODE KERNEL_VERSION(10,3,0)
+# elif defined(MAC_OS_X_VERSION_10_2)
+#  define KERNEL_VERSION_CODE KERNEL_VERSION(10,2,0)
+# elif defined(MAC_OS_X_VERSION_10_1)
+#  define KERNEL_VERSION_CODE KERNEL_VERSION(10,1,0)
+# elif defined(MAC_OS_X_VERSION_10_0)
+#  define KERNEL_VERSION_CODE KERNEL_VERSION(10,0,0)
+# endif
+
+#elif defined(__aix__) // AIX
+# define KERNEL_VERSION(a,b,c) (((a) * 10) + (b))
+# if defined(_AIX43)
+#  define KERNEL_VERSION_CODE KERNEL_VERSION(4,3,0)
+# elif defined(_AIX41)
+#  define KERNEL_VERSION_CODE KERNEL_VERSION(4,1,0)
+# elif defined(_AIX3) || defined(_AIX32)
+#  define KERNEL_VERSION_CODE KERNEL_VERSION(3,2,0)
 # endif
 
 #elif defined(UNAME_KERNEL_MAJOR) && defined(UNAME_KERNEL_MINOR) && defined(UNAME_KERNEL_RELEASE)
