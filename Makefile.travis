@@ -26,6 +26,15 @@ ifndef BUILD_PATH
   BUILD_PATH=$(SOURCE_PATH)/bin
 endif
 
+ifeq ($(shell getconf _XOPEN_VERSION 1>/dev/null 2>&1; echo $$?),0)
+  OUTPUTFILE:=posix_features.h
+  TESTLIST:=atexit memmove strerror strnlen atoll strtof strtold strtoll strtoul strtoull snprintf faccessat fexecve fchdir seteuid setegid sigqueue killpg
+  TESTFILE:="\#include <stdlib.h>\n\#include <string.h>\n\#include <stdio.h>\n\#include <unistd.h>\n\#include <signal.h>\nnamespace test { using ::$${funcname}; }\nint main(int, char*[]) { return 0; }"
+  TESTFILEPATH:=/tmp/test.cpp
+  $(shell rm -f $(OUTPUTFILE))
+  $(shell for funcname in $(TESTLIST); do echo $(TESTFILE) | sed -e "s/\\\\n/\\n/g" > $(TESTFILEPATH) && ${CXX} ${CXXSTANDARD} ${TESTFILEPATH} 1>/dev/null 2>&1 && echo "#define HAVE_$${funcname}" | tr '[:lower:]' '[:upper:]' >> $(OUTPUTFILE) ; done)
+endif
+
 UNAME_FLAGS   = -DUNAME_RELEASE="$(shell uname -r)" \
 		-DUNAME_VERSION="$(shell uname -v)" \
 		-DUNAME_MACHINE="$(shell uname -m)" \
