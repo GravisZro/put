@@ -27,6 +27,7 @@
 #  define _XOPEN_SOURCE 700
 # elif (_POSIX_VERSION) >= 200112L
 #  define _XOPEN_SOURCE 600
+# endif
 #endif
 
 static_assert(sizeof(::size_t) == sizeof(::off_t), "size_t not the same is as off_t!");
