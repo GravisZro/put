@@ -68,6 +68,8 @@ namespace posix
   using ::strlen;
 #if (_XOPEN_VERSION) >= 700 || defined(HAVE_STRNLEN)
   using ::strnlen;
+#else
+  size_t strnlen(const char *s, size_t) { return ::strlen(s); }
 #endif
   using ::strstr;
 
