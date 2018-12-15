@@ -1,8 +1,8 @@
 #ifndef VQUEUE_H
 #define VQUEUE_H
 
-// POSIX
-#include <wchar.h>
+// POSIX++
+#include <cwchar>
 
 // STL
 #include <vector>

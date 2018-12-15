@@ -1,6 +1,9 @@
 #ifndef POSIX_HELPERS_H
 #define POSIX_HELPERS_H
 
+// STL
+#include <type_traits> // for is_integral
+
 // POSIX
 #include <sys/types.h>  // system specific types
 #include <sys/stat.h>   // stat stuff
