@@ -20,6 +20,7 @@
 #include <stdlib.h> // exit functions
 #include <limits.h> // system limits
 #include <ctype.h>  // char type detection
+#include <nl_types.h> // message catalog functions
 
 // PUT
 #include "error_helpers.h"
@@ -125,7 +126,16 @@ namespace posix
   using ::rewind;
 
   // unistd.h
-  using ::access;
+  enum access_t : int
+  {
+    read_access = R_OK,
+    write_access = W_OK,
+    execute_access = X_OK,
+  };
+
+  static inline bool access(const char* name, access_t type) noexcept
+    { return ::access(name, type) == success_response; }
+
 #if (_XOPEN_VERSION) >= 700 || defined(HAVE_FACCESSAT)
   using ::faccessat;
 #endif
@@ -475,6 +485,26 @@ namespace posix
     int flags = 1;
     return ioctl(fd, FIOBIO, &flags) != posix::error_response);
 #endif
+  }
+
+  // nl_types.h
+
+  nl_catd catopen(const char* name, int oflag) noexcept
+  {
+    nl_catd rval = nl_catd(posix::error_response);
+    do {
+      rval = ::catopen(name, oflag);
+    } while(rval == nl_catd(posix::error_response) && errno == posix::errc::interrupted);
+    return rval;
+  }
+
+  char* catgets(nl_catd catd, int set_id, int msg_id, const char* s) noexcept
+  {
+    char* rval = const_cast<char*>(s);
+    do {
+      rval = ::catgets(catd, set_id, msg_id, s);
+    } while(rval == s && errno == posix::errc::interrupted);
+    return rval;
   }
 }
 

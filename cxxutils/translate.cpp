@@ -1,9 +1,6 @@
 #if defined(CATALOG_NAME)
 #include "translate.h"
 
-// POSIX
-#include <nl_types.h> // for catalog functions
-
 // PUT
 #include <cxxutils/hashing.h>
 
@@ -12,10 +9,14 @@
 
 static_assert(sizeof(int) == sizeof(uint32_t), "string hash would truncate!");
 
-static nl_catd catalog = ::catopen(Q_uZ80A_s01(CATALOG_NAME), 0); //get_catalog();
+static nl_catd string_catalog = posix::catopen(Q_uZ80A_s01(CATALOG_NAME), 0);
+static int32_t string_language = hash(getenv("LANG"));
+
+void force_language(const char* const str) noexcept
+  { string_language = hash(str); }
 
 const char* operator "" _xlate(const char* str, const posix::size_t sz) noexcept
-  { return ::catgets(catalog, 0, static_cast<int>(hash(str, sz)), str); }
+  { return posix::catgets(string_catalog, string_language, hash(str, sz) & INT32_MAX, str); }
 
 #undef Q_uZ80A_s00
 #undef Q_uZ80A_s00

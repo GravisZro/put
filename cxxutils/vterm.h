@@ -13,7 +13,7 @@ constexpr bool strings_equal(string_literal a, string_literal b)
   { return *a == *b && (*a == '\0' || strings_equal(a + 1, b + 1)); }
 static_assert(strings_equal(CSI, "\x1b["), "Preprocessor variable \"CSI\" must equal \"\\x1b[\"");
 
-constexpr size_t string_length(string_literal str)
+constexpr posix::size_t string_length(string_literal str)
   { return (*str == '\0') ? 0 : (1 + string_length(str + 1)); }
 
 
@@ -23,7 +23,7 @@ namespace terminal
   inline bool write(string_literal str) noexcept { return posix::write(STDOUT_FILENO, str, string_length(str)) != posix::error_response; }
 
   template<typename... Args>
-  inline bool write(string_literal fmt, Args... args) noexcept { return ::dprintf(STDOUT_FILENO, fmt, args...) != posix::error_response; }
+  inline bool write(string_literal fmt, Args... args) noexcept { return posix::dprintf(STDOUT_FILENO, fmt, args...) != posix::error_response; }
 
   inline void getWindowSize(uint16_t& rows, uint16_t& columns) noexcept
   {
