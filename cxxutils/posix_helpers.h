@@ -489,7 +489,7 @@ namespace posix
 
   // nl_types.h
 
-  nl_catd catopen(const char* name, int oflag) noexcept
+  static inline nl_catd catopen(const char* name, int oflag) noexcept
   {
     nl_catd rval = nl_catd(posix::error_response);
     do {
@@ -498,7 +498,7 @@ namespace posix
     return rval;
   }
 
-  char* catgets(nl_catd catd, int set_id, int msg_id, const char* s) noexcept
+  static inline char* catgets(nl_catd catd, int set_id, int msg_id, const char* s) noexcept
   {
     char* rval = const_cast<char*>(s);
     do {
