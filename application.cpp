@@ -71,24 +71,28 @@ void Application::read(posix::fd_t fd, native_flags_t) noexcept
   }
 }
 
+void Application::processQueue(void) noexcept
+{
+  EventBackend::poll(); // get event queue results
+
+  for(std::pair<posix::fd_t, native_flags_t>& pair : EventBackend::results) // process results
+  {
+    EventBackend::queue.lock(); // get exclusive access (make thread-safe)
+    auto entries = EventBackend::queue.equal_range(pair.first); // get all the entries for that FD
+    std::list<std::pair<posix::fd_t, EventBackend::callback_info_t>> exec_fds(entries.first, entries.second); // copy entries
+    EventBackend::queue.unlock(); // access is no longer needed
+
+    for(std::pair<posix::fd_t, EventBackend::callback_info_t>& entry : exec_fds) // for each FD
+      if(entry.second.flags & pair.second) // check if there is a matching flag
+        entry.second.function(pair.first, pair.second); // invoke the callback function with the FD and triggering Flag
+  }
+}
+
 int Application::exec(void) noexcept // non-static function to ensure an instance of Application exists
 {
+  s_run = true;
   while(s_run) // while not quitting
-  {
-    EventBackend::poll(); // get event queue results
-
-    for(std::pair<posix::fd_t, native_flags_t>& pair : EventBackend::results) // process results
-    {
-      EventBackend::queue.lock(); // get exclusive access (make thread-safe)
-      auto entries = EventBackend::queue.equal_range(pair.first); // get all the entries for that FD
-      std::list<std::pair<posix::fd_t, EventBackend::callback_info_t>> exec_fds(entries.first, entries.second); // copy entries
-      EventBackend::queue.unlock(); // access is no longer needed
-
-      for(std::pair<posix::fd_t, EventBackend::callback_info_t>& entry : exec_fds) // for each FD
-        if(entry.second.flags & pair.second) // check if there is a matching flag
-          entry.second.function(pair.first, pair.second); // invoke the callback function with the FD and triggering Flag
-    }
-  }
+    processQueue();
   return s_return_value; // quit() has been called, return value specified
 }
 

@@ -19,6 +19,7 @@ public:
   Application(void) noexcept;
 
   int exec(void) noexcept;
+  static void processQueue(void) noexcept;
   static void quit(int return_value = posix::success_response) noexcept;
 
 private:
