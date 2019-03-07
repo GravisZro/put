@@ -54,7 +54,7 @@ public:
 
   // connect to a function that accept the object pointer as the first argument
   template<class ObjType, typename RType, typename... ArgTypes>
-  static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, fslot_t<RType, ObjType*, ArgTypes...>&& slot) noexcept
+  static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, fslot_t<RType, ObjType*, ArgTypes...> slot) noexcept
   {
     sig.emplace(static_cast<ProtoObject*>(obj),
       [slot](ProtoObject* p, ArgTypes... args) noexcept
@@ -67,7 +67,7 @@ public:
 
   // connect to a function and ignore the object
   template<typename RType, typename... ArgTypes>
-  static inline void connect(signal<ArgTypes...>& sig, fslot_t<RType, ArgTypes...>&& slot) noexcept
+  static inline void connect(signal<ArgTypes...>& sig, fslot_t<RType, ArgTypes...> slot) noexcept
   {
     sig.emplace(static_cast<ProtoObject*>(nullptr),
       [slot](ProtoObject*, ArgTypes... args) noexcept
@@ -103,7 +103,7 @@ public:
   }
 
   template<typename RType, typename... ArgTypes>
-  static inline bool singleShot(fslot_t<RType, ArgTypes...>&& slot, ArgTypes&... args) noexcept
+  static inline bool singleShot(fslot_t<RType, ArgTypes...> slot, ArgTypes&... args) noexcept
   {
     if(Application::ms_signal_queue.lock()) // multithread protection
     {
