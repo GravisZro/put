@@ -128,6 +128,7 @@ namespace posix
   // unistd.h
   enum access_t : int
   {
+    file_exists = F_OK,
     read_access = R_OK,
     write_access = W_OK,
     execute_access = X_OK,
