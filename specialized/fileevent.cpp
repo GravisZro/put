@@ -502,8 +502,8 @@ struct FileEvent::platform_dependant // file notification (TimerEvent)
       return posix::invalid_descriptor;
 
     Object::connect(data.timer.expired,
-                    Object::fslot_t<void>([this, pair](void) noexcept
-                      { update(pair.first->second); }));
+                    [this, pair](void) noexcept
+                      { update(pair.first->second); });
 
     data.timer.start(1000, true);
     return readfd;

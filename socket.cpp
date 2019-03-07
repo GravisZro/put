@@ -16,14 +16,13 @@ GenericSocket::GenericSocket(posix::fd_t socket) noexcept
     m_connected(false), m_socket(socket)
 {
   Object::connect(PollEvent::activated,
-                  Object::fslot_t<void, posix::fd_t, Flags_t>(
                     [this](posix::fd_t l_socket, Flags_t l_flags) noexcept
                     {
                       if(l_flags & Readable)
                         read(l_socket, Readable);
                       if(l_flags & Disconnected)
                         Object::enqueue(disconnected, l_socket);
-                    }));
+                    });
 }
 
 GenericSocket::~GenericSocket(void) noexcept { disconnect(); }

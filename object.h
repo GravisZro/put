@@ -65,6 +65,12 @@ public:
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, fpslot_t<RType, ObjType*, ArgTypes...> slot) noexcept
     { connect(sig, obj, fslot_t<RType, ArgTypes...>(slot)); }
 
+
+  // connect to a lambda function
+  template<typename Lambda, typename... ArgTypes>
+  static inline void connect(signal<ArgTypes...>& sig, Lambda&& slot) noexcept
+    { connect(sig, fslot_t<void, ArgTypes...>(slot)); }
+
   // connect to a function and ignore the object
   template<typename RType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, fslot_t<RType, ArgTypes...> slot) noexcept
