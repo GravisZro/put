@@ -4,14 +4,14 @@
 #include <assert.h>
 
 // POSIX
-#include <socket.h>
+#include <put/socket.h>
 
 // PUT
-#include <cxxutils/posix_helpers.h>
-#include <cxxutils/hashing.h>
-#include <cxxutils/stringtoken.h>
-#include <specialized/osdetect.h>
-#include <specialized/fstable.h>
+#include <put/cxxutils/posix_helpers.h>
+#include <put/cxxutils/hashing.h>
+#include <put/cxxutils/stringtoken.h>
+#include <put/specialized/osdetect.h>
+#include <put/specialized/fstable.h>
 
 // STL
 #include <list>

@@ -1,8 +1,8 @@
 #include "eventbackend.h"
 
 // PUT
-#include <specialized/osdetect.h>
-#include <cxxutils/vterm.h>
+#include <put/specialized/osdetect.h>
+#include <put/cxxutils/vterm.h>
 
 #if !defined(MAX_EVENTS)
 #define MAX_EVENTS 1024

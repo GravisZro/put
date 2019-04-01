@@ -1,8 +1,8 @@
 #include "mountpoints.h"
 
 // PUT
-#include <cxxutils/hashing.h>
-#include <specialized/fstable.h>
+#include <put/cxxutils/hashing.h>
+#include <put/specialized/fstable.h>
 
 char* procfs_path = nullptr;
 char* sysfs_path  = nullptr;

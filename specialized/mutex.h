@@ -1,7 +1,7 @@
 #ifndef MUTEX_H
 #define MUTEX_H
 
-#include <specialized/osdetect.h>
+#include <put/specialized/osdetect.h>
 
 #if defined(__tru64__) && !defined(FORCE_POSIX_MUTEXES)
 # include <tis.h> // Tru64

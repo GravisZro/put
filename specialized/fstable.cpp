@@ -1,8 +1,8 @@
 #include "fstable.h"
 
 // PUT
-#include <specialized/osdetect.h>
-#include <cxxutils/posix_helpers.h>
+#include <put/specialized/osdetect.h>
+#include <put/cxxutils/posix_helpers.h>
 
 fsentry_t::fsentry_t(void) noexcept
   : dump_frequency(0),

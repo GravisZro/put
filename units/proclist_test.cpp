@@ -5,9 +5,9 @@
 #include <algorithm>
 
 // PUT
-#include <cxxutils/posix_helpers.h>
-#include <cxxutils/vterm.h>
-#include <specialized/proclist.h>
+#include <put/cxxutils/posix_helpers.h>
+#include <put/cxxutils/vterm.h>
+#include <put/specialized/proclist.h>
 
 int main(int, char* [])
 {

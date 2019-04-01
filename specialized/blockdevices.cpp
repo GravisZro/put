@@ -8,10 +8,10 @@
 #include <list>
 
 // PUT
-#include <cxxutils/posix_helpers.h>
-#include <specialized/osdetect.h>
-#include <specialized/mountpoints.h>
-#include <specialized/blockinfo.h>
+#include <put/cxxutils/posix_helpers.h>
+#include <put/specialized/osdetect.h>
+#include <put/specialized/mountpoints.h>
+#include <put/specialized/blockinfo.h>
 
 
 uint64_t device_read(posix::fd_t fd, posix::off_t offset, uint8_t* buffer, uint64_t length)

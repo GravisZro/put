@@ -5,8 +5,8 @@
 #include <string>
 
 // PUT
-#include <object.h>
-#include <specialized/fstable.h>
+#include <put/object.h>
+#include <put/specialized/fstable.h>
 
 class TimerEvent;
 

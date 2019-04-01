@@ -1,5 +1,5 @@
 // PUT
-#include <specialized/osdetect.h>
+#include <put/specialized/osdetect.h>
 
 #if defined(__linux__) && !defined(POSIX_DRAFT_1E) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,2,0)
 # define POSIX_DRAFT_1E

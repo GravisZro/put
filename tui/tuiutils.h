@@ -1,7 +1,7 @@
 #ifndef TUIUTILS_H
 #define TUIUTILS_H
 
-#include <cxxutils/vterm.h>
+#include <put/cxxutils/vterm.h>
 
 namespace tui
 {

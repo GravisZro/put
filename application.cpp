@@ -5,7 +5,7 @@
 #include <list>
 
 // PUT
-#include <cxxutils/vterm.h>
+#include <put/cxxutils/vterm.h>
 
 // atomic vars are to avoid race conditions
 static std::atomic_int  s_return_value(0);

@@ -4,9 +4,9 @@
 #include <assert.h>
 
 // PUT
-#include <specialized/procstat.h>
-#include <specialized/eventbackend.h>
-#include <cxxutils/vterm.h>
+#include <put/specialized/procstat.h>
+#include <put/specialized/eventbackend.h>
+#include <put/cxxutils/vterm.h>
 
 
 static std::unordered_map<pid_t, ChildProcess*> process_map; // do not try to own Process memory

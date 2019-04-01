@@ -1,8 +1,8 @@
 #include "processevent.h"
 
 // PUT
-#include <specialized/osdetect.h>
-#include <specialized/eventbackend.h>
+#include <put/specialized/osdetect.h>
+#include <put/specialized/eventbackend.h>
 
 #if defined(FORCE_PROCESS_POLLING)
 # pragma message("Forcing use of polling /proc to detect process events.")

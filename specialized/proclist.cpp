@@ -1,8 +1,8 @@
 #include "proclist.h"
 
 // PUT
-#include <cxxutils/posix_helpers.h>
-#include <specialized/osdetect.h>
+#include <put/cxxutils/posix_helpers.h>
+#include <put/specialized/osdetect.h>
 
 #if defined(__FreeBSD__)  /* FreeBSD  */ || \
     defined(__OpenBSD__)  /* OpenBSD  */ || \
@@ -22,7 +22,7 @@
 #include <vector>
 
 // PUT
-#include <cxxutils/misc_helpers.h>
+#include <put/cxxutils/misc_helpers.h>
 
 #if (defined(__FreeBSD__) && KERNEL_VERSION_CODE < KERNEL_VERSION(8,0,0)) || \
     (defined(__NetBSD__)  && KERNEL_VERSION_CODE < KERNEL_VERSION(1,5,0)) || \
@@ -78,7 +78,7 @@ bool proclist(std::set<pid_t>& list) noexcept
 #include <dirent.h>
 
 // PUT
-#include <specialized/mountpoints.h>
+#include <put/specialized/mountpoints.h>
 
 static_assert(sizeof(pid_t) <= sizeof(int), "insufficient storage type for maximum number of pids");
 

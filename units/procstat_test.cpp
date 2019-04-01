@@ -9,16 +9,16 @@
 #include <algorithm>
 
 // PUT
-#include <cxxutils/posix_helpers.h>
-#include <cxxutils/vterm.h>
-#include <specialized/procstat.h>
+#include <put/cxxutils/posix_helpers.h>
+#include <put/cxxutils/vterm.h>
+#include <put/specialized/procstat.h>
 
 #if defined(__linux__)
 # define PROCFS_DEBUG 1
 #endif
 
 #if defined(PROCFS_DEBUG)
-#include <specialized/mountpoints.h>
+#include <put/specialized/mountpoints.h>
 #endif
 
 template<typename T, int base>

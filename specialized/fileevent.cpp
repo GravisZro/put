@@ -1,7 +1,7 @@
 #include "fileevent.h"
 
 // PUT
-#include <specialized/osdetect.h>
+#include <put/specialized/osdetect.h>
 
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,4,0) /* Linux 2.4.0+ */
 

@@ -13,10 +13,10 @@
 #include <unordered_map>
 
 // PUT
-#include <object.h>
-#include <cxxutils/vfifo.h>
-#include <cxxutils/posix_helpers.h>
-#include <cxxutils/pipedspawn.h>
+#include <put/object.h>
+#include <put/cxxutils/vfifo.h>
+#include <put/cxxutils/posix_helpers.h>
+#include <put/cxxutils/pipedspawn.h>
 
 class ChildProcess : public Object,
                      public PipedSpawn

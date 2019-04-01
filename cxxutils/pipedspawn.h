@@ -2,9 +2,9 @@
 #define PIPEDSPAWN_H
 
 // PUT
-#include <cxxutils/posix_helpers.h>
-#include <cxxutils/vterm.h>
-#include <cxxutils/vfifo.h>
+#include <put/cxxutils/posix_helpers.h>
+#include <put/cxxutils/vterm.h>
+#include <put/cxxutils/vfifo.h>
 
 // Realtime POSIX
 #include <spawn.h>

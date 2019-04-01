@@ -1,7 +1,7 @@
 #ifndef WIDGET_H
 #define WIDGET_H
 
-#include <object.h>
+#include <put/object.h>
 
 #include "tuiutils.h"
 #include "layoutitem.h"

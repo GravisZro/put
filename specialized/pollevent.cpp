@@ -4,7 +4,7 @@
 #include <functional>
 
 // PUT
-#include <specialized/osdetect.h>
+#include <put/specialized/osdetect.h>
 
 #if defined(FORCE_POSIX_POLL)
 # pragma message("Forcing use of POSIX polling.")

@@ -1,7 +1,7 @@
 #include "procstat.h"
 
 // PUT
-#include <specialized/osdetect.h>
+#include <put/specialized/osdetect.h>
 
 template<typename T>
 static inline void copy_struct(T& dest, const T& source)

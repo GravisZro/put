@@ -8,8 +8,8 @@
 #include <list>
 
 // PUT
-#include <cxxutils/posix_helpers.h>
-#include <specialized/mutex.h>
+#include <put/cxxutils/posix_helpers.h>
+#include <put/specialized/mutex.h>
 
 typedef uint64_t native_flags_t;
 typedef int milliseconds_t;

@@ -1,8 +1,8 @@
 #include "peercred.h"
 
 // PUT
-#include <specialized/osdetect.h>
-#include <cxxutils/socket_helpers.h>
+#include <put/specialized/osdetect.h>
+#include <put/cxxutils/socket_helpers.h>
 
 #if defined(__solaris__) /* Solaris */
 # include <ucred.h>

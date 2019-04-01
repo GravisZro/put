@@ -1,7 +1,7 @@
 #ifndef LAYOUT_H
 #define LAYOUT_H
 
-#include <object.h>
+#include <put/object.h>
 
 #include "layoutitem.h"
 #include "sizepolicy.h"

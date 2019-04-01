@@ -2,7 +2,7 @@
 #include <iostream>
 
 // PUT
-#include <object.h>
+#include <put/object.h>
 
 class ObjectDemo : public Object
 {

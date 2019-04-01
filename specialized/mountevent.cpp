@@ -1,8 +1,8 @@
 #include "mountevent.h"
 
 // PUT
-#include <specialized/osdetect.h>
-#include <specialized/mountpoints.h>
+#include <put/specialized/osdetect.h>
+#include <put/specialized/mountpoints.h>
 
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,30) /* Linux 2.6.30+ */
 # if defined(FORCE_POSIX_POLL)

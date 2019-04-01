@@ -10,6 +10,10 @@ ifndef CXX
   CXX:=g++
 endif
 
+ifndef AR
+  AR:=ar
+endif
+
 ifndef CXXSTANDARD
   CXXSTANDARD:=-std=c++14
 endif
@@ -46,7 +50,7 @@ CFLAGS        = -pipe -g -Os -Wall -W -fPIC $(DEFINES) $(INCPATH) $(UNAME_FLAGS)
 CXXFLAGS      = $(CFLAGS) -fno-exceptions -fno-rtti
 LDFLAGS       = 
 
-TARGET        = buildtest
+TARGET        = all
 SOURCES       = application.cpp \
 		socket.cpp \
 		childprocess.cpp \
@@ -73,18 +77,18 @@ SOURCES       = application.cpp \
 		specialized/timerevent.cpp \
 #		integration/sdl.cpp
 
-TESTSOURCES   = tests/build_test.cpp \
-		tests/proclist_test.cpp \
-		tests/procstat_test.cpp \
-		tests/blockinfo_test.cpp \
-		tests/blockdevices_test.cpp \
+UNITSOURCES   = units/build_test.cpp \
+		units/proclist_test.cpp \
+		units/procstat_test.cpp \
+		units/blockinfo_test.cpp \
+		units/blockdevices_test.cpp \
 #
 OBJS := $(SOURCES:.s=.o)
 OBJS := $(OBJS:.c=.o)
 OBJS := $(OBJS:.cpp=.o)
 OBJS := $(foreach f,$(OBJS),$(BUILD_PATH)/$(f))
 SOURCES := $(foreach f,$(SOURCES),$(SOURCE_PATH)/$(f))
-TESTS := $(foreach f,$(TESTSOURCES:.cpp=),$(BUILD_PATH)/$(f))
+UNITS := $(foreach f,$(UNITSOURCES:.cpp=),$(BUILD_PATH)/$(f))
 
 $(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.cpp
 	@echo [Compiling]: $<
@@ -98,11 +102,15 @@ $(BUILD_PATH)/%: $(BUILD_PATH)/%.o
 	@echo [Linking]: $@
 	$(QUIET) $(CXX) -o $@ $@.o $(OBJS) $(CXXSTANDARD) $(CXXFLAGS)
 
-$(TARGET): OUTPUT_DIR $(OBJS) $(TESTS)
-	@echo [Completed]: $@
+$(TARGET): put.a $(UNITS)
+	@echo [Completed]
+
+put.a: OUTPUT_DIR $(OBJS)
+	@echo [Creating Library]: $@
+	$(QUIET) $(AR) rcs $(BUILD_PATH)/$@ $(OBJS)
 
 OUTPUT_DIR:
-	$(QUIET) mkdir -p $(BUILD_PATH)/tests
+	$(QUIET) mkdir -p $(BUILD_PATH)/units
 	$(QUIET) mkdir -p $(BUILD_PATH)/cxxutils
 	$(QUIET) mkdir -p $(BUILD_PATH)/integration
 	$(QUIET) mkdir -p $(BUILD_PATH)/specialized

@@ -5,11 +5,11 @@
 #include <unordered_map>
 
 // PUT
-#include <object.h>
-#include <cxxutils/socket_helpers.h>
-#include <cxxutils/vfifo.h>
-#include <specialized/peercred.h>
-#include <specialized/pollevent.h>
+#include <put/object.h>
+#include <put/cxxutils/socket_helpers.h>
+#include <put/cxxutils/vfifo.h>
+#include <put/specialized/peercred.h>
+#include <put/specialized/pollevent.h>
 
 class GenericSocket : public PollEvent
 {

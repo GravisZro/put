@@ -2,8 +2,8 @@
 #include <iostream>
 
 // PUT
-#include <object.h>
-#include <tui/keyboard.h>
+#include <put/object.h>
+#include <put/tui/keyboard.h>
 
 void exiting(void)
 {

@@ -1,8 +1,8 @@
 #include "timerevent.h"
 
 // PUT
-#include <specialized/osdetect.h>
-#include <specialized/eventbackend.h>
+#include <put/specialized/osdetect.h>
+#include <put/specialized/eventbackend.h>
 
 #if defined(FORCE_POSIX_TIMERS)
 # pragma message("Forcing use of POSIX timers.")

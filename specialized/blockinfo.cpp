@@ -1,7 +1,7 @@
 #include "blockinfo.h"
 
-#include <specialized/osdetect.h>
-#include <specialized/mountpoints.h>
+#include <put/specialized/osdetect.h>
+#include <put/specialized/mountpoints.h>
 
 #if defined(__linux__) /* Linux */
 # include <linux/fs.h>

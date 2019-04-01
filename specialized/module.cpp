@@ -1,8 +1,8 @@
 #include "module.h"
 
 // PUT
-#include <specialized/osdetect.h>
-#include <cxxutils/posix_helpers.h>
+#include <put/specialized/osdetect.h>
+#include <put/cxxutils/posix_helpers.h>
 
 #if defined(__linux__) && KERNEL_VERSION_CODE >= KERNEL_VERSION(2,2,0) // Linux 2.2+
 
@@ -135,7 +135,7 @@ bool unload_module(const std::string& name) noexcept
 # include <kenv.h>
 
 // PUT
-#include <cxxutils/stringtoken.h>
+#include <put/cxxutils/stringtoken.h>
 
 template<class T> constexpr T min(T a, T b) { return (a < b) ? a : b; }
 
