@@ -49,7 +49,7 @@ UNAME_FLAGS   = -DUNAME_RELEASE="$(shell uname -r)" \
 INCLUDE_PATH  = -I$(SOURCE_PATH)
 CFLAGS        = -pipe -g -Os -Wall -W -fPIC $(DEFINES) $(INCLUDE_PATH) $(UNAME_FLAGS)
 CXXFLAGS      = $(CFLAGS) -fno-exceptions -fno-rtti
-LDFLAGS       = 
+LDFLAGS       = $(BUILD_PATH)/$(STATICLIB)
 
 TARGET        = all
 STATICLIB     = libput.a
@@ -100,14 +100,14 @@ $(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.c
 	@echo [Compiling]: $<
 	$(QUIET) $(CC) -c -o $@ $< $(CSTANDARD) $(CFLAGS)
 
-$(BUILD_PATH)/%: $(STATICLIB) $(BUILD_PATH)/%.o
+$(BUILD_PATH)/%: $(BUILD_PATH)/$(STATICLIB) $(BUILD_PATH)/%.o
 	@echo [Linking]: $@
-	$(QUIET) $(CXX) -o $@ $@.o $(STATICLIB) $(CXXSTANDARD) $(CXXFLAGS)
+	$(QUIET) $(CXX) -o $@ $@.o $(CXXSTANDARD) $(CXXFLAGS) $(LDFLAGS)
 
-$(TARGET): $(STATICLIB) $(UNITS)
+$(TARGET): $(BUILD_PATH)/$(STATICLIB) $(UNITS)
 	@echo [Completed]
 
-$(STATICLIB): OUTPUT_DIR $(OBJS)
+$(BUILD_PATH)/$(STATICLIB): OUTPUT_DIR $(OBJS)
 	@echo [Creating Library]: $@
 	$(QUIET) $(AR) rcs $@ $(OBJS)
 
@@ -118,6 +118,5 @@ OUTPUT_DIR:
 	$(QUIET) mkdir -p $(BUILD_PATH)/specialized
 
 clean:
-	$(QUIET) rm -f $(STATICLIB)
 	$(QUIET) rm -f $(TARGET)
 	$(QUIET) rm -rf $(BUILD_PATH)
