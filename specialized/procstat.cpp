@@ -68,7 +68,7 @@ bool split_arguments(std::vector<std::string>& argvector, const char* argstr)
 # include <sys/signalvar.h>
 
 // PUT
-# include <cxxutils/misc_helpers.h>
+# include <put/cxxutils/misc_helpers.h>
 
 # if defined(__darwin__) /* Darwin XNU 792+ */
 struct session {
@@ -265,7 +265,7 @@ bool procstat(pid_t pid, process_state_t& data) noexcept
 #elif defined(__unix__) /* Generic UNIX */
 
 // PUT
-# include <specialized/mountpoints.h>
+# include <put/specialized/mountpoints.h>
 
 static posix::size_t arg_max = posix::size_t(sysconf(_SC_ARG_MAX));
 

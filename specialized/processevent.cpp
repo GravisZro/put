@@ -16,9 +16,9 @@
 #include <linux/cn_proc.h>
 
 // PUT
-# include <cxxutils/posix_helpers.h>
-# include <cxxutils/socket_helpers.h>
-# include <cxxutils/vterm.h>
+# include <put/cxxutils/posix_helpers.h>
+# include <put/cxxutils/socket_helpers.h>
+# include <put/cxxutils/vterm.h>
 
 // process flags
 static constexpr uint8_t from_native_flags(const native_flags_t flags) noexcept

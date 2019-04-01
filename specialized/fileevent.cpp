@@ -9,7 +9,7 @@
 # include <assert.h>
 
 // PUT
-# include <cxxutils/vterm.h>
+# include <put/cxxutils/vterm.h>
 
 
 # if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,6,13) /* Linux 2.6.13+ */
@@ -454,8 +454,8 @@ FileEvent::~FileEvent(void) noexcept
 # include <assert.h>
 
 // PUT
-# include <cxxutils/vterm.h>
-# include <specialized/timerevent.h>
+# include <put/cxxutils/vterm.h>
+# include <put/specialized/timerevent.h>
 
 template<typename T>
 static inline bool data_identical(T& a, T& b) noexcept
