@@ -108,7 +108,7 @@ $(TARGET): $(STATICLIB) $(UNITS)
 
 $(STATICLIB): OUTPUT_DIR $(OBJS)
 	@echo [Creating Library]: $@
-	$(QUIET) $(AR) rcs $(BUILD_PATH)/$@ $(OBJS)
+	$(QUIET) $(AR) rcs $@ $(OBJS)
 
 OUTPUT_DIR:
 	$(QUIET) mkdir -p $(BUILD_PATH)/units
@@ -117,5 +117,6 @@ OUTPUT_DIR:
 	$(QUIET) mkdir -p $(BUILD_PATH)/specialized
 
 clean:
+	$(QUIET) rm -f $(STATICLIB)
 	$(QUIET) rm -f $(TARGET)
 	$(QUIET) rm -rf $(BUILD_PATH)
