@@ -51,6 +51,7 @@ CXXFLAGS      = $(CFLAGS) -fno-exceptions -fno-rtti
 LDFLAGS       = 
 
 TARGET        = all
+STATICLIB     = put.a
 SOURCES       = application.cpp \
 		socket.cpp \
 		childprocess.cpp \
@@ -98,14 +99,14 @@ $(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.c
 	@echo [Compiling]: $<
 	$(QUIET) $(CC) -c -o $@ $< $(CSTANDARD) $(CFLAGS)
 
-$(BUILD_PATH)/%: $(BUILD_PATH)/%.o
+$(BUILD_PATH)/%: $(STATICLIB) $(BUILD_PATH)/%.o
 	@echo [Linking]: $@
-	$(QUIET) $(CXX) -o $@ $@.o $(OBJS) $(CXXSTANDARD) $(CXXFLAGS)
+	$(QUIET) $(CXX) -o $@ $@.o $(BUILD_PATH)/$(STATICLIB) $(CXXSTANDARD) $(CXXFLAGS)
 
-$(TARGET): put.a $(UNITS)
+$(TARGET): $(STATICLIB) $(UNITS)
 	@echo [Completed]
 
-put.a: OUTPUT_DIR $(OBJS)
+$(STATICLIB): OUTPUT_DIR $(OBJS)
 	@echo [Creating Library]: $@
 	$(QUIET) $(AR) rcs $(BUILD_PATH)/$@ $(OBJS)
 
