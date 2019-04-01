@@ -47,12 +47,12 @@ UNAME_FLAGS   = -DUNAME_RELEASE="$(shell uname -r)" \
 		$(shell uname -r | sed -e "s/^\([0-9]*\)\.*\([0-9]*\)\.*\([0-9]*\)\(.*\)$$/-DUNAME_KERNEL_MAJOR=\1 -DUNAME_KERNEL_MINOR=\2 -DUNAME_KERNEL_RELEASE=\3/")
 
 INCLUDE_PATH  = -I$(SOURCE_PATH)
+STATICLIB     = $(BUILD_PATH)/libput.a
 CFLAGS        = -pipe -g -Os -Wall -W -fPIC $(DEFINES) $(INCLUDE_PATH) $(UNAME_FLAGS)
 CXXFLAGS      = $(CFLAGS) -fno-exceptions -fno-rtti
-LDFLAGS       = $(BUILD_PATH)/$(STATICLIB)
+LDFLAGS       = $(STATICLIB)
 
 TARGET        = all
-STATICLIB     = libput.a
 SOURCES       = application.cpp \
 		socket.cpp \
 		childprocess.cpp \
@@ -100,14 +100,14 @@ $(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.c
 	@echo [Compiling]: $<
 	$(QUIET) $(CC) -c -o $@ $< $(CSTANDARD) $(CFLAGS)
 
-$(BUILD_PATH)/%: $(BUILD_PATH)/$(STATICLIB) $(BUILD_PATH)/%.o
+$(BUILD_PATH)/%: $(STATICLIB) $(BUILD_PATH)/%.o
 	@echo [Linking]: $@
 	$(QUIET) $(CXX) -o $@ $@.o $(CXXSTANDARD) $(CXXFLAGS) $(LDFLAGS)
 
-$(TARGET): $(BUILD_PATH)/$(STATICLIB) $(UNITS)
+$(TARGET): $(STATICLIB) $(UNITS)
 	@echo [Completed]
 
-$(BUILD_PATH)/$(STATICLIB): OUTPUT_DIR $(OBJS)
+$(STATICLIB): OUTPUT_DIR $(OBJS)
 	@echo [Creating Library]: $@
 	$(QUIET) $(AR) rcs $@ $(OBJS)
 
