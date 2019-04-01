@@ -101,7 +101,7 @@ $(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.c
 
 $(BUILD_PATH)/%: $(STATICLIB) $(BUILD_PATH)/%.o
 	@echo [Linking]: $@
-	$(QUIET) $(CXX) -o $@ $@.o $(BUILD_PATH)/$(STATICLIB) $(CXXSTANDARD) $(CXXFLAGS)
+	$(QUIET) $(CXX) -o $@ $@.o $(STATICLIB) $(CXXSTANDARD) $(CXXFLAGS)
 
 $(TARGET): $(STATICLIB) $(UNITS)
 	@echo [Completed]
