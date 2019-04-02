@@ -77,6 +77,6 @@ matrix:
 git:
   submodules: true
 script:
-  - make -e CXX=$COMPILER -e VERBOSE=true -f Makefile.travis
+  - make -e CXX=$COMPILER -e DEFINES=-D__CONTINUOUS_INTEGRATION__ -e VERBOSE=true -f Makefile.travis
   - ./bin/units/proclist_test
   - ./bin/units/procstat_test
