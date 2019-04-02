@@ -65,13 +65,12 @@ static constexpr uint32_t crc_table[256] = {
   0x2d02ef8d,
 };
 
+constexpr uint32_t crc32_compiletime(const char* str, posix::size_t idx) noexcept
 #if defined(__CONTINUOUS_INTEGRATION__) && defined(__clang__)
-// Only makes compiler run faster
-constexpr uint32_t crc32_compiletime(const char* str, posix::size_t idx) noexcept
-{ return idx == SIZE_MAX ? UINT32_MAX : ((crc32_compiletime(str, idx - 1) >> 8) ^ crc_table[idx + str[idx]] ^ str[idx]); }
+// Fast and unreliable hashing
+  { return idx ? static_cast<unsigned int>(str[idx]) + 33 * crc32_compiletime(str, idx - 1) : 5381; }
 #else
-// compiletime hashing
-constexpr uint32_t crc32_compiletime(const char* str, posix::size_t idx) noexcept
+// Full compile-time hashing
   { return idx == SIZE_MAX ? UINT32_MAX : ((crc32_compiletime(str, idx - 1) >> 8) ^ crc_table[(crc32_compiletime(str, idx - 1) ^ str[idx]) & UINT8_MAX]); }
 #endif
 
@@ -80,12 +79,18 @@ constexpr uint32_t operator "" _hash(const char* str, const posix::size_t sz) no
 
 // runtime hashing
 static inline uint32_t crc32_runtime(const char* str, posix::size_t idx) noexcept
+#if defined(__CONTINUOUS_INTEGRATION__) && defined(__clang__)
+// Fast and unreliable hashing
+  { return idx ? static_cast<unsigned int>(str[idx]) + 33 * crc32_runtime(str, idx - 1) : 5381; }
+#else
+// Full execution-time hashing
 {
   if(idx == SIZE_MAX)
     return UINT32_MAX;
   uint32_t result = crc32_runtime(str, idx - 1);
   return (result >> 8) ^ crc_table[(result ^ str[idx]) & UINT8_MAX];
 }
+#endif
 
 static inline uint32_t hash(const char* str, const posix::size_t sz) noexcept { return crc32_runtime(str, sz) ^ UINT32_MAX; }
 static inline uint32_t hash(const char* str) noexcept { return hash(str, posix::strlen(str)); }
