@@ -5,22 +5,27 @@
 
 static_assert(sizeof(int) == sizeof(uint32_t), "string hash would truncate!");
 
-#define invalid_catalog  nl_catd(-1)
-
-static nl_catd string_catalog = invalid_catalog;
-static int32_t string_language = hash(getenv("LANG"));
-
-bool set_catalog(const char* const str) noexcept
+namespace catalog
 {
-  if(string_catalog != invalid_catalog)
-    posix::catclose(string_catalog);
-  return (string_catalog = posix::catopen(str, 0)) != invalid_catalog;
+  static const nl_catd invalid_catalog = nl_catd(-1);
+  static nl_catd handle = invalid_catalog;
+  static int32_t language = hash(getenv("LANG"));
+
+  bool open(const char* const name) noexcept
+    { return close() && (handle = posix::catopen(name, 0)) != invalid_catalog; }
+
+  bool close(void) noexcept
+  {
+    bool rval = true;
+    if(handle != invalid_catalog &&
+       (rval = posix::catclose(handle)))
+      handle = invalid_catalog;
+    return rval;
+  }
+
+  void force_language(const char* const str) noexcept
+    { language = hash(str); }
 }
 
-void force_language(const char* const str) noexcept
-  { string_language = hash(str); }
-
 const char* operator "" _xlate(const char* str, const posix::size_t sz) noexcept
-  { return posix::catgets(string_catalog, string_language, hash(str, sz) & INT32_MAX, str); }
-
-#undef invalid_catalog
+  { return posix::catgets(catalog::handle, catalog::language, hash(str, sz) & INT32_MAX, str); }
