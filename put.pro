@@ -99,6 +99,18 @@ HEADERS += \
     specialized/procstat.h \
     specialized/timerevent.h
 
+tui:HEADERS += \
+    tui/event.h \
+    tui/keyboard.h \
+    tui/layout.h \
+    tui/screen.h \
+    tui/tuiutils.h \
+    tui/sizepolicy.h \
+    tui/layoutitem.h \
+    tui/tuitypes.h \
+    tui/widget.h \
+    tui/window.h
+
 SOURCES += \
     application.cpp \
     childprocess.cpp \
@@ -124,3 +136,13 @@ SOURCES += \
     specialized/processevent.cpp \
     specialized/procstat.cpp \
     specialized/timerevent.cpp
+
+tui:SOURCES += \
+    tui/event.cpp \
+    tui/keyboard.cpp \
+    tui/layout.cpp \
+    tui/screen.cpp \
+    tui/tuiutils.cpp \
+    tui/layoutitem.cpp \
+    tui/widget.cpp \
+    tui/window.cpp
