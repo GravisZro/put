@@ -499,6 +499,9 @@ namespace posix
     return rval;
   }
 
+  static inline bool catclose(nl_catd catd) noexcept
+    { return ignore_interruption(::catclose, catd) != posix::error_response; }
+
   static inline char* catgets(nl_catd catd, int set_id, int msg_id, const char* s) noexcept
   {
     char* rval = const_cast<char*>(s);
