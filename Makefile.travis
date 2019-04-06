@@ -50,7 +50,7 @@ INCLUDE_PATH  = -I$(SOURCE_PATH)
 STATICLIB     = $(BUILD_PATH)/libput.a
 INT_DEFINES   = $(DEFINES) $(UNAME_FLAGS)
 INT_CFLAGS    = $(CFLAGS) $(INT_DEFINES) -pipe -g -Os -Wall -W -fPIC $(INCLUDE_PATH)
-INT_CXXFLAGS  = $(CFLAGS) -fno-exceptions -fno-rtti
+INT_CXXFLAGS  = $(CXXFLAGS) $(INT_CFLAGS) -fno-exceptions -fno-rtti
 INT_LDFLAGS   = $(LDFLAGS) $(STATICLIB)
 
 TARGET        = all
