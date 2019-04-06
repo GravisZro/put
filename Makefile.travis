@@ -48,9 +48,10 @@ UNAME_FLAGS   = -DUNAME_RELEASE="$(shell uname -r)" \
 
 INCLUDE_PATH  = -I$(SOURCE_PATH)
 STATICLIB     = $(BUILD_PATH)/libput.a
-CFLAGS        = -pipe -g -Os -Wall -W -fPIC $(DEFINES) $(INCLUDE_PATH) $(UNAME_FLAGS)
-CXXFLAGS      = $(CFLAGS) -fno-exceptions -fno-rtti
-LDFLAGS       = $(STATICLIB)
+INT_DEFINES   = $(DEFINES) $(UNAME_FLAGS)
+INT_CFLAGS    = $(CFLAGS) $(INT_DEFINES) -pipe -g -Os -Wall -W -fPIC $(INCLUDE_PATH)
+INT_CXXFLAGS  = $(CFLAGS) -fno-exceptions -fno-rtti
+INT_LDFLAGS   = $(LDFLAGS) $(STATICLIB)
 
 TARGET        = all
 SOURCES       = application.cpp \
@@ -92,22 +93,22 @@ OBJS := $(foreach f,$(OBJS),$(BUILD_PATH)/$(f))
 SOURCES := $(foreach f,$(SOURCES),$(SOURCE_PATH)/$(f))
 UNITS := $(foreach f,$(UNITSOURCES:.cpp=),$(BUILD_PATH)/$(f))
 
-$(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.cpp
+$(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.cpp OUTPUT_DIR
 	@echo [Compiling]: $<
-	$(QUIET) $(CXX) -c -o $@ $< $(CXXSTANDARD) $(CXXFLAGS)
+	$(QUIET) $(CXX) -c -o $@ $< $(CXXSTANDARD) $(INT_CXXFLAGS)
 
-$(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.c
+$(BUILD_PATH)/%.o: $(SOURCE_PATH)/%.c OUTPUT_DIR
 	@echo [Compiling]: $<
-	$(QUIET) $(CC) -c -o $@ $< $(CSTANDARD) $(CFLAGS)
+	$(QUIET) $(CC) -c -o $@ $< $(CSTANDARD) $(INT_CFLAGS)
 
 $(BUILD_PATH)/%: $(STATICLIB) $(BUILD_PATH)/%.o
 	@echo [Linking]: $@
-	$(QUIET) $(CXX) -o $@ $@.o $(CXXSTANDARD) $(CXXFLAGS) $(LDFLAGS)
+	$(QUIET) $(CXX) -o $@ $@.o $(CXXSTANDARD) $(INT_CXXFLAGS) $(INT_LDFLAGS)
 
 $(TARGET): $(STATICLIB) $(UNITS)
 	@echo [Completed]
 
-$(STATICLIB): OUTPUT_DIR $(OBJS)
+$(STATICLIB): $(OBJS)
 	@echo [Creating Library]: $@
 	$(QUIET) $(AR) rcs $@ $(OBJS)
 
