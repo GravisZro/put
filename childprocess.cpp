@@ -137,7 +137,7 @@ ChildProcess::State ChildProcess::state(void) noexcept
       break;
     default:
       process_state_t data;
-      flaw(::procstat(processId(), data) && m_state != State::Finished,
+      flaw(!::procstat(processId(), data) && m_state != State::Finished,
            terminal::severe,
            m_state = State::Invalid,
            m_state,
