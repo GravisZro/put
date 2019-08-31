@@ -8,12 +8,17 @@
 // STL
 #include <functional>
 #include <map>
+#include <new>
 
 struct ProtoObject
 {
-  inline  ProtoObject(void) noexcept { self = this; }
-  inline ~ProtoObject(void) noexcept { self = nullptr; }
-  ProtoObject* self; // used to determine if type has been deleted
+  inline  ProtoObject(void) noexcept : valid(true) { }
+  inline ~ProtoObject(void) noexcept
+  {
+    if(valid)
+      posix::Signal::raise(posix::Signal::SegmentationViolation);
+  }
+  bool valid; // used to determine if type has been deleted
 };
 
 class Object : private ProtoObject
@@ -40,7 +45,7 @@ public:
   {
     sig.emplace(static_cast<ProtoObject*>(obj),
       [slot](ProtoObject* p, ArgTypes... args) noexcept
-        { if(p == p->self) (static_cast<ObjType*>(p)->*slot)(args...); }); // if ProtoObject is valid (not deleted), call slot
+        { if(p->valid) (static_cast<ObjType*>(p)->*slot)(args...); }); // if ProtoObject is valid (not deleted), call slot
   }
 
   // connect to another signal
@@ -58,7 +63,7 @@ public:
   {
     sig.emplace(static_cast<ProtoObject*>(obj),
       [slot](ProtoObject* p, ArgTypes... args) noexcept
-        { if(p == p->self) slot(static_cast<ObjType*>(p), args...); }); // if ProtoObject is valid (not deleted), call slot
+        { if(p->valid) slot(static_cast<ObjType*>(p), args...); }); // if ProtoObject is valid (not deleted), call slot
   }
 
   template<class ObjType, typename RType, typename... ArgTypes>
@@ -133,6 +138,17 @@ public:
   template<typename... ArgTypes>
   static inline bool enqueue_copy(const signal<ArgTypes...>& sig, ArgTypes... args) noexcept
     { return enqueue_private(sig, args...);}
+
+  static inline void operator delete(void* ptr) noexcept
+  {
+    static_cast<ProtoObject*>(ptr)->valid = false;
+    if(Application::ms_signal_queue.lock()) // multithread protection
+    {
+      Application::ms_signal_queue.emplace([ptr](void) { ::operator delete(ptr); });
+      Application::step(); // inform execution stepper
+      Application::ms_signal_queue.unlock();
+    }
+  }
 
 private:
   template<class signal_type, typename... ArgTypes>
