@@ -12,13 +12,14 @@
 
 struct ProtoObject
 {
-  inline  ProtoObject(void) noexcept : valid(true) { }
+  inline  ProtoObject(void) noexcept : self(this) { }
   inline ~ProtoObject(void) noexcept
   {
-    if(valid)
-      posix::Signal::raise(posix::Signal::SegmentationViolation);
+    if(valid())
+      posix::Signal::raise(posix::Signal::MemoryBusError);
   }
-  bool valid; // used to determine if type has been deleted
+  constexpr bool valid(void) const { return this == self; }
+  void* self; // used to determine if type has been deleted
 };
 
 class Object : private ProtoObject
@@ -43,9 +44,10 @@ public:
   template<class ObjType, typename RType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, mslot_t<ObjType, RType, ArgTypes...> slot) noexcept
   {
-    sig.emplace(static_cast<ProtoObject*>(obj),
-      [slot](ProtoObject* p, ArgTypes... args) noexcept
-        { if(p->valid) (static_cast<ObjType*>(p)->*slot)(args...); }); // if ProtoObject is valid (not deleted), call slot
+    if(obj->valid())  // ensure object is valid
+      sig.emplace(static_cast<ProtoObject*>(obj),
+        [slot](ProtoObject* p, ArgTypes... args) noexcept
+          { if(p->valid()) (static_cast<ObjType*>(p)->*slot)(args...); }); // if ProtoObject is valid (not deleted), call slot
   }
 
   // connect to another signal
@@ -61,9 +63,10 @@ public:
   template<class ObjType, typename RType, typename... ArgTypes>
   static inline void connect(signal<ArgTypes...>& sig, ObjType* obj, fslot_t<RType, ObjType*, ArgTypes...> slot) noexcept
   {
-    sig.emplace(static_cast<ProtoObject*>(obj),
-      [slot](ProtoObject* p, ArgTypes... args) noexcept
-        { if(p->valid) slot(static_cast<ObjType*>(p), args...); }); // if ProtoObject is valid (not deleted), call slot
+    if(obj->valid())  // ensure object is valid
+      sig.emplace(static_cast<ProtoObject*>(obj),
+        [slot](ProtoObject* p, ArgTypes... args) noexcept
+          { if(p->valid()) slot(static_cast<ObjType*>(p), args...); }); // if ProtoObject is valid (not deleted), call slot
   }
 
   template<class ObjType, typename RType, typename... ArgTypes>
@@ -104,7 +107,8 @@ public:
   template<class ObjType, typename RType, typename... ArgTypes>
   static inline bool singleShot(ObjType* obj, mslot_t<ObjType, RType, ArgTypes...> slot, ArgTypes&... args) noexcept
   {
-    if(Application::ms_signal_queue.lock()) // multithread protection
+    if(obj->valid() && // ensure object is valid
+       Application::ms_signal_queue.lock()) // multithread protection
     {
       Application::ms_signal_queue.emplace(std::bind(slot, obj, std::forward<ArgTypes>(args)...));
       Application::step(); // inform execution stepper
@@ -141,7 +145,7 @@ public:
 
   static inline void operator delete(void* ptr) noexcept
   {
-    static_cast<ProtoObject*>(ptr)->valid = false;
+    static_cast<ProtoObject*>(ptr)->self = nullptr; // invalidate object
     if(Application::ms_signal_queue.lock()) // multithread protection
     {
       Application::ms_signal_queue.emplace([ptr](void) { ::operator delete(ptr); });
@@ -154,11 +158,12 @@ private:
   template<class signal_type, typename... ArgTypes>
   static inline bool enqueue_private(const signal_type& sig, ArgTypes... args) noexcept
   {
-    if(!sig.empty() &&  // ensure that invalid signals are not enqueued
+    if(!sig.empty() &&  // ensure that invalid signals are ignored
        Application::ms_signal_queue.lock()) // multithread protection
     {
       for(auto sigpair : sig) // iterate through all connected slots
-        Application::ms_signal_queue.emplace(std::bind(sigpair.second, sigpair.first, std::forward<ArgTypes>(args)...));
+        if(sigpair.first->valid()) // ensure object is valid
+          Application::ms_signal_queue.emplace(std::bind(sigpair.second, sigpair.first, std::forward<ArgTypes>(args)...));
       Application::step(); // inform execution stepper
       return Application::ms_signal_queue.unlock();
     }
