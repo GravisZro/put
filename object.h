@@ -18,7 +18,7 @@ struct ProtoObject
     if(valid())
       posix::Signal::raise(posix::Signal::MemoryBusError);
   }
-  constexpr bool valid(void) const { return this == self; }
+  constexpr bool valid(void) { return this == self; }
   void* self; // used to determine if type has been deleted
 };
 
