@@ -36,12 +36,10 @@ public:
   using fpslot_t = RType(*)(ArgTypes...); // function pointer slot
 
   template<typename... ArgTypes>
-  using signal_storage_t = std::multimap<ProtoObject*, fslot_t<void, ProtoObject*, ArgTypes...>>;
-
-  template<typename... ArgTypes>
-  struct signal : signal_storage_t<ArgTypes...>
+  class signal : private std::multimap<ProtoObject*, fslot_t<void, ProtoObject*, ArgTypes...>>
   {
-    typedef signal_storage_t<ArgTypes...> storage_t;
+  public:
+    typedef std::multimap<ProtoObject*, fslot_t<void, ProtoObject*, ArgTypes...>> storage_t;
 
 //    inline  signal(void) noexcept = default;
 //    inline ~signal(void) noexcept = default;
@@ -51,14 +49,16 @@ public:
       if(!storage_t::empty() &&  // ensure that invalid signals are ignored
          Application::ms_signal_queue.lock()) // multithread protection
       {
-        for(auto pos = storage_t::begin(); pos != storage_t::end();) // iterate through all connected slots
-          if(pos->first == nullptr || pos->first->valid()) // ensure no object OR object is valid
+        for(typename storage_t::iterator pos = storage_t::begin(); pos != storage_t::end(); ) // will iterate through all connected slots
+        {
+          if(pos->first == nullptr || pos->first->valid()) // IF no object OR object is valid
           {
             Application::ms_signal_queue.emplace(std::bind(pos->second, pos->first, std::forward<ArgTypes>(args)...));
-            ++pos;
+            ++pos; // iterate
           }
-          else
-            pos = storage_t::erase(pos);
+          else // IF has object AND object is invalid
+            pos = storage_t::erase(pos); // erase and iterate
+        }
 
         Application::step(); // inform execution stepper
         return Application::ms_signal_queue.unlock();
