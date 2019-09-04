@@ -43,8 +43,8 @@ public:
   {
     typedef signal_storage_t<ArgTypes...> storage_t;
 
-    inline  signal(void) noexcept = default;
-    inline ~signal(void) noexcept = default;
+//    inline  signal(void) noexcept = default;
+//    inline ~signal(void) noexcept = default;
 
     bool invocation(ArgTypes&... args) noexcept
     {
