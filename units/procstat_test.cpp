@@ -121,7 +121,7 @@ int main(int, char* [])
   posix::atexit(file_cleanup);
 
   char tmp_buffer1[PATH_MAX] = { 0 };
-  char tmp_buffer2[PATH_MAX] = { 0 };
+  char tmp_buffer2[PATH_MAX + 1024] = { 0 };
   const char* psdump_command  = "ps -p %i " \
                             "-o pid " \
                             "-o ppid " \
