@@ -12,14 +12,10 @@
 
 struct ProtoObject
 {
-  inline  ProtoObject(void) noexcept : self(this) { }
-  inline ~ProtoObject(void) noexcept
-  {
-    if(valid())
-      posix::Signal::raise(posix::Signal::MemoryBusError);
-  }
-  inline bool valid(void) const { return this == self; }
-  void* self; // used to determine if type is soon to be be deleted
+  inline  ProtoObject(void) noexcept : self(this) { } // make object valid
+  inline ~ProtoObject(void) noexcept { self = nullptr; } // invalidate object
+  inline bool valid(void) const { return this == self; } // test object validity
+  void* self;
 };
 
 
