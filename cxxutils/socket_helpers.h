@@ -115,11 +115,11 @@ namespace posix
     operator struct sockaddr*(void) noexcept { return reinterpret_cast<struct sockaddr*>(this); }
     operator const struct sockaddr*(void) const noexcept { return reinterpret_cast<const struct sockaddr*>(this); }
 
-    constexpr inetaddr_t& setFamily (EDomain   family ) noexcept { sin_family = static_cast<sa_family_t>(family); return *this; }
+    constexpr_maybe inetaddr_t& setFamily (EDomain   family ) noexcept { sin_family = static_cast<sa_family_t>(family); return *this; }
     inline    inetaddr_t& setAddress(in_addr_t address) noexcept { sin_addr.s_addr = htonl(address); return *this; }
     inline    inetaddr_t& setPort   (in_port_t port   ) noexcept { sin_port = ntohs(port); return *this; }
 
-    constexpr EDomain   family  (void) const noexcept { return static_cast<EDomain>(sin_family); }
+    constexpr_maybe EDomain   family  (void) const noexcept { return static_cast<EDomain>(sin_family); }
     inline    in_addr_t address (void) const noexcept { return ntohl(sin_addr.s_addr); }
     inline    in_port_t port    (void) const noexcept { return ntohs(sin_port); }
   };
