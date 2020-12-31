@@ -78,6 +78,11 @@ enum class EType : int
   rdm       = SOCK_RDM,       //  Provides a reliable datagram layer that does not guarantee ordering.
 };
 
+#if GCC_7
+# define constexpr_maybe constexpr
+#else
+# define constexpr_maybe inline
+#endif
 
 namespace posix
 {
@@ -93,9 +98,9 @@ namespace posix
     operator struct sockaddr*(void) noexcept { return reinterpret_cast<struct sockaddr*>(this); }
     operator const struct sockaddr*(void) const noexcept { return reinterpret_cast<const struct sockaddr*>(this); }
 
-    inline operator EDomain(void) const noexcept { return static_cast<EDomain>(sun_family); } // ye olde GCC (less than GCC 7) doesn't like this as a constexpr
-    constexpr sockaddr_t& operator = (sa_family_t family) noexcept { sun_family = family; return *this; }
-    constexpr sockaddr_t& operator = (EDomain family) noexcept { return operator =(static_cast<sa_family_t>(family)); }
+    constexpr_maybe operator EDomain(void) const noexcept { return static_cast<EDomain>(sun_family); }
+    constexpr_maybe sockaddr_t& operator = (sa_family_t family) noexcept { sun_family = family; return *this; }
+    constexpr_maybe sockaddr_t& operator = (EDomain family) noexcept { return operator =(static_cast<sa_family_t>(family)); }
     sockaddr_t& operator = (const char* path) noexcept { posix::strncpy(sun_path, path, sizeof(sockaddr_un::sun_path)); return *this; }
   };
 
