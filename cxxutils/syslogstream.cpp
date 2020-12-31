@@ -2,7 +2,10 @@
 
 #include <assert.h>
 
-ErrorMessageStream::ErrorMessageStream(void) noexcept { purge_buffer(); }
+ErrorMessageStream::ErrorMessageStream(void) noexcept
+{
+  ErrorMessageStream::purge_buffer();
+}
 
 ErrorMessageStream& ErrorMessageStream::operator << (const char* arg) noexcept
 {

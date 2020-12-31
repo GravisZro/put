@@ -75,7 +75,7 @@ private:
     posix::fd_t socket;
     posix::sockaddr_t addr;
     proccred_t creds;
-    peer_t(posix::fd_t s, posix::sockaddr_t a, proccred_t c) noexcept
+    peer_t(posix::fd_t s, const posix::sockaddr_t& a, const proccred_t& c) noexcept
       : socket(s), addr(a), creds(c) { }
   };
 

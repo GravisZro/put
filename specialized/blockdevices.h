@@ -14,7 +14,8 @@ struct blockdevice_t
   bool     clean;
 
   blockdevice_t(void) noexcept { posix::memset(this, 0, sizeof(blockdevice_t)); }
-  blockdevice_t(blockdevice_t& other) noexcept { posix::memcpy(this, &other, sizeof(blockdevice_t)); }
+  blockdevice_t(blockdevice_t& other) noexcept = default;
+  blockdevice_t& operator =(blockdevice_t& other) noexcept = default;
 };
 
 namespace blockdevices
