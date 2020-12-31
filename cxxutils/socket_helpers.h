@@ -93,7 +93,7 @@ namespace posix
     operator struct sockaddr*(void) noexcept { return reinterpret_cast<struct sockaddr*>(this); }
     operator const struct sockaddr*(void) const noexcept { return reinterpret_cast<const struct sockaddr*>(this); }
 
-    constexpr operator EDomain(void) const noexcept { return static_cast<EDomain>(sun_family); }
+    inline operator EDomain(void) const noexcept { return static_cast<EDomain>(sun_family); } // ye olde GCC (less than GCC 7) doesn't like this as a constexpr
     constexpr sockaddr_t& operator = (sa_family_t family) noexcept { sun_family = family; return *this; }
     constexpr sockaddr_t& operator = (EDomain family) noexcept { return operator =(static_cast<sa_family_t>(family)); }
     sockaddr_t& operator = (const char* path) noexcept { posix::strncpy(sun_path, path, sizeof(sockaddr_un::sun_path)); return *this; }
