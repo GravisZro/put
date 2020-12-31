@@ -78,7 +78,7 @@ enum class EType : int
   rdm       = SOCK_RDM,       //  Provides a reliable datagram layer that does not guarantee ordering.
 };
 
-#if __GNUC__ >= 7 || __clang_major__ >= 7
+#if __GNUC__ >= 7 || __clang_major__ >= 3
 # define constexpr_maybe constexpr
 #else
 # define constexpr_maybe inline
