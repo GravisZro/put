@@ -3,6 +3,7 @@
 
 // POSIX
 #include <sys/un.h>     // for struct sockaddr_un
+#include <netinet/in.h> // for struct sockaddr_in
 #include <sys/socket.h> // for socket()
 #include <poll.h>       // for poll()
 
@@ -91,10 +92,31 @@ namespace posix
     size_t size(void) const noexcept { return sizeof(sun_family) + posix::strlen(sun_path); }
     operator struct sockaddr*(void) noexcept { return reinterpret_cast<struct sockaddr*>(this); }
     operator const struct sockaddr*(void) const noexcept { return reinterpret_cast<const struct sockaddr*>(this); }
-    operator EDomain(void) const noexcept { return static_cast<EDomain>(sun_family); }
-    sockaddr_t& operator = (sa_family_t family) noexcept { sun_family = family; return *this; }
-    sockaddr_t& operator = (EDomain family) noexcept { return operator =(static_cast<sa_family_t>(family)); }
+
+    constexpr operator EDomain(void) const noexcept { return static_cast<EDomain>(sun_family); }
+    constexpr sockaddr_t& operator = (sa_family_t family) noexcept { sun_family = family; return *this; }
+    constexpr sockaddr_t& operator = (EDomain family) noexcept { return operator =(static_cast<sa_family_t>(family)); }
     sockaddr_t& operator = (const char* path) noexcept { posix::strncpy(sun_path, path, sizeof(sockaddr_un::sun_path)); return *this; }
+  };
+
+  struct inetaddr_t : sockaddr_in
+  {
+    inetaddr_t(void) noexcept
+    {
+      posix::memset(this, 0, sizeof(sockaddr_in));
+    }
+
+    size_t size(void) const noexcept { return sizeof(sockaddr_in); }
+    operator struct sockaddr*(void) noexcept { return reinterpret_cast<struct sockaddr*>(this); }
+    operator const struct sockaddr*(void) const noexcept { return reinterpret_cast<const struct sockaddr*>(this); }
+
+    constexpr inetaddr_t& setFamily (EDomain   family ) noexcept { sin_family = static_cast<sa_family_t>(family); return *this; }
+    inline    inetaddr_t& setAddress(in_addr_t address) noexcept { sin_addr.s_addr = htonl(address); return *this; }
+    inline    inetaddr_t& setPort   (in_port_t port   ) noexcept { sin_port = ntohs(port); return *this; }
+
+    constexpr EDomain   family  (void) const noexcept { return static_cast<EDomain>(sin_family); }
+    inline    in_addr_t address (void) const noexcept { return ntohl(sin_addr.s_addr); }
+    inline    in_port_t port    (void) const noexcept { return ntohs(sin_port); }
   };
 
 // POSIX wrappers

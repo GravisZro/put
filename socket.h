@@ -25,7 +25,11 @@ protected:
   virtual bool read(posix::fd_t socket, Flags_t flags) noexcept = 0;
   void disconnect(void) noexcept;
   bool m_connected;
-  posix::sockaddr_t m_selfaddr;
+  union
+  {
+    posix::sockaddr_t m_sockaddr;
+    posix::inetaddr_t m_netaddr;
+  };
   posix::fd_t m_socket;
 };
 

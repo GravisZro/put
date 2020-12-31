@@ -165,8 +165,8 @@ public:
     return false;
   }
 
-  template<typename RType, typename... ArgTypes>
-  static inline bool singleShot(fslot_t<RType, ArgTypes...> slot, ArgTypes&... args) noexcept
+  template<typename RType, template<typename, typename...> class FuncType, typename... ArgTypes>
+  static inline bool singleShot(FuncType<RType, ArgTypes...> slot, ArgTypes&... args) noexcept
   {
     if(Application::ms_signal_queue.lock()) // multithread protection
     {
@@ -177,9 +177,14 @@ public:
     return false;
   }
 
-  template<typename RType, typename... ArgTypes>
-  static inline void singleShot(fpslot_t<RType, ArgTypes...> slot, ArgTypes&... args) noexcept
-    { singleShot(fslot_t<RType, ArgTypes...>(slot), args...);}
+  // enqueue a call to the functions connected to the signal with /copies/ of the arguments
+  template<template<typename, typename...> class FuncType, typename... ArgTypes>
+  static inline bool singleShot_copy(FuncType<ArgTypes...>& sig, ArgTypes... args) noexcept
+    { return singleShot(sig, args...); }
+
+  template<class ObjType, typename RType, typename... ArgTypes>
+  static inline bool singleShot_copy(ObjType* obj, mslot_t<ObjType, RType, ArgTypes...> slot, ArgTypes... args) noexcept
+    { return singleShot(obj, slot, args...); }
 
   // enqueue a call to the functions connected to the signal
   template<typename... ArgTypes>

@@ -2,6 +2,8 @@
 PUTPATH = $$_PRO_FILE_PWD_/put
 }
 
+QMAKE_INCDIR += $$PUTPATH
+
 HEADERS += \
     $$PUTPATH/application.h \
     $$PUTPATH/childprocess.h \

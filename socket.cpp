@@ -29,10 +29,10 @@ GenericSocket::~GenericSocket(void) noexcept { disconnect(); }
 
 void GenericSocket::disconnect(void) noexcept
 {
-  if(m_selfaddr != EDomain::unspec)
+  if(m_sockaddr == EDomain::local)
   {
-    ::unlink(m_selfaddr.sun_path);
-    m_selfaddr = EDomain::unspec;
+    ::unlink(m_sockaddr.sun_path);
+    m_sockaddr = EDomain::unspec;
   }
 
   if(m_socket != posix::invalid_descriptor)
@@ -65,7 +65,7 @@ bool ClientSocket::connect(const char *socket_path) noexcept
 
   peeraddr = socket_path;
   peeraddr = EDomain::local;
-  m_selfaddr = EDomain::unspec;
+  m_sockaddr = EDomain::unspec;
 
   flaw(!posix::connect(m_socket, peeraddr, socklen_t(peeraddr.size())),
        terminal::warning,,
@@ -100,7 +100,8 @@ bool ClientSocket::write(const vfifo& buffer, posix::fd_t passfd) const noexcept
   header.msg_control = aux_buffer;
 
   iov.iov_base = buffer.begin();
-  iov.iov_len = CMSG_SPACE(sizeof(int));
+  //iov.iov_len = CMSG_SPACE(sizeof(int));
+  iov.iov_len = buffer.size(); // ???
 
   header.msg_controllen = 0;
 
@@ -204,10 +205,10 @@ bool ServerSocket::bind(const char* socket_path, EDomain domain, int socket_back
        false,
       "socket_path (%lu characters) exceeds the maximum path length (%lu characters)", posix::strlen(socket_path), sizeof(sockaddr_un::sun_path));
 
-  m_selfaddr = socket_path;
-  m_selfaddr = domain;
+  m_sockaddr = socket_path;
+  m_sockaddr = domain;
 
-  flaw(!posix::bind(m_socket, m_selfaddr, socklen_t(m_selfaddr.size())),
+  flaw(!posix::bind(m_socket, m_sockaddr, socklen_t(m_sockaddr.size())),
        terminal::warning,,
        false,
        "Unable to bind to socket to %s: %s", socket_path, posix::strerror(errno))
