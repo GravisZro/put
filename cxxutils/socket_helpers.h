@@ -88,12 +88,6 @@ namespace posix
 {
   struct sockaddr_t : sockaddr_un
   {
-    sockaddr_t(void) noexcept
-    {
-      operator =(EDomain::unspec);
-      posix::memset(sun_path, 0, sizeof(sun_path));
-    }
-
     size_t size(void) const noexcept { return sizeof(sun_family) + posix::strlen(sun_path); }
     operator struct sockaddr*(void) noexcept { return reinterpret_cast<struct sockaddr*>(this); }
     operator const struct sockaddr*(void) const noexcept { return reinterpret_cast<const struct sockaddr*>(this); }
@@ -106,11 +100,6 @@ namespace posix
 
   struct inetaddr_t : sockaddr_in
   {
-    inetaddr_t(void) noexcept
-    {
-      posix::memset(this, 0, sizeof(sockaddr_in));
-    }
-
     size_t size(void) const noexcept { return sizeof(sockaddr_in); }
     operator struct sockaddr*(void) noexcept { return reinterpret_cast<struct sockaddr*>(this); }
     operator const struct sockaddr*(void) const noexcept { return reinterpret_cast<const struct sockaddr*>(this); }

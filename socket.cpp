@@ -159,7 +159,7 @@ bool ClientSocket::read(posix::fd_t socket, Flags_t flags) noexcept
        false,
        "Socket disconnected.")
 
-  flaw(!m_buffer.resize(byte_count),
+  flaw(!m_buffer.allocate(byte_count),
        terminal::severe,,
        posix::error(posix::errc::not_enough_memory),
        "Failed to resize buffer to %li bytes", byte_count)

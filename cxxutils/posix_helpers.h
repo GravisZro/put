@@ -48,6 +48,7 @@ namespace posix
   using ::atexit;
 #endif
   using ::malloc;
+  using ::realloc;
   using ::free;
 
   // ctype.h
