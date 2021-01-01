@@ -16,11 +16,13 @@
 class vfifo
 {
 public:
-  template<typename... ArgTypes>
-  vfifo(ArgTypes&... args) noexcept : vfifo() { serialize(args...); }
+//  template<typename... ArgTypes>
+//  vfifo(ArgTypes&... args) noexcept : vfifo() { serialize(args...); }
 
   vfifo(posix::ssize_t length = 0x0000FFFF) noexcept  // default size is 64 KiB
     : m_data(nullptr), m_capacity(0) { reset(); allocate(length); }
+
+  vfifo(const vfifo& other) noexcept;
 
   vfifo(vfifo&& that) noexcept = default;
   vfifo& operator=(vfifo&& other) noexcept = default;
@@ -127,7 +129,7 @@ private:
     if(push<uint16_t>(sizeof(T)) &&
        push<uint16_t>(length))
       for(posix::size_t i = 0; m_ok && i < length; ++i)
-        push(arg[i]);
+        push<T>(arg[i]);
   }
 
   template<typename T>

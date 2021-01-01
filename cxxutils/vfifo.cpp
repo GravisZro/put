@@ -1,5 +1,14 @@
 #include "vfifo.h"
 
+vfifo::vfifo(const vfifo& other) noexcept
+  :
+    m_virt_begin(0),
+    m_virt_end(other.size()),
+    m_ok(true)
+{
+  m_data = posix::malloc(other.size());
+}
+
 bool vfifo::allocate(posix::ssize_t length) noexcept
 {
   if(discarded() && size())
