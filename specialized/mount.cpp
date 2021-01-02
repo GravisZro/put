@@ -1063,8 +1063,12 @@ dev_t device_id(const char* device) noexcept
 static inline bool link_resolve(const char* input, char* output) noexcept
 {
   assert(input != output);
-  return readlink(input, output, PATH_MAX) > 0 ||
-      (errno == EINVAL && posix::strncpy(output, input, PATH_MAX));
+  if(readlink(input, output, PATH_MAX) > 0 || errno == EINVAL)
+  {
+    posix::strncpy(output, input, PATH_MAX);
+    return true;
+  }
+  return false;
 }
 
 static inline bool device2dir(const char* input, char* output) noexcept
@@ -1089,7 +1093,10 @@ static inline bool device2dir(const char* input, char* output) noexcept
       if(mount_table(table))
         for(const fsentry_t& entry : table)
           if(!posix::strcmp(entry.device, input))
-            return posix::strncpy(output, entry.path, PATH_MAX) == output;
+          {
+            posix::strncpy(output, entry.path, PATH_MAX);
+            return true;
+          }
     }
   }
   return false;
@@ -1117,7 +1124,10 @@ static inline bool dir2device(const char* input, char* output) noexcept
       if(mount_table(table))
         for(const fsentry_t& entry : table)
           if(!posix::strcmp(entry.path, input))
-            return posix::strncpy(output, entry.device, PATH_MAX) == output;
+          {
+            posix::strncpy(output, entry.device, PATH_MAX);
+            return true;
+          }
     }
   }
   return false;
