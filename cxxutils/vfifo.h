@@ -35,7 +35,7 @@ public:
 
 // === error functions ===
   constexpr bool hadError(void) const noexcept { return !m_ok; }
-  constexpr void clearError(void) noexcept { m_ok = true; }
+  constexpr_maybe void clearError(void) noexcept { m_ok = true; }
 
 // === serializer frontends ===
   template<typename T>
