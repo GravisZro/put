@@ -68,7 +68,7 @@ public:
 
 // === manual queue manipulators ===
 
-  constexpr       bool           empty    (void) const noexcept { return !size(); }
+  constexpr_maybe bool           empty    (void) const noexcept { return !size(); }
   constexpr_maybe posix::ssize_t size     (void) const noexcept { return m_virt_end - m_virt_begin; }
   constexpr_maybe posix::ssize_t discarded(void) const noexcept { return m_virt_begin; }
   constexpr_maybe posix::ssize_t used     (void) const noexcept { return m_virt_end; }
@@ -86,8 +86,6 @@ public:
 
   template<typename T = char> constexpr T* begin   (void) const noexcept { return reinterpret_cast<T*>(m_data); }
   template<typename T = char> constexpr T* end     (void) const noexcept { return reinterpret_cast<T*>(static_cast<uint8_t*>(m_data) + m_capacity); }
-
-  constexpr posix::ssize_t& capacity(void) noexcept { return m_capacity; }
 
 private:
   template<typename T>
@@ -128,9 +126,9 @@ private:
   void serialize_arr(const T* arg, uint16_t length) noexcept
   {
     if(size() < discarded())
-      allocate(capacity());
+      allocate(m_capacity);
     if(posix::ssize_t(sizeof(T)) > unused())
-      allocate(capacity() * 2);
+      allocate(m_capacity * 2);
 
     if(push<uint16_t>(sizeof(T)) &&
        push<uint16_t>(length))
