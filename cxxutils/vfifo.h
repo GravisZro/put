@@ -12,6 +12,12 @@
 // PUT
 #include <put/cxxutils/posix_helpers.h>
 
+#if __GNUC__ >= 7 || __clang_major__ >= 3
+# define constexpr_maybe constexpr
+#else
+# define constexpr_maybe inline
+#endif
+
 // virtual queue class
 class vfifo
 {
@@ -62,12 +68,12 @@ public:
 
 // === manual queue manipulators ===
 
-  constexpr bool           empty    (void) const noexcept { return !size(); }
-  constexpr posix::ssize_t size     (void) const noexcept { return m_virt_end - m_virt_begin; }
-  constexpr posix::ssize_t discarded(void) const noexcept { return m_virt_begin; }
-  constexpr posix::ssize_t used     (void) const noexcept { return m_virt_end; }
-  constexpr posix::ssize_t unused   (void) const noexcept { return m_capacity - m_virt_end; }
-  constexpr posix::ssize_t capacity (void) const noexcept { return m_capacity; }
+  constexpr       bool           empty    (void) const noexcept { return !size(); }
+  constexpr_maybe posix::ssize_t size     (void) const noexcept { return m_virt_end - m_virt_begin; }
+  constexpr_maybe posix::ssize_t discarded(void) const noexcept { return m_virt_begin; }
+  constexpr_maybe posix::ssize_t used     (void) const noexcept { return m_virt_end; }
+  constexpr_maybe posix::ssize_t unused   (void) const noexcept { return m_capacity - m_virt_end; }
+  constexpr_maybe posix::ssize_t capacity (void) const noexcept { return m_capacity; }
 
   bool allocate(posix::ssize_t length) noexcept;
   void reset(void) noexcept;
