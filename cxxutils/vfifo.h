@@ -34,7 +34,7 @@ public:
   vfifo& operator=(vfifo&& other) noexcept = default;
 
 // === error functions ===
-  constexpr bool hadError(void) const noexcept { return !m_ok; }
+  constexpr_maybe bool hadError(void) const noexcept { return !m_ok; }
   constexpr_maybe void clearError(void) noexcept { m_ok = true; }
 
 // === serializer frontends ===
