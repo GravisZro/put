@@ -22,16 +22,11 @@
 class vfifo
 {
 public:
-//  template<typename... ArgTypes>
-//  vfifo(ArgTypes&... args) noexcept : vfifo() { serialize(args...); }
-
-  vfifo(posix::ssize_t length = 0x0000FFFF) noexcept  // default size is 64 KiB
-    : m_data(nullptr), m_capacity(0) { reset(); allocate(length); }
-
+  vfifo(posix::ssize_t length = 0x0000FFFF) noexcept;  // default size is 64 KiB
   vfifo(const vfifo& other) noexcept;
+  ~vfifo(void) noexcept;
 
-  vfifo(vfifo&& that) noexcept = default;
-  vfifo& operator=(vfifo&& other) noexcept = default;
+  vfifo& operator=(const vfifo& other) = delete;
 
 // === error functions ===
   constexpr_maybe bool hadError(void) const noexcept { return !m_ok; }

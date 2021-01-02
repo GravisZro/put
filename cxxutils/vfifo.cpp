@@ -1,12 +1,23 @@
 #include "vfifo.h"
 
-vfifo::vfifo(const vfifo& other) noexcept
-  :
-    m_virt_begin(0),
-    m_virt_end(other.size()),
-    m_ok(true)
+vfifo::vfifo(posix::ssize_t length) noexcept  // default size is 64 KiB
+  : m_data(NULL), m_capacity(0)
 {
-  m_data = posix::malloc(other.size());
+  reset();
+  allocate(length);
+}
+
+vfifo::vfifo(const vfifo& other) noexcept
+{
+  reset();
+  m_capacity = m_virt_end = other.size();
+  m_data = posix::malloc(m_capacity);
+}
+
+vfifo::~vfifo(void) noexcept
+{
+  posix::free(m_data);
+  m_data = NULL;
 }
 
 bool vfifo::allocate(posix::ssize_t length) noexcept
