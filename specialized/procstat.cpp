@@ -362,102 +362,103 @@ bool proc_stat_decoder(posix::FILE* file, process_state_t& data) noexcept
     unsigned int  policy;                   // Scheduling policy (see sched_setscheduler(2)). Decode using the SCHED_* constants in linux/sched.h.
   } process;
 
-  posix::fscanf(file,
-              "%" SCNd32 " " // pid
-              "%s " // comm
-              "%c " // state
-              "%" SCNd32 " " // ppid
-              "%" SCNd32 " " // pgrp
-              "%" SCNd32 " " // session
-              "%" SCNd64 " " // tty_nr
-              "%" SCNd32 " " // tpgid
-              "%" SCNu32 " " // flags
-              "%" SCNd32 " " // minflt
-              "%" SCNu32 " " // cminflt
-              "%" SCNu32 " " // majflt
-              "%" SCNu32 " " // cmajflt
-              "%" SCNu32 " " // utime
-              "%" SCNu32 " " // stime
-              "%" SCNd32 " " // cutime
-              "%" SCNd32 " " // cstime
-              "%" SCNd32 " " // priority
-              "%" SCNd8  " " // nice
-              "%" SCNu32 " " // num_threads
-              "%" SCNu32 " " // itrealvalue
-              "%" SCNu32 " " // starttime
-              "%" SCNu32 " " // vsize
-              "%" SCNd32 " " // rss
-              "%" SCNu32 " " // rsslim
-              "%" SCNu32 " " // startcode
-              "%" SCNu32 " " // endcode
-              "%" SCNu32 " " // startstack
-              "%" SCNu32 " " // kstkesp
-              "%" SCNu32 " " // kstkeip
-              "%" SCNu32 " " // signal
-              "%" SCNu32 " " // blocked
-              "%" SCNu32 " " // sigignore
-              "%" SCNu32 " " // sigcatch
-              "%" SCNu32 " " // wchan
-              "%" SCNu32 " " // nswap
-              "%" SCNu32 " " // cnswap
-            #if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,1,22)
-              "%" SCNd32 " " // exit_signal
-            # if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,2,8)
-              "%" SCNd32 " " // processor
-            #  if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,5,19)
-              "%" SCNu32 " " // rt_priority
-              "%" SCNu32 " " // policy
-            #  endif
-            # endif
-            #endif
-              , &data.process_id
-              , process.name
-              , &process.state
-              , &data.parent_process_id
-              , &data.process_group_id
-              , &data.session_id
-              , &data.tty_device
-              , &process.tpgid
-              , &process.flags
-              , &process.minflt
-              , &process.cminflt
-              , &process.majflt
-              , &process.cmajflt
-              , &process.utime
-              , &process.stime
-              , &process.cutime
-              , &process.cstime
-              , &data.priority_value
-              , &data.nice_value
-              , &process.num_threads
-              , &process.itrealvalue
-              , &process.starttime
-              , &process.vsize
-              , &process.rss
-              , &process.rlim
-              , &process.startcode
-              , &process.endcode
-              , &process.startstack
-              , &process.kstkesp
-              , &process.kstkeip
-              , &process.signal
-              , &process.blocked
-              , &process.sigignore
-              , &process.sigcatch
-              , &process.wchan
-              , &process.nswap
-              , &process.cnswap
-            #if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,1,22)
-              , &process.exit_signal
-            # if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,2,8)
-              , &process.processor
-            #  if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,5,19)
-              , &process.rt_priority
-              , &process.policy
-            #  endif
-            # endif
-            #endif
-              );
+  int scancount =
+    posix::fscanf(file,
+                "%" SCNd32 " " // pid
+                "%s " // comm
+                "%c " // state
+                "%" SCNd32 " " // ppid
+                "%" SCNd32 " " // pgrp
+                "%" SCNd32 " " // session
+                "%" SCNd64 " " // tty_nr
+                "%" SCNd32 " " // tpgid
+                "%" SCNu32 " " // flags
+                "%" SCNd32 " " // minflt
+                "%" SCNu32 " " // cminflt
+                "%" SCNu32 " " // majflt
+                "%" SCNu32 " " // cmajflt
+                "%" SCNu32 " " // utime
+                "%" SCNu32 " " // stime
+                "%" SCNd32 " " // cutime
+                "%" SCNd32 " " // cstime
+                "%" SCNd32 " " // priority
+                "%" SCNd8  " " // nice
+                "%" SCNu32 " " // num_threads
+                "%" SCNu32 " " // itrealvalue
+                "%" SCNu32 " " // starttime
+                "%" SCNu32 " " // vsize
+                "%" SCNd32 " " // rss
+                "%" SCNu32 " " // rsslim
+                "%" SCNu32 " " // startcode
+                "%" SCNu32 " " // endcode
+                "%" SCNu32 " " // startstack
+                "%" SCNu32 " " // kstkesp
+                "%" SCNu32 " " // kstkeip
+                "%" SCNu32 " " // signal
+                "%" SCNu32 " " // blocked
+                "%" SCNu32 " " // sigignore
+                "%" SCNu32 " " // sigcatch
+                "%" SCNu32 " " // wchan
+                "%" SCNu32 " " // nswap
+                "%" SCNu32 " " // cnswap
+              #if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,1,22)
+                "%" SCNd32 " " // exit_signal
+              # if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,2,8)
+                "%" SCNd32 " " // processor
+              #  if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,5,19)
+                "%" SCNu32 " " // rt_priority
+                "%" SCNu32 " " // policy
+              #  endif
+              # endif
+              #endif
+                , &data.process_id
+                , process.name
+                , &process.state
+                , &data.parent_process_id
+                , &data.process_group_id
+                , &data.session_id
+                , &data.tty_device
+                , &process.tpgid
+                , &process.flags
+                , &process.minflt
+                , &process.cminflt
+                , &process.majflt
+                , &process.cmajflt
+                , &process.utime
+                , &process.stime
+                , &process.cutime
+                , &process.cstime
+                , &data.priority_value
+                , &data.nice_value
+                , &process.num_threads
+                , &process.itrealvalue
+                , &process.starttime
+                , &process.vsize
+                , &process.rss
+                , &process.rlim
+                , &process.startcode
+                , &process.endcode
+                , &process.startstack
+                , &process.kstkesp
+                , &process.kstkeip
+                , &process.signal
+                , &process.blocked
+                , &process.sigignore
+                , &process.sigcatch
+                , &process.wchan
+                , &process.nswap
+                , &process.cnswap
+              #if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,1,22)
+                , &process.exit_signal
+              # if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,2,8)
+                , &process.processor
+              #  if KERNEL_VERSION_CODE >= KERNEL_VERSION(2,5,19)
+                , &process.rt_priority
+                , &process.policy
+              #  endif
+              # endif
+              #endif
+                );
 
   long int ticks = sysconf(_SC_CLK_TCK);
   data.start_time.tv_sec  = process.starttime / ticks;
