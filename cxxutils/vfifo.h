@@ -76,11 +76,11 @@ public:
   template<typename T = char> constexpr T& front   (void) noexcept       { return *data<T>(); }
   template<typename T = char> constexpr T& back    (void) noexcept       { return *dataEnd<T>(); }
 
-  template<typename T = char> constexpr T* data    (void) const noexcept { return reinterpret_cast<T*>(static_cast<uint8_t*>(m_data) + m_virt_begin); }
-  template<typename T = char> constexpr T* dataEnd (void) const noexcept { return reinterpret_cast<T*>(static_cast<uint8_t*>(m_data) + m_virt_end  ); }
+  template<typename T = char> constexpr T* data    (void) const noexcept { return reinterpret_cast<T*>(static_cast<uint8_t*>(m_data) + m_virt_begin); } // lgtm[cpp/incorrect-string-type-conversion]
+  template<typename T = char> constexpr T* dataEnd (void) const noexcept { return reinterpret_cast<T*>(static_cast<uint8_t*>(m_data) + m_virt_end  ); } // lgtm[cpp/incorrect-string-type-conversion]
 
-  template<typename T = char> constexpr T* begin   (void) const noexcept { return reinterpret_cast<T*>(m_data); }
-  template<typename T = char> constexpr T* end     (void) const noexcept { return reinterpret_cast<T*>(static_cast<uint8_t*>(m_data) + m_capacity); }
+  template<typename T = char> constexpr T* begin   (void) const noexcept { return reinterpret_cast<T*>(m_data); } // lgtm[cpp/incorrect-string-type-conversion]
+  template<typename T = char> constexpr T* end     (void) const noexcept { return reinterpret_cast<T*>(static_cast<uint8_t*>(m_data) + m_capacity); } // lgtm[cpp/incorrect-string-type-conversion]
 
 private:
   template<typename T>
