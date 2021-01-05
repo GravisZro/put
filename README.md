@@ -1,4 +1,4 @@
-# PUT
+# PUT [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/GravisZro/put.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/GravisZro/put/context:cpp)
 Public Unix Toolkit is a ultra-lightweight event-driven toolkit using POSIX, C++14 code and OS specific event system backends.
 
 ## Features
