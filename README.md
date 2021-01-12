@@ -9,6 +9,6 @@ Public Unix Toolkit is a ultra-lightweight event-driven toolkit using POSIX, C++
 * Multithread safe.
 
 ## Supporting Compilers
-* G++ 4.9 or greater
-* Clang 3.9 or greater
-* XCode 8.3 or greater
+* ![G++ 4.9 or greater](https://img.shields.io/static/v1?style=flat-square&label=G%2B%2B&message=%3E=%204.9&color=blue)
+* ![Clang 3.9 or greater](https://img.shields.io/static/v1?style=flat-square&label=Clang&message=%3E=%203.9&color=blue)
+* ![XCode 8.3 or greater](https://img.shields.io/static/v1?style=flat-square&label=XCode&message=%3E=%208.3&color=blue)
